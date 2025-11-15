@@ -1,0 +1,1542 @@
+﻿===== Chat Flow & Messages file START =====
+
+
+WhatsApp Chatbot Flow – Region wise 
+Whatsapp will automatically detect the person’s country/region from the sender’s number:
+* Pakistan (+92)
+* India (+91)
+* Bangladesh (+880)
+* UAE (+971)
+* Saudi (+966)
+* Etc
+
+
+Based on the region a dynamic menu will be displayed to the person as follow;
+* Pakistan: English, Urdu, Roman Urdu
+* India: English, Hindi, Urdu, Roman Urdu
+* Bangladesh: English, Urdu, Roman Urdu, Bangla
+* Middle East: English, Urdu, Arabic, Roman Urdu
+* Other Countries (agar country kisi aur region ki ho uper diay gy regions k ilawa): English, Urdu, Roman Urdu
+
+
+________________
+
+
+🔹 Step 1 — Language Selection / زبان کا انتخاب
+🇵🇰 Pakistan
+Welcome! Please choose your preferred language:
+:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں
+Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
+1️⃣ English
+2️⃣ اردو
+3️⃣ Roman Urdu
+________________
+
+
+🇮🇳 India
+Welcome! Please choose your preferred language:
+:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں
+स्वागत है! कृपया अपनी भाषा चुनें
+Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
+1️⃣ English
+2️⃣ हिन्दी
+3️⃣ اردو
+4️⃣ Roman Urdu
+________________
+
+
+🇧🇩 Bangladesh
+Welcome! Please choose your preferred language:
+:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں
+স্বাগতম! দয়া করে আপনার ভাষা নির্বাচন করুন
+Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
+1️⃣ English
+2️⃣ বাংলা
+3️⃣ اردو
+4️⃣ Roman Urdu
+________________
+
+
+🌍 Middle East (KSA, UAE, Qatar, etc.)
+Welcome! Please choose your preferred language:
+:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں
+مرحبًا! يرجى اختيار لغتك المفضلة
+Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
+1️⃣ English
+2️⃣ العربية
+3️⃣ اردو
+4️⃣ Roman Urdu
+________________
+
+
+🌐 Other Countries (Default)
+Welcome! Please choose your preferred language:
+:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں
+Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
+1️⃣ English
+2️⃣ اردو
+3️⃣ Roman Urdu
+
+
+
+
+
+
+
+
+🔹 Step 3 — Identify User Type / صارف کی شناخت
+🌍 Pakistan (Languages: English, Urdu, Roman Urdu)
+Bot Message:
+* English: Please tell us who you are so we can help better.
+
+* Urdu: براہ کرم بتائیں آپ کس صورت میں مدد چاہتے ہیں؟
+
+* Roman Urdu: Barah-e-karam batayein aap kis surat mein madad chahte hain?
+
+Options:
+ 1️⃣ I’m searching for a missing loved one.
+   * Urdu: میں کسی کھوئے ہوئے شخص کو ڈھونڈ رہا/رہی ہوں۔
+
+   * Roman Urdu: Main kisi khoe hue shakhs ko dhoond raha/rahi hoon.
+
+2️⃣ I’m lost and looking for my family.
+      * Urdu: میں خود کھو گیا/گئی ہوں اور اپنے گھر والوں سے رابطہ کرنا چاہتا/چاہتی ہوں۔
+
+      * Roman Urdu: Main khud kho gaya/kho gayi hoon aur apne ghar walon se raabta karna chahta/chahti hoon.
+
+3️⃣ I know someone who is missing and I want to help.
+         * Urdu: میں کسی گمشدہ شخص کو جانتا/جانتی ہوں اور اس کی مدد کرنا چاہتا/چاہتی ہوں۔
+
+         * Roman Urdu: Main kisi gumshuda shakhs ko jaanta/jaanti hoon aur uski madad karna chahta/chahti hoon.
+
+________________
+
+
+🇮🇳 India (Languages: English, Hindi)
+Bot Message:
+            * English: Please tell us who you are so we can help better.
+
+            * Hindi: कृपया हमें बताइए कि आप कौन हैं ताकि हम बेहतर मदद कर सकें।
+
+Options:
+ 1️⃣ I’m searching for a missing loved one.
+               * Hindi: मैं किसी खोए हुए व्यक्ति को ढूंढ रहा/रही हूँ।
+
+2️⃣ I’m lost and looking for my family.
+                  * Hindi: मैं खुद खो गया/गई हूँ और अपने परिवार से संपर्क करना चाहता/चाहती हूँ।
+
+3️⃣ I know someone who is missing and I want to help.
+                     * Hindi: मैं किसी गुमशुदा व्यक्ति को जानता/जानती हूँ और उसकी मदद करना चाहता/चाहती हूँ।
+
+________________
+
+
+🇧🇩 Bangladesh (Languages: English, Bangla)
+Bot Message:
+                        * English: Please tell us who you are so we can help better.
+
+                        * Bangla: অনুগ্রহ করে আমাদের বলুন আপনি কে, যাতে আমরা আরও ভালোভাবে সাহায্য করতে পারি।
+
+Options:
+ 1️⃣ I’m searching for a missing loved one.
+                           * Bangla: আমি একজন নিখোঁজ প্রিয়জনকে খুঁজছি।
+
+2️⃣ I’m lost and looking for my family.
+                              * Bangla: আমি নিজেই হারিয়ে গেছি এবং আমার পরিবারের সাথে যোগাযোগ করতে চাই।
+
+3️⃣ I know someone who is missing and I want to help.
+                                 * Bangla: আমি একজন নিখোঁজ ব্যক্তিকে চিনি এবং আমি সাহায্য করতে চাই।
+
+________________
+
+
+🇸🇦 Middle East (Languages: English, Arabic)
+Bot Message:
+                                    * English: Please tell us who you are so we can help better.
+
+                                    * Arabic: من فضلك أخبرنا من أنت حتى نتمكن من مساعدتك بشكل أفضل.
+
+Options:
+ 1️⃣ I’m searching for a missing loved one.
+                                       * Arabic: أنا أبحث عن شخص مفقود من أحبائي.
+
+2️⃣ I’m lost and looking for my family.
+                                          * Arabic: أنا ضائع وأبحث عن عائلتي.
+
+3️⃣ I know someone who is missing and I want to help.
+                                             * Arabic: أنا أعرف شخصًا مفقودًا وأريد أن أساعده.
+
+________________
+
+
+🌐 Other Regions (Languages: English only)
+Bot Message:
+                                                * English: Please tell us who you are so we can help better.
+
+Options:
+ 1️⃣ I’m searching for a missing loved one.
+2️⃣ I’m lost and looking for my family.
+3️⃣ I know someone who is missing and I want to help.
+
+
+
+
+
+
+
+
+
+
+🔹 Step 4A — Data Collection (Searching for a Missing Person)
+🔹 Step 4A (1) — Eligibility Check / اہلیت کی تصدیق
+________________
+
+
+🇵🇰 Pakistan
+English:
+ Before we begin, please clarify one thing:
+Has your loved one been arrested by the police or any agency?
+Urdu:
+ شروع کرنے سے پہلے، ایک بات بتا دیں:
+کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟
+Roman Urdu:
+ Shuru karne se pehle, ek baat bata dein:
+Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?
+Options:
+ 1️⃣ Yes / Haan — جی ہاں
+2️⃣ No / Nahi — نہیں
+________________
+
+
+🇮🇳 India
+English:
+ Before we begin, please clarify one thing:
+Has your loved one been arrested by the police or any agency?
+Hindi:
+ शुरू करने से पहले, कृपया एक बात बताइए:
+क्या आपके प्रियजन को पुलिस या किसी एजेंसी ने गिरफ्तार किया है?
+Urdu:
+ شروع کرنے سے پہلے، ایک بات بتا دیں:
+کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟
+Roman Urdu:
+ Shuru karne se pehle, ek baat bata dein:
+Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?
+Options:
+ 1️⃣ Yes / Haan / हाँ — جی ہاں
+2️⃣ No / Nahi / नहीं — نہیں
+________________
+
+
+🇧🇩 Bangladesh
+English:
+ Before we begin, please clarify one thing:
+Has your loved one been arrested by the police or any agency?
+Bangla (বাংলা):
+ শুরু করার আগে, দয়া করে একটি কথা বলুন:
+আপনার প্রিয়জনকে কি পুলিশ বা কোনো এজেন্সি গ্রেফতার করেছে?
+Urdu:
+ شروع کرنے سے پہلے، ایک بات بتا دیں:
+کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟
+Roman Urdu:
+ Shuru karne se pehle, ek baat bata dein:
+Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?
+Options:
+ 1️⃣ Yes / Haan / হ্যাঁ — جی ہاں
+2️⃣ No / Nahi / না — نہیں
+________________
+
+
+🌍 Middle East (KSA, UAE, Qatar, etc.)
+English:
+ Before we begin, please clarify one thing:
+Has your loved one been arrested by the police or any agency?
+Arabic (العربية):
+ قبل أن نبدأ، يرجى توضيح أمر واحد:
+هل تم اعتقال قريبك من قبل الشرطة أو أي جهة؟
+Urdu:
+ شروع کرنے سے پہلے، ایک بات بتا دیں:
+کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟
+Roman Urdu:
+ Shuru karne se pehle, ek baat bata dein:
+Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?
+Options:
+ 1️⃣ Yes / Haan / نعم — جی ہاں
+2️⃣ No / Nahi / لا — نہیں
+________________
+
+
+🌐 Other Countries (Default)
+English:
+ Before we begin, please clarify one thing:
+Has your loved one been arrested by the police or any agency?
+Urdu:
+ شروع کرنے سے پہلے، ایک بات بتا دیں:
+کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟
+Roman Urdu:
+ Shuru karne se pehle, ek baat bata dein:
+Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?
+Options:
+ 1️⃣ Yes / Haan — جی ہاں
+2️⃣ No / Nahi — نہیں
+✅ If user selects “Yes / Haan”
+🇵🇰 Pakistan (English, Urdu, Roman Urdu)
+                                                   * English: We’re truly sorry for your situation. Unfortunately, we are not able to take such cases.
+
+                                                   * Urdu: ہم آپ کے دکھ میں شریک ہیں لیکن ہم پولیس یا ایجنسی کے کیسز نہیں لیتے۔
+
+                                                   * Roman Urdu: Hum aap ke dukh mein shareek hain, lekin hum police ya agency ke cases handle nahi karte.
+➡️ Chat ends.
+
+________________
+
+
+🇮🇳 India (English, Hindi, Urdu, Roman Urdu)
+                                                      * English: We’re truly sorry for your situation. Unfortunately, we are not able to take such cases.
+
+                                                      * Hindi: हमें आपकी स्थिति के लिए बहुत खेद है। दुर्भाग्यवश, हम ऐसे मामलों को नहीं ले सकते।
+
+                                                      * Urdu: ہم آپ کے دکھ میں شریک ہیں لیکن ہم پولیس یا ایجنسی کے کیسز نہیں لیتے۔
+
+                                                      * Roman Urdu: Hum aap ke dukh mein shareek hain, lekin hum police ya agency ke cases handle nahi karte.
+➡️ Chat ends.
+
+________________
+
+
+🇧🇩 Bangladesh (English, Bangla, Urdu, Roman Urdu)
+                                                         * English: We’re truly sorry for your situation. Unfortunately, we are not able to take such cases.
+
+                                                         * Bangla (বাংলা): আমরা আপনার পরিস্থিতির জন্য আন্তরিকভাবে দুঃখিত। দুর্ভাগ্যবশত, আমরা এ ধরনের কেস নিতে পারি না।
+
+                                                         * Urdu: ہم آپ کے دکھ میں شریک ہیں لیکن ہم پولیس یا ایجنسی کے کیسز نہیں لیتے۔
+
+                                                         * Roman Urdu: Hum aap ke dukh mein shareek hain, lekin hum police ya agency ke cases handle nahi karte.
+➡️ Chat ends.
+
+________________
+
+
+🌍 Middle East (English, Arabic, Urdu, Roman Urdu)
+                                                            * English: We’re truly sorry for your situation. Unfortunately, we are not able to take such cases.
+
+                                                            * Arabic (العربية): نحن آسفون جدًا لوضعك. للأسف، لا يمكننا التعامل مع مثل هذه الحالات.
+
+                                                            * Urdu: ہم آپ کے دکھ میں شریک ہیں لیکن ہم پولیس یا ایجنسی کے کیسز نہیں لیتے۔
+
+                                                            * Roman Urdu: Hum aap ke dukh mein shareek hain, lekin hum police ya agency ke cases handle nahi karte.
+➡️ Chat ends.
+
+________________
+
+
+🌐 Other Countries (Default: English, Urdu, Roman Urdu)
+                                                               * English: We’re truly sorry for your situation. Unfortunately, we are not able to take such cases.
+
+                                                               * Urdu: ہم آپ کے دکھ میں شریک ہیں لیکن ہم پولیس یا ایجنسی کے کیسز نہیں لیتے۔
+
+                                                               * Roman Urdu: Hum aap ke dukh mein shareek hain, lekin hum police ya agency ke cases handle nahi karte.
+➡️ Chat ends.
+
+🌍 STEP: Eligibility Rejection Prompt (All Languages)
+System message (after rejection):
+________________
+
+
+🇬🇧 English
+We are sorry for your situation, but we are unable to take police or agency-related cases.
+Would you like to submit a new case?
+1️⃣ Yes
+2️⃣ No
+________________
+
+
+🇵🇰 Urdu (اردو)
+ہم آپ کے دُکھ میں شریک ہیں، مگر ہم پولیس یا ادارے کے کیسز نہیں لیتے۔
+کیا آپ کوئی نیا کیس جمع کروانا چاہتے ہیں؟
+1️⃣ جی ہاں
+2️⃣ نہیں
+________________
+
+
+🇵🇰 Roman Urdu
+Hum aap ke dukh mein shareek hain, magar hum police ya idaray ke cases handle nahi karte.
+Kya aap koi naya case submit karna chahte hain?
+1️⃣ Haan
+2️⃣ Nahi
+________________
+
+
+🇮🇳 Hindi (हिन्दी)
+हमें आपके हालात का दुःख है, लेकिन हम पुलिस या एजेंसी से जुड़े मामलों को नहीं ले सकते।
+क्या आप नया केस जमा करना चाहते हैं?
+1️⃣ हाँ
+2️⃣ नहीं
+________________
+
+
+🇧🇩 Bangla (বাংলা)
+আমরা আপনার পরিস্থিতির জন্য দুঃখিত, কিন্তু আমরা পুলিশ বা এজেন্সি-সংক্রান্ত মামলা গ্রহণ করি না।
+আপনি কি একটি নতুন কেস জমা দিতে চান?
+1️⃣ হ্যাঁ
+2️⃣ না
+________________
+
+
+🇸🇦 Arabic (العربية)
+نحن متأسفون لوضعك، ولكن لا يمكننا التعامل مع القضايا المتعلقة بالشرطة أو الجهات الأمنية.
+هل ترغب في تقديم بلاغ جديد؟
+1️⃣ نعم
+2️⃣ لا
+IF user selects “1️⃣ Yes / Haan / جی ہاں / হ্যাঁ / نعم”
+➡️ Send them back to Step 3 — Identify User Type
+ ⬇️ Show the full User Type menu again.
+________________
+
+
+                                                                  * IF user selects “2️⃣ No / Nahi / نہیں / না / لا”
+                                                                  * ➡️ Chat ends completely
+ ➡️ Session resets
+ ➡️ User sees a small closing message in his language:
+🌍 Step 6 – Closing Message
+(Shown ONLY when user selects “No” after eligibility rejection)
+________________
+
+
+🇬🇧 English
+May Allah reunite every family with their loved ones. Ameen.
+Thank you for trusting us.
+________________
+
+
+🇵🇰 Urdu (اردو)
+اللہ ہر خاندان کو ان کے پیاروں سے ملائے۔ آمین۔
+ہم پر بھروسہ کرنے کا شکریہ۔
+________________
+
+
+🇵🇰 Roman Urdu
+Allah har khandaan ko unke pyaron se milaye. Ameen.
+Hum par bharosa karne ka shukriya.
+________________
+
+
+🇮🇳 Hindi (हिन्दी)
+अल्लाह हर परिवार को उनके अपनों से मिला दे। आमीन।
+हम पर भरोसा करने के लिए शुक्रिया।
+________________
+
+
+🇧🇩 Bangla (বাংলা)
+আল্লাহ প্রতিটি পরিবারকে তাদের প্রিয়জনদের সাথে মিলিয়ে দিন। আমীন।
+আমাদের উপর ভরসা করার জন্য ধন্যবাদ।
+________________
+
+
+🇸🇦 Arabic (العربية)
+اللهم اجمع كل أسرة مع أحبّائها. آمين.
+شكراً لثقتكم بنا.
+
+
+
+
+🌍 Empathetic Intro (All Regions)
+                                                                     * English: We’ll ask you a few short questions to help us search effectively, inshaAllah. You can type or send a voice note if that’s easier.
+
+                                                                     * Urdu: ہم چند مختصر سوالات کریں گے تاکہ بہتر مدد کر سکیں، ان شاء اللہ۔ آپ لکھ سکتے ہیں یا آواز کا پیغام بھیج سکتے ہیں۔
+
+                                                                     * Roman Urdu: Hum kuch mukhtasir sawalat karein ge taake behtar madad kar saken, inshaAllah. Aap likh sakte hain ya awaaz ka paigham bhej sakte hain.
+
+                                                                     * Hindi: हम आपसे कुछ छोटे सवाल पूछेंगे ताकि हम बेहतर मदद कर सकें, इंशाअल्लाह। आप लिख सकते हैं या वॉइस नोट भेज सकते हैं।
+
+                                                                     * Bangla: আমরা কয়েকটি সংক্ষিপ্ত প্রশ্ন করব যাতে আমরা ভালোভাবে সাহায্য করতে পারি, ইনশাআল্লাহ। আপনি লিখতে পারেন বা ভয়েস নোট পাঠাতে পারেন।
+
+                                                                     * Arabic: سنسألك بعض الأسئلة القصيرة لمساعدتنا في البحث بشكل أفضل، إن شاء الله. يمكنك الكتابة أو إرسال رسالة صوتية إذا كان ذلك أسهل.
+
+________________
+
+
+📋 Questions
+1️⃣ 🌍 What country is the missing person from?
+                                                                        * English: What country is the missing person from?
+
+                                                                        * Urdu: گمشدہ شخص کا تعلق کس ملک سے ہے؟
+
+                                                                        * Roman Urdu: Gumshuda shakhs ka ta‘alluq kis mulk se hai?
+
+                                                                        * Hindi: गुमशुदा व्यक्ति किस देश से है?
+
+                                                                        * Bangla: নিখোঁজ ব্যক্তির দেশ কোনটি?
+
+                                                                        * Arabic: من أي بلد الشخص المفقود؟
+
+Options:
+🇵🇰 Pakistan
+🌐 Other country (Write the name)
+________________
+
+
+2️⃣ 📝 What is the full name of the missing person?
+                                                                           * English: What is the full name of the missing person?
+
+                                                                           * Urdu: گمشدہ شخص کا پورا نام کیا ہے؟
+
+                                                                           * Roman Urdu: Missing shakhs ka poora naam kya hai?
+
+                                                                           * Hindi: गुमशुदा व्यक्ति का पूरा नाम क्या है?
+
+                                                                           * Bangla: নিখোঁজ ব্যক্তির পুরো নাম কী?
+
+                                                                           * Arabic: ما الاسم الكامل للشخص المفقود؟
+
+________________
+
+
+3️⃣ 🎂 How old are they (approximate age is fine)?
+                                                                              * English: How old are they? Approximate age is fine.
+
+                                                                              * Urdu: ان کی عمر کتنی ہے؟ تقریبی عمر بھی چل جائے گی۔
+
+                                                                              * Roman Urdu: Unki umar kitni hai? Taqreeban umar bhi chalegi.
+
+                                                                              * Hindi: उनकी उम्र कितनी है? अनुमानित उम्र भी चलेगी।
+
+                                                                              * Bangla: তার বয়স কত? আনুমানিক বয়সও চলবে।
+
+                                                                              * Arabic: كم عمره؟ العمر التقريبي يكفي.
+
+________________
+
+
+4️⃣ 🚻 What is their gender?
+                                                                                 * English: What is their gender?
+
+                                                                                 * Urdu: ان کی جنس کیا ہے؟
+
+                                                                                 * Roman Urdu: Unki jins kya hai?
+
+                                                                                 * Hindi: उनका लिंग क्या है?
+
+                                                                                 * Bangla: তার লিঙ্গ কী?
+
+                                                                                 * Arabic: ما جنسهم؟
+
+Options:
+1️⃣ Male — (Mard / पुरुष / পুরুষ / ذكر)
+2️⃣ Female — (Aurat / महिला / নারী / أنثى)
+3️⃣ Other — (Doosri / अन्य / অন্যান্য / آخر)
+________________
+
+
+5️⃣ 📍 Where were they last seen (city/area)?
+                                                                                    * English: Where were they last seen (city/area)?
+
+                                                                                    * Urdu: انہیں آخری بار کہاں دیکھا گیا تھا — شہر یا علاقہ؟
+
+                                                                                    * Roman Urdu: Akhri martaba kahan dekha gaya tha — shehar ya ilaqa?
+
+                                                                                    * Hindi: उन्हें आखिरी बार कहाँ देखा गया था — शहर या इलाका?
+
+                                                                                    * Bangla: তাকে শেষবার কোথায় দেখা গিয়েছিল — শহর বা এলাকা?
+
+                                                                                    * Arabic: أين شوهد آخر مرة (مدينة / منطقة)؟
+
+________________
+
+
+6️⃣ ⏰ When were they last seen (date or time)?
+                                                                                       * English: When were they last seen (date or approximate time)?
+
+                                                                                       * Urdu: انہیں آخری بار کب دیکھا گیا تھا — تاریخ یا اندازہ؟
+
+                                                                                       * Roman Urdu: Akhri martaba kab dekha gaya tha — tareekh ya andaza?
+
+                                                                                       * Hindi: उन्हें आखिरी बार कब देखा गया था — तारीख या अनुमानित समय?
+
+                                                                                       * Bangla: তাকে শেষবার কবে দেখা গিয়েছিল — তারিখ বা আনুমানিক সময়?
+
+                                                                                       * Arabic: متى شوهد آخر مرة (تاريخ أو وقت تقريبي)؟
+
+________________
+
+
+7️⃣ 👨‍👩‍👧‍👦 What is your relationship to the missing person?
+                                                                                          * English: What is your relationship to the missing person (brother, mother, friend, etc.)?
+
+                                                                                          * Urdu: آپ کا گمشدہ شخص سے کیا رشتہ ہے — بھائی، ماں، دوست وغیرہ؟
+
+                                                                                          * Roman Urdu: Aapka gumshuda shakhs se kya rishta hai — bhai, maa, dost waghera?
+
+                                                                                          * Hindi: आपका गुमशुदा व्यक्ति से क्या रिश्ता है — भाई, माँ, दोस्त आदि?
+
+                                                                                          * Bangla: নিখোঁজ ব্যক্তির সাথে আপনার সম্পর্ক কী — ভাই, মা, বন্ধু ইত্যাদি?
+
+                                                                                          * Arabic: ما علاقتك بالشخص المفقود (أخ، أم، صديق، إلخ)؟
+
+________________
+
+
+8️⃣ 📞 Please share a contact number.
+                                                                                             * English: Please share a contact number where we can reach you.
+
+                                                                                             * Urdu: براہ کرم اپنا فون نمبر بتائیں تاکہ ہم رابطہ کر سکیں۔
+
+                                                                                             * Roman Urdu: Mehrbani kar ke apna phone number likhein jahan hum rabta kar saken.
+
+                                                                                             * Hindi: कृपया वह फ़ोन नंबर साझा करें जहाँ हम आपसे संपर्क कर सकें।
+
+                                                                                             * Bangla: অনুগ্রহ করে একটি ফোন নম্বর দিন যেখানে আমরা আপনার সাথে যোগাযোগ করতে পারি।
+
+                                                                                             * Arabic: يرجى مشاركة رقم هاتف يمكننا الوصول إليك من خلاله.
+
+________________
+
+
+9️⃣ 🖼️ If you have a photo, please send it now.
+                                                                                                * English: If you have a photo, please send it now. If not, reply “No” or describe in a voice note.
+
+                                                                                                * Urdu: اگر تصویر موجود ہے تو ابھی بھیج دیں۔ اگر نہیں ہے تو “نہیں” لکھ دیں یا آواز میں بیان کر دیں۔
+
+                                                                                                * Roman Urdu: Agar tasveer hai to ab bhej dein. Agar nahi hai to “Nahi” likh dein ya awaaz mein bayan kar dein.
+
+                                                                                                * Hindi: यदि आपके पास कोई फ़ोटो है तो कृपया अभी भेजें। यदि नहीं है तो “No” लिखें या वॉइस नोट में बताएं।
+
+                                                                                                * Bangla: যদি আপনার কাছে ছবি থাকে তবে এখন পাঠান। না থাকলে “না” লিখুন বা ভয়েস নোটে বর্ণনা করুন।
+
+                                                                                                * Arabic: إذا كان لديك صورة، يرجى إرسالها الآن. إذا لم يكن لديك، فاكتب "لا" أو صفه في رسالة صوتية.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+🔹 Step 4B — Data Collection (If You Are the Missing Person)
+
+
+🌍 Empathetic Intro (All Regions)
+ English: We’ll ask you a few short questions to understand your background better, inshaAllah. You can type or send a voice note if that’s easier.
+Urdu: ہم چند مختصر سوالات کریں گے تاکہ آپ کے بارے میں بہتر سمجھ سکیں، ان شاء اللہ۔ آپ لکھ سکتے ہیں یا آواز کا پیغام بھیج سکتے ہیں۔
+Roman Urdu: Hum kuch mukhtasir sawalat karein ge taake aap ke bare mein behtar samajh saken, inshaAllah. Aap likh sakte hain ya awaaz ka paigham bhej sakte hain.
+Hindi: हम आपसे कुछ छोटे सवाल पूछेंगे ताकि हम आपके बारे में बेहतर समझ सकें, इंशाअल्लाह। आप लिख सकते हैं या वॉइस नोट भेज सकते हैं।
+Bangla: আমরা কয়েকটি সংক্ষিপ্ত প্রশ্ন করব যাতে আমরা আপনাকে ভালোভাবে বুঝতে পারি, ইনশাআল্লাহ। আপনি লিখতে পারেন বা ভয়েস নোট পাঠাতে পারেন।
+Arabic: سنسألك بعض الأسئلة القصيرة لفهمك بشكل أفضل، إن شاء الله. يمكنك الكتابة أو إرسال رسالة صوتية إذا كان ذلك أسهل.
+________________
+
+
+📋 Questions
+1️⃣ 🌍 What country are you originally from?
+ English: What country are you originally from?
+Urdu: آپ کا تعلق کس ملک سے تھا؟
+Roman Urdu: Aapka ta‘alluq kis mulk se tha?
+Hindi: आपका ताल्लुक किस देश से था?
+Bangla: আপনি মূলত কোন দেশ থেকে এসেছেন?
+Arabic: من أي بلد أنت أصلاً؟
+Options:
+🇵🇰 Pakistan
+🌐 Other country (Write the name)
+________________
+
+
+2️⃣ 📝 What is your full name?
+ English: What is your full name (as given by your parents, if you remember)?
+Urdu: آپ کا پورا نام کیا ہے (جو والدین نے رکھا تھا، اگر یاد ہو)؟
+Roman Urdu: Aapka poora naam kya hai (jo walidain ne rakha tha, agar yaad ho)?
+Hindi: आपका पूरा नाम क्या है (जो आपके माता-पिता ने रखा था, अगर याद हो)?
+Bangla: আপনার পুরো নাম কী (যদি মনে থাকে, বাবা-মা যে নাম দিয়েছিলেন)?
+Arabic: ما اسمك الكامل (كما سماك والداك، إذا كنت تتذكر)؟
+________________
+
+
+3️⃣ 🎂 How old are you (approximate is fine)?
+ English: How old are you (approximate age is fine)?
+Urdu: آپ کی عمر کتنی ہے؟ (تقریبی عمر بھی بتا سکتے ہیں)
+Roman Urdu: Aapki umar kitni hai? (Taqreebi umar bhi chal jayegi)
+Hindi: आपकी उम्र कितनी है? (अनुमानित उम्र भी चलेगी)
+Bangla: আপনার বয়স কত? (আনুমানিক বয়সও চলবে)
+Arabic: كم عمرك؟ (العمر التقريبي يكفي)
+________________
+
+
+4️⃣ 🏡 Where were you originally from (city/area)?
+ English: Which city or area were you originally from?
+Urdu: آپ کا تعلق کس شہر یا علاقے سے تھا؟
+Roman Urdu: Aapka ta‘alluq kis shehar ya ilaqe se tha?
+Hindi: आपका ताल्लुक किस शहर या इलाके से था?
+Bangla: আপনি মূলত কোন শহর বা এলাকা থেকে এসেছেন?
+Arabic: من أي مدينة أو منطقة كنت أصلاً؟
+________________
+
+
+5️⃣ 🏠 Do you remember your home location?
+ English: Do you remember your home’s area or any nearby famous landmark?
+Urdu: کیا آپ کو اپنے گھر کا علاقہ یا قریبی مشہور جگہ یاد ہے؟
+Roman Urdu: Kya aapko apne ghar ka ilaqa ya qareebi mashhoor jagah yaad hai?
+Hindi: क्या आपको अपने घर का इलाका या पास की कोई मशहूर जगह याद है?
+Bangla: আপনার বাড়ির এলাকা বা কাছের কোন বিখ্যাত জায়গা মনে আছে?
+Arabic: هل تتذكر منطقة منزلك أو أي معلم مشهور قريب منه؟
+________________
+
+
+6️⃣ 🤔 How did you get separated?
+ English: Do you remember how you got separated from your family? Please share details if possible.
+Urdu: کیا آپ کو یاد ہے کہ آپ اپنے گھر والوں سے کیسے جدا ہوئے؟ اگر ممکن ہو تو تفصیل سے بتائیں۔
+Roman Urdu: Kya aapko yaad hai ke aap apne ghar walon se kaise juda huay? Agar mumkin ho to tafseel se batayein.
+Hindi: क्या आपको याद है कि आप अपने परिवार से कैसे अलग हुए? अगर संभव हो तो विस्तार से बताइए।
+Bangla: আপনি কিভাবে আপনার পরিবারের থেকে আলাদা হয়েছিলেন মনে আছে? সম্ভব হলে বিস্তারিত বলুন।
+Arabic: هل تتذكر كيف انفصلت عن عائلتك؟ يرجى ذكر التفاصيل إن أمكن.
+________________
+
+
+7️⃣ 👥 Who raised you (if not your family)?
+ English: Who raised you after separation, and what did they tell you about how you were found?
+Urdu: جدائی کے بعد آپ کی پرورش کس نے کی اور انہوں نے کیا بتایا کہ آپ کیسے ملے تھے؟
+Roman Urdu: Judaai ke baad aapki parwarish kis ne ki aur unho ne kya bataya ke aap kaise mile the?
+Hindi: अलग होने के बाद आपकी परवरिश किसने की और उन्होंने क्या बताया कि आप कैसे मिले थे?
+Bangla: আলাদা হওয়ার পর আপনাকে কে লালন-পালন করেছে এবং তারা কি বলেছে আপনি কিভাবে পাওয়া গিয়েছিলেন?
+Arabic: من ربّاك بعد الانفصال، وماذا أخبروك عن كيفية العثور عليك؟
+________________
+
+
+8️⃣ 📍 Where are you now (city/area)?
+ English: Which city or area are you currently in?
+Urdu: آپ اس وقت کس شہر یا علاقے میں ہیں؟
+Roman Urdu: Aap is waqt kis shehar ya ilaqe mein hain?
+Hindi: आप इस समय किस शहर या इलाके में हैं?
+Bangla: আপনি বর্তমানে কোন শহর বা এলাকায় আছেন?
+Arabic: في أي مدينة أو منطقة أنت الآن؟
+________________
+
+
+9️⃣ 👨‍👩‍👧‍👦 Do you remember any family names?
+ English: Do you remember the name of any family member or relative?
+Urdu: کیا آپ کو کسی گھر والے یا رشتہ دار کا نام یاد ہے؟
+Roman Urdu: Kya aapko kisi ghar walay ya rishtedaar ka naam yaad hai?
+Hindi: क्या आपको किसी परिवार के सदस्य या रिश्तेदार का नाम याद है?
+Bangla: আপনার কি কোনো পরিবারের সদস্য বা আত্মীয়ের নাম মনে আছে?
+Arabic: هل تتذكر اسم أي فرد من العائلة أو قريب؟
+________________
+
+
+🔟 📞 Please share your contact number.
+ English: Please share a phone number or way to reach you.
+Urdu: براہ کرم اپنا نمبر یا رابطے کا طریقہ بتائیں۔
+Roman Urdu: Mehrbani kar ke apna number ya rabte ka tareeqa batayein.
+Hindi: कृपया अपना नंबर या संपर्क का तरीका बताइए।
+Bangla: অনুগ্রহ করে আপনার নম্বর বা যোগাযোগের কোনো উপায় দিন।
+Arabic: يرجى مشاركة رقم هاتفك أو طريقة للتواصل معك.
+________________
+
+
+1️⃣1️⃣ 🖼️ Photo (then when you were found & now if possible)
+English: If you have a photo from the time you were found and a recent photo, please share both.
+Urdu: اگر آپ کے پاس وہ تصویر ہے جب آپ ملے تھے اور آج کی موجودہ تصویر بھی ہے تو براہ کرم دونوں بھیج دیں۔
+Roman Urdu: Agar aapke paas woh tasveer hai jab aap milay thay aur aaj ki mojooda tasveer bhi hai to mehrbani karke dono bhej dein.
+Hindi: अगर आपके पास वह तस्वीर है जब आप मिले थे और अभी की हाल की तस्वीर भी है, तो कृपया दोनों भेजें।
+Bangla: যদি আপনার কাছে সেই সময়ের ছবি থাকে যখন আপনাকে পাওয়া গিয়েছিল এবং একটি বর্তমান ছবি থাকে, তবে দয়া করে দুটোই পাঠান।
+Arabic: إذا كان لديك صورة من وقت العثور عليك وصورة حديثة، يرجى إرسال كلتيهما.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+🔹 Step 4C — Data Collection (Helping a Missing Person)
+🤖 Bot Message (Empathetic Intro)
+English: We’ll ask a few simple questions to help reconnect the missing person with their family, inshaAllah. You can type or send a voice message if you prefer.
+Urdu: ہم چند آسان سوالات کریں گے تاکہ اس شخص کو ان کے گھر والوں تک پہنچانے میں مدد ملے، ان شاء اللہ۔ آپ چاہیں تو آواز کا پیغام بھی بھیج سکتے ہیں۔
+Roman Urdu: Hum kuch asaan sawalat karenge taake unko unke ghar walon tak pohchane mein madad mile, InshaAllah. Agar likhna mushkil hai to awaaz ka paigham bhi bhej dein.
+Hindi: हम कुछ आसान सवाल पूछेंगे ताकि उस व्यक्ति को उनके घरवालों तक पहुँचाने में मदद मिल सके, इंशाअल्लाह। आप चाहें तो आवाज़ का संदेश भी भेज सकते हैं।
+Bangla: আমরা কিছু সহজ প্রশ্ন করব যাতে তাকে তার পরিবারে পৌঁছে দিতে সাহায্য করা যায়, ইনশাআল্লাহ। আপনি চাইলে লিখে বা ভয়েস মেসেজ দিয়ে উত্তর দিতে পারেন।
+Arabic: سنطرح بعض الأسئلة البسيطة لمساعدة الشخص المفقود على الوصول إلى أسرته، إن شاء الله. يمكنك الكتابة أو إرسال رسالة صوتية إذا أردت.
+________________
+
+
+❓ First Question: Source of Information
+English: Do you have direct access to the missing person, or did you just see a post / hear about them?
+1️⃣ Yes, I have access and can directly connect you.
+2️⃣ No, I don’t have access. I only saw a post / heard from someone.
+3️⃣ I belong to an organization where the missing person is present.
+Urdu: کیا آپ کے پاس اس گمشدہ شخص تک براہِ راست رسائی ہے یا آپ نے صرف کوئی پوسٹ دیکھی/سنی ہے؟
+1️⃣ ہاں، میرے پاس رسائی ہے اور میں براہِ راست ملا سکتا ہوں۔
+2️⃣ نہیں، میرے پاس رسائی نہیں۔ صرف پوسٹ دیکھی یا کسی سے سنا ہے۔
+3️⃣ میں ایسے ادارے سے تعلق رکھتا ہوں جہاں وہ شخص موجود ہے۔
+Roman Urdu: Kya aap ke paas us gumshuda shakhs tak seedhi rasai hai ya sirf post dekhi / kisi se suna hai?
+1️⃣ Haan, meri access hai aur main un tak barah-e-raast milwa sakta hoon.
+2️⃣ Nahi, meri rasai nahi. Maine sirf post dekhi ya kisi se suna hai.
+3️⃣ Main aise idare se taluq rakhta hoon jahan woh shakhs mojood hai.
+Hindi: क्या आपके पास उस लापता व्यक्ति तक सीधी पहुँच है, या आपने सिर्फ कोई पोस्ट देखी/सुनी है?
+1️⃣ हाँ, मेरे पास पहुँच है और मैं सीधे मिलवा सकता/सकती हूँ।
+2️⃣ नहीं, मेरे पास पहुँच नहीं। मैंने सिर्फ पोस्ट देखी या किसी से सुना है।
+3️⃣ मैं ऐसे संगठन से जुड़ा/जुड़ी हूँ जहाँ वह व्यक्ति मौजूद है।
+Bangla: আপনার কি নিখোঁজ ব্যক্তির কাছে সরাসরি পৌঁছানোর সুযোগ আছে, নাকি শুধু পোস্ট দেখেছেন / কারো কাছ থেকে শুনেছেন?
+1️⃣ হ্যাঁ, আমার সরাসরি যোগাযোগ আছে।
+2️⃣ না, আমার কাছে কোনো যোগাযোগ নেই। শুধু পোস্ট দেখেছি বা শুনেছি।
+3️⃣ আমি এমন প্রতিষ্ঠানের সাথে যুক্ত যেখানে নিখোঁজ ব্যক্তি আছেন।
+Arabic: هل لديك وصول مباشر إلى الشخص المفقود، أم أنك فقط رأيت منشورًا/سمعت عنه؟
+1️⃣ نعم، لدي وصول ويمكنني توصيلكم مباشرة.
+2️⃣ لا، ليس لدي وصول. فقط رأيت منشورًا أو سمعت من أحد.
+3️⃣ أنتمي إلى مؤسسة يوجد فيها هذا الشخص المفقود.
+________________
+
+
+❌ If user selects Option 2:
+English: Since you don’t have direct access, we cannot proceed further. If you ever meet the missing person, please share details then.
+Urdu: چونکہ آپ کے پاس براہِ راست رسائی نہیں ہے، ہم مزید کارروائی نہیں کر سکتے۔ اگر کبھی آپ کی ان سے ملاقات ہو تو براہِ کرم تفصیل بتائیے گا۔
+Roman Urdu: Chunke aap ke paas direct rasai nahi hai, hum mazeed madad nahi kar sakte. Agar kabhi mulaqat ho to tafseel batayein.
+Hindi: क्योंकि आपके पास सीधी पहुँच नहीं है, हम आगे मदद नहीं कर सकते। अगर कभी आप उनसे मिलें तो कृपया जानकारी दें।
+Bangla: যেহেতু আপনার সরাসরি যোগাযোগ নেই, আমরা আর এগোতে পারছি না। যদি কখনও তার সাথে দেখা হয়, দয়া করে বিস্তারিত জানান।
+Arabic: بما أنه ليس لديك وصول مباشر، لا يمكننا المتابعة. إذا قابلت الشخص يومًا ما، يرجى تزويدنا بالتفاصيل.
+________________
+
+
+✅ If user selects Option 1 or 3 → Proceed with Questions:
+________________
+
+
+1️⃣ Where did you meet the missing person?
+Urdu: آپ کو گمشدہ شخص کہاں سے ملا تھا؟
+Roman Urdu: Aap ko gumshuda shakhs kahan se mila tha?
+Hindi: आपको लापता व्यक्ति कहाँ मिला था?
+Bangla: আপনি নিখোঁজ ব্যক্তিকে কোথায় পেয়েছিলেন?
+Arabic: أين التقيت بالشخص المفقود؟
+________________
+
+
+2️⃣ When did you meet them?
+Urdu: آپ کو وہ کب ملے تھے؟
+Roman Urdu: Aap ko woh kab mile the?
+Hindi: आप उनसे कब मिले थे?
+Bangla: আপনি কবে তার সাথে দেখা করেছিলেন?
+Arabic: متى التقيت بهم؟
+________________
+
+
+3️⃣ What is their full name?
+Urdu: ان کا پورا نام کیا ہے؟
+Roman Urdu: Unka poora naam kya hai?
+Hindi: उनका पूरा नाम क्या है?
+Bangla: তার পুরো নাম কী?
+Arabic: ما هو اسمهم الكامل؟
+________________
+
+
+4️⃣ What is their approximate age?
+Urdu: ان کی عمر کتنی ہے؟ (تقریباً بھی بتا سکتے ہیں)
+Roman Urdu: Unki umar kitni hai? Taqreeban bhi chalegi.
+Hindi: उनकी उम्र कितनी है? (लगभग भी बता सकते हैं)
+Bangla: তাদের বয়স কত? (আনুমানিক হলেও চলবে)
+Arabic: كم عمرهم تقريبًا؟
+________________
+
+
+5️⃣ What is their gender?
+Options:
+1️⃣ Male — (Mard / पुरुष / পুরুষ / ذكر)
+2️⃣ Female — (Aurat / महिला / নারী / أنثى)
+3️⃣ Other — (Doosri / अन्य / অন্যান্য / آخر)
+________________
+
+
+6️⃣ Which country do they belong to?
+Urdu: ان کا تعلق کس ملک سے ہے؟
+Roman Urdu: Unka taluq kis mulk se hai?
+Hindi: उनका ताल्लुक किस देश से है?
+Bangla: তাদের কোন দেশের সাথে সম্পর্কিত?
+Arabic: إلى أي بلد ينتمون؟
+________________
+
+
+7️⃣ Which city/area do they belong to (if remembered)?
+Urdu: ان کا تعلق کس شہر یا علاقے سے ہے؟ (اگر یاد ہو)
+Roman Urdu: Unka taluq kis shehar ya ilaqe se hai? (agar yaad ho)
+Hindi: उनका ताल्लुक किस शहर/इलाके से है? (अगर याद हो)
+Bangla: তারা কোন শহর/এলাকা থেকে? (যদি মনে থাকে)
+Arabic: من أي مدينة/منطقة ينتمون (إذا كان يتذكر)؟
+________________
+
+
+8️⃣ Do they remember any landmark or nearby famous place of their home?
+Urdu: کیا انہیں اپنے گھر کے علاقے یا قریبی مشہور جگہ یاد ہے؟
+Roman Urdu: Kya unko ghar ke ilaqe ya qareebi mashhoor jagah yaad hai?
+Hindi: क्या उन्हें अपने घर का इलाका या पास की कोई मशहूर जगह याद है?
+Bangla: তারা কি তাদের বাড়ির এলাকা বা কাছাকাছি কোনো বিখ্যাত জায়গা মনে রাখে?
+Arabic: هل يتذكرون أي معلم أو مكان مشهور بالقرب من منزلهم؟
+________________
+
+
+9️⃣ Do they remember how they got separated from family? Please describe.
+Urdu: کیا انہیں یاد ہے کہ وہ گھر والوں سے کیسے جدا ہوئے؟ براہ کرم وضاحت کریں۔
+Roman Urdu: Kya unko yaad hai ke woh ghar walon se kaise juda huay? Tafseel se batayein.
+Hindi: क्या उन्हें याद है कि वे घरवालों से कैसे अलग हुए? कृपया बताएँ।
+Bangla: তারা কি মনে করতে পারে কীভাবে তারা পরিবার থেকে আলাদা হয়েছে? বিস্তারিত বলুন।
+Arabic: هل يتذكرون كيف انفصلوا عن عائلتهم؟ يرجى التوضيح.
+________________
+
+
+🔟 Who raised them after separation, and what did they share about their past?
+Urdu: جدائی کے بعد ان کی پرورش کس نے کی اور انہوں نے اپنے ماضی کے بارے میں کیا بتایا؟
+Roman Urdu: Judaai ke baad unki parwarish kis ne ki aur unho ne apne mazi ke bare mein kya bataya?
+Hindi: जुदाई के बाद उनकी परवरिश किसने की और उन्होंने अपने अतीत के बारे में क्या बताया?
+Bangla: বিচ্ছেদের পর তাদের লালন-পালন কে করেছে এবং তারা তাদের অতীত সম্পর্কে কী বলেছে?
+Arabic: من ربّاهم بعد الانفصال، وماذا قالوا عن ماضيهم؟
+________________
+
+
+1️⃣1️⃣ Which country are they currently in?
+Urdu: وہ اس وقت کس ملک میں ہیں؟
+Roman Urdu: Woh is waqt kis mulk mein hain?
+Hindi: वे इस समय किस देश में हैं?
+Bangla: তারা বর্তমানে কোন দেশে আছে?
+Arabic: في أي بلد هم الآن؟
+________________
+
+
+1️⃣2️⃣ Which city/area are they currently in?
+Urdu: وہ اس وقت کس شہر یا علاقے میں ہیں؟
+Roman Urdu: Woh is waqt kis shehar ya ilaqe mein hain?
+Hindi: वे इस समय किस शहर/इलाके में हैं?
+Bangla: তারা বর্তমানে কোন শহর/এলাকায় আছে?
+Arabic: في أي مدينة/منطقة هم الآن؟
+________________
+
+
+1️⃣3️⃣ Do they remember the name of any family member or relative?
+Urdu: کیا انہیں کسی گھر والے یا رشتہ دار کا نام یاد ہے؟
+Roman Urdu: Kya unko kisi ghar walay ya rishtedaar ka naam yaad hai?
+Hindi: क्या उन्हें किसी घरवाले या रिश्तेदार का नाम याद है?
+Bangla: তারা কি কোনো পরিবারের সদস্য বা আত্মীয়ের নাম মনে রাখে?
+Arabic: هل يتذكرون اسم أي فرد من العائلة أو قريب؟
+________________
+
+
+1️⃣4️⃣ Please share your contact number or preferred way to connect.
+Urdu: براہ کرم اپنا نمبر یا رابطے کا طریقہ بتائیے۔
+Roman Urdu: Mehrbani karke apna number ya rabte ka tareeqa batayein.
+Hindi: कृपया अपना नंबर या संपर्क का तरीका बताएँ।
+Bangla: অনুগ্রহ করে আপনার নম্বর বা যোগাযোগের উপায় দিন।
+Arabic: يرجى مشاركة رقم هاتفك أو وسيلة الاتصال المفضلة.
+________________
+
+
+1️⃣5️⃣ If you have a photo (then & now), please share both.
+Urdu: اگر آپ کے پاس وہ تصویر ہے جب وہ ملے تھے اور آج کی تصویر بھی ہے تو دونوں بھیج دیں۔
+Roman Urdu: Agar aapke paas woh tasveer hai jab woh mile the aur aaj ki bhi hai to dono bhej dein.
+Hindi: अगर आपके पास उनकी पहली मुलाक़ात की और अभी की तस्वीर है तो दोनों भेजें।
+Bangla: যদি আপনার কাছে প্রথম দেখা সময়ের এবং বর্তমানের ছবি থাকে তবে দুটোই পাঠান।
+Arabic: إذا كان لديك صورة عند لقائهم أول مرة وصورة حالية، يرجى إرسال كلتاهما.
+🔹 Step 5 — Confirmation & Case Number
+
+
+English
+ JazakAllah khair, we’ve received your information.
+Your case number is (XXX-123) (Country-Number) e.g. (PK-00001)
+ Our team will inshaAllah review the details carefully, and if there’s any update, we will contact you.
+________________
+
+
+اُردو (Urdu)
+ جزاک اللہ خیر، ہم نے آپ کی معلومات حاصل کر لی ہیں۔
+آپ کا کیس نمبر ہے (XXX-123) (Country-Number) مثال کے طور پر (PK-00001)
+ ہماری ٹیم ان شاء اللہ تفصیل چیک کرے گی اور اگر کوئی اپڈیٹ ہوئی تو آپ سے رابطہ کرے گی۔
+________________
+
+
+Roman Urdu
+ JazakAllah khair, humne aapki maloomat hasil kar li hain.
+Apka case number hai (XXX-123) (Country-Number) misal ke tor par (PK-00001)
+ Humari team inshaAllah tafseel check karegi aur agar koi update hui to aap se rabta karegi.
+________________
+
+
+हिन्दी (Hindi)
+ जज़ाकअल्लाह खैर, हमने आपकी जानकारी प्राप्त कर ली है।
+आपका केस नंबर है (XXX-123) (Country-Number) उदाहरण: (PK-00001)
+ हमारी टीम इंशा अल्लाह विवरण की जाँच करेगी और यदि कोई अपडेट हुई तो आपसे संपर्क करेगी।
+________________
+
+
+বাংলা (Bangla)
+ জাযাকআল্লাহ খাইর, আমরা আপনার তথ্য পেয়েছি।
+আপনার কেস নম্বর হলো (XXX-123) (Country-Number) যেমন: (PK-00001)
+ আমাদের টিম ইনশাআল্লাহ বিস্তারিত যাচাই করবে এবং কোনো আপডেট থাকলে আপনার সাথে যোগাযোগ করবে।
+________________
+
+
+العربية (Arabic)
+ جزاك الله خيراً، لقد استلمنا معلوماتك.
+رقم قضيتك هو (XXX-123) (Country-Number) على سبيل المثال: (PK-00001)
+ فريقنا إن شاء الله سيقوم بمراجعة التفاصيل بعناية، وإذا كان هناك أي تحديث فسوف نتواصل معك.
+🔹 Step 6 — Clossing Message
+English
+ May Allah reunite every family with their loved ones. Ameen.
+Thank you for trusting us.
+________________
+
+
+اُردو (Urdu)
+ اللہ ہر خاندان کو ان کے پیاروں سے ملائے۔ آمین۔
+ہم پر بھروسہ کرنے کا شکریہ۔
+________________
+
+
+Roman Urdu
+ Allah har khandaan ko unke pyaron se milaye. Ameen.
+Hum par bharosa karne ka shukriya.
+________________
+
+
+हिन्दी (Hindi)
+ अल्लाह हर परिवार को उनके अपनों से मिला दे। आमीन।
+हम पर भरोसा करने के लिए शुक्रिया।
+________________
+
+
+বাংলা (Bangla)
+ আল্লাহ প্রতিটি পরিবারকে তাদের প্রিয়জনদের সাথে মিলিয়ে দিন। আমীন।
+আমাদের উপর ভরসা করার জন্য ধন্যবাদ।
+________________
+
+
+العربية (Arabic)
+ اللهم اجمع كل أسرة مع أحبّائها. آمين.
+شكراً لثقتكم بنا.
+
+
+
+
+
+
+
+
+🔹 Extra Step — Existing Case on This Number / پہلے سے موجود کیس
+🔸 Condition / Shart
+If our system finds that this WhatsApp number has already submitted a case before, show this menu instead of starting a new case flow.
+________________
+
+
+🌍 Message & Menu (Existing Case Detected)
+English:
+Our system shows that you have already submitted a case from this number.
+Your last case ID is: {{CASE_ID}}
+Please choose an option:
+1️⃣ Review your submitted case details
+2️⃣ Check the status of your case
+3️⃣ Submit a new case
+________________
+
+
+اُردو (Urdu):
+ہمارے سسٹم کے مطابق آپ اس نمبر سے پہلے ہی ایک کیس جمع کر چکے ہیں۔
+آپ کا آخری کیس نمبر ہے: {{CASE_ID}}
+براہِ کرم ایک آپشن منتخب کریں:
+1️⃣ میں اپنے جمع شدہ کیس کی تفصیل دیکھنا چاہتا/چاہتی ہوں۔
+2️⃣ میں اپنے کیس کی موجودہ صورتحال جاننا چاہتا/چاہتی ہوں۔
+3️⃣ میں نیا کیس جمع کروانا چاہتا/چاہتی ہوں۔
+________________
+
+
+Roman Urdu:
+Hamare nizaam ke mutabiq aap is number se pehle hi ek case submit kar chuke hain.
+Aap ka aakhri case number hai: {{CASE_ID}}
+Barah-e-karam ek option ka intikhab karein:
+1️⃣ Submit kiya hua case ki tafseel dekhna chahta/chahti hoon.
+2️⃣ Apne case ki maujooda status maloom karna chahta/chahti hoon.
+3️⃣ Naya case submit karna chahta/chahti hoon.
+________________
+
+
+हिन्दी (Hindi):
+हमारे सिस्टम के अनुसार आपने इस नंबर से पहले ही एक केस दर्ज किया है।
+आपका आखिरी केस नंबर है: {{CASE_ID}}
+कृपया एक विकल्प चुनें:
+1️⃣ मैं अपने सबमिट किए गए केस की डिटेल देखना चाहता/चाहती हूँ।
+2️⃣ मैं अपने केस की मौजूदा स्थिति (स्टेटस) जानना चाहता/चाहती हूँ।
+3️⃣ मैं एक नया केस दर्ज करना चाहता/चाहती हूँ।
+________________
+
+
+বাংলা (Bangla):
+আমাদের সিস্টেম অনুযায়ী, আপনি এই নম্বর থেকে আগে একটি কেস জমা দিয়েছেন।
+আপনার শেষ কেস নম্বর হলো: {{CASE_ID}}
+অনুগ্রহ করে একটি অপশন নির্বাচন করুন:
+1️⃣ আমি জমা দেওয়া কেসের বিস্তারিত দেখতে চাই।
+2️⃣ আমি আমার কেসের বর্তমান স্ট্যাটাস জানতে চাই।
+3️⃣ আমি একটি নতুন কেস জমা দিতে চাই।
+________________
+
+
+العربية (Arabic):
+يُظهر نظامنا أنك قد قدّمت بلاغًا من هذا الرقم من قبل.
+رقم قضيتك الأخيرة هو: {{CASE_ID}}
+يرجى اختيار أحد الخيارات:
+1️⃣ أريد مراجعة تفاصيل القضية التي قدّمتها.
+2️⃣ أريد معرفة حالة قضيتي الحالية.
+3️⃣ أريد تقديم قضية جديدة.
+________________
+
+
+🔹 Option 1 – Review Case Details / کیس کی تفصیل دیکھیں
+(User presses 1)
+English:
+Here are the main details of your submitted case (Case ID: {{CASE_ID}}).
+If anything is incorrect or you want to add more information, please type and send the correction here.
+اُردو:
+یہ آپ کے جمع شدہ کیس (کیس نمبر: {{CASE_ID}}) کی اہم تفصیلات ہیں۔
+اگر کوئی بات غلط ہو یا آپ مزید معلومات شامل کرنا چاہیں تو براہِ کرم یہی پر لکھ کر بھیج دیں۔
+Roman Urdu:
+Yeh aap ke submit kiye gaye case (Case ID: {{CASE_ID}}) ki aham tafseelaat hain.
+Agar koi baat ghalat ho ya aap kuch mazeed maloomat add karna chahte hain to barah-e-karam yahin likh kar bhej dein.
+हिन्दी:
+यह आपके सबमिट किए गए केस (Case ID: {{CASE_ID}}) की मुख्य जानकारी है।
+अगर कुछ गलत हो या आप और जानकारी जोड़ना चाहें, तो कृपया यहीं पर लिखकर भेज दें।
+বাংলা:
+এগুলো আপনার জমা দেওয়া কেসের (Case ID: {{CASE_ID}}) প্রধান তথ্য।
+কিছু ভুল থাকলে বা নতুন তথ্য যোগ করতে চাইলে, অনুগ্রহ করে এখানেই লিখে পাঠান।
+العربية:
+هذه هي التفاصيل الأساسية للقضية التي قدّمتها (رقم القضية: {{CASE_ID}}).
+إذا كانت هناك أي معلومات غير صحيحة أو أردت إضافة شيء جديد، فيرجى كتابته هنا وإرساله.
+________________
+
+
+🔹 Option 2 – Check Case Status / کیس کی صورتحال معلوم کریں
+(User presses 2)
+English:
+The current status of your case (Case ID: {{CASE_ID}}) is: {{STATUS}}.
+Our team is reviewing your case, and inshaAllah we will contact you if there is any update.
+اُردو:
+آپ کے کیس (کیس نمبر: {{CASE_ID}}) کی موجودہ صورتحال یہ ہے: {{STATUS}}
+ہماری ٹیم آپ کے کیس کا جائزہ لے رہی ہے اور ان شاء اللہ کسی بھی اپڈیٹ کی صورت میں آپ سے رابطہ کرے گی۔
+Roman Urdu:
+Aap ke case (Case ID: {{CASE_ID}}) ki maujooda status yeh hai: {{STATUS}}
+Hamari team aap ke case ka jaiza le rahi hai, aur InshaAllah jab bhi koi nayi update hogi hum aap se rabta karein ge.
+हिन्दी:
+आपके केस (Case ID: {{CASE_ID}}) की मौजूदा स्थिति है: {{STATUS}}
+हमारी टीम आपका केस देख रही है, और इंशाअल्लाह किसी भी नए अपडेट पर हम आपसे संपर्क करेंगे।
+বাংলা:
+আপনার কেসের (Case ID: {{CASE_ID}}) বর্তমান স্ট্যাটাস: {{STATUS}}
+আমাদের টিম আপনার কেস পর্যালোচনা করছে, ইনশাআল্লাহ কোনো নতুন আপডেট হলে আমরা আপনার সাথে যোগাযোগ করব।
+العربية:
+حالة قضيتك الحالية (رقم القضية: {{CASE_ID}}) هي: {{STATUS}}
+فريقنا يقوم بمراجعة قضيتك، وإن شاء الله سنقوم بالتواصل معك عند وجود أي تحديث جديد.
+________________
+
+
+🔹 Option 3 – Submit a New Case / نیا کیس جمع کروائیں
+(User presses 3)
+English:
+Okay, we will create a new case for you from this number.
+We will now start the questions again to collect your details inshaAllah.
+اُردو:
+ٹھیک ہے، ہم اسی نمبر سے آپ کے لیے ایک نیا کیس بنا رہے ہیں۔
+اب ہم آپ سے دوبارہ چند سوالات کریں گے تاکہ نئی تفصیل حاصل کی جا سکے، ان شاء اللہ۔
+Roman Urdu:
+Theek hai, hum isi number se aap ke liye naya case bana rahe hain.
+Ab hum dobara aap se kuch sawalat karein ge taa-ke nayi tafseel hasil ki ja sake, InshaAllah.
+हिन्दी:
+ठीक है, हम इसी नंबर से आपके लिए एक नया केस बना रहे हैं।
+अब हम दोबारा कुछ सवाल पूछेंगे ताकि आपकी नई जानकारी ली जा सके, इंशाअल्लाह।
+বাংলা:
+ঠিক আছে, আমরা এই নম্বর থেকে আপনার জন্য একটি নতুন কেস তৈরি করছি।
+এখন আমরা আবার কয়েকটি প্রশ্ন করব, যাতে আপনার নতুন তথ্য সংগ্রহ করা যায়, ইনশাআল্লাহ।
+العربية:
+حسنًا، سنقوم بإنشاء قضية جديدة لك بهذا الرقم.
+سنسألك الآن بعض الأسئلة مرة أخرى لجمع بياناتك الجديدة، إن شاء الله.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+🔹 Extra Condition — Multiple Cases for Same Number
+(When the same WhatsApp number has more than one case: e.g. PK-00001, PK-00005, PK-00009)
+🧩 Logic (High level – document ke liye lafzon me)
+If our system finds more than one case for this WhatsApp number,
+phle user ko bataya jay ga ke aap ke multiple cases maujood hain,
+phir unko unke Case IDs ki list dikhai jayegi,
+aur un se kaha jayega ke jis case ka review / status dekhna hai, uska Case ID bhejein.
+________________
+
+
+🌍 Message – Ask User to Choose Case ID
+🇵🇰🇮🇳🇧🇩🇸🇦🌐 English
+Our system shows that you have multiple cases submitted from this number.
+Your case IDs include, for example:
+{{CASE_LIST}}
+(e.g. PK-00001, PK-00005, PK-00009)
+Please type the Case ID you want to review or check the status of.
+For example: PK-00005
+If you want to cancel, you can reply with 0.
+________________
+
+
+اُردو (Urdu)
+ہمارے سسٹم کے مطابق آپ اس نمبر سے متعدد کیسز جمع کر چکے ہیں۔
+آپ کے کیس نمبرز، مثال کے طور پر، یہ ہیں:
+{{CASE_LIST}}
+(مثال: PK-00001, PK-00005, PK-00009)
+براہِ کرم وہ کیس نمبر لکھیں جس کی تفصیل یا اسٹیٹس دیکھنا چاہتے ہیں۔
+مثال کے طور پر: PK-00005
+اگر آپ واپس جانا چاہتے ہیں تو 0 لکھ دیں۔
+________________
+
+
+Roman Urdu
+Hamare nizaam ke mutabiq aap is number se kayee cases submit kar chuke hain.
+Aap ke case numbers, misaal ke taur par, yeh hain:
+{{CASE_LIST}}
+(misaal: PK-00001, PK-00005, PK-00009)
+Barah-e-karam woh Case ID type karein jiska review ya status dekhna chahte hain.
+Misaal: PK-00005
+Agar aap wapas jana chahte hain to 0 likh dein.
+________________
+
+
+हिन्दी (Hindi) – (India flows me use hoga)
+हमारे सिस्टम के अनुसार, आपने इस नंबर से एक से ज़्यादा केस दर्ज किए हैं।
+आपके केस नंबर, उदाहरण के तौर पर, ये हैं:
+{{CASE_LIST}}
+(जैसे: PK-00001, PK-00005, PK-00009)
+कृपया वह Case ID लिखें जिसका विवरण या स्टेटस आप देखना चाहते हैं।
+उदाहरण: PK-00005
+अगर आप वापस जाना चाहते हैं, तो 0 लिख दें।
+________________
+
+
+বাংলা (Bangla) – (Bangladesh flows me use hoga)
+আমাদের সিস্টেম অনুযায়ী, আপনি এই নম্বর থেকে একাধিক কেস জমা দিয়েছেন।
+আপনার কেস নম্বরগুলো, উদাহরণ হিসেবে, এমন হতে পারে:
+{{CASE_LIST}}
+(যেমন: PK-00001, PK-00005, PK-00009)
+যে কেসটির বিস্তারিত বা স্ট্যাটাস দেখতে চান, অনুগ্রহ করে সেই Case ID লিখুন।
+উদাহরণ: PK-00005
+যদি ফিরতে চান, তবে 0 লিখে পাঠান।
+________________
+
+
+العربية (Arabic) – (Middle East flows me use hoga)
+يُظهر نظامنا أنك قد قدّمت عدة قضايا من هذا الرقم.
+أرقام القضايا الخاصة بك، على سبيل المثال، هي:
+{{CASE_LIST}}
+(مثال: PK-00001, PK-00005, PK-00009)
+يرجى كتابة رقم القضية (Case ID) التي تريد مراجعة تفاصيلها أو معرفة حالتها.
+على سبيل المثال: PK-00005
+إذا أردت الرجوع، فيُمكنك إرسال 0.
+________________
+
+
+🔁 Invalid Case ID Response (Agar galat ID bhej de)
+English:
+The Case ID you entered was not found for this number.
+Please check and type the correct Case ID, or reply 0 to go back.
+Urdu:
+آپ نے جو کیس نمبر بھیجا ہے وہ اس نمبر کے ساتھ نہیں ملا۔
+براہِ کرم دوبارہ درست کیس نمبر لکھیں، یا واپس جانے کے لیے 0 لکھ دیں۔
+Roman Urdu:
+Aap ne jo Case ID bheji hai woh is number ke sath match nahi hui.
+Meherbani karke sahi Case ID dobara type karein, ya wapas jane ke liye 0 likh dein.
+Hindi:
+आपने जो Case ID भेजी है, वह इस नंबर के लिए नहीं मिली।
+कृपया सही Case ID दोबारा लिखें, या वापस जाने के लिए 0 लिख दें।
+Bangla:
+আপনি যে Case ID পাঠিয়েছেন, সেটি এই নম্বরের সাথে মিলে না।
+অনুগ্রহ করে সঠিক Case ID আবার লিখুন, অথবা ফিরে যেতে 0 লিখুন।
+Arabic:
+رقم القضية الذي أدخلته غير مرتبط بهذا الرقم.
+يرجى إعادة كتابة رقم القضية الصحيح، أو إرسال 0 للرجوع.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+🔹 Extra Option in Existing Case Menu – “Update Case”
+Jahan tum pehle likh chuke ho:
+1️⃣ Review your submitted case details
+2️⃣ Check the status of your case
+3️⃣ Submit a new case
+Ussi ke saath add kar do:
+English (add line):
+4️⃣ I want to update my submitted case
+Urdu:
+4️⃣ میں اپنے جمع شدہ کیس میں اپڈیٹ دینا چاہتا/چاہتی ہوں۔
+Roman Urdu:
+4️⃣ Main apne submit kiye gaye case mein update dena chahta/chahti hoon.
+Hindi (India ke flow ke liye):
+4️⃣ मैं अपने सबमिट किए गए केस में अपडेट देना चाहता/चाहती हूँ।
+Bangla (Bangladesh ke flow ke liye):
+4️⃣ আমি আমার জমা দেওয়া কেসে নতুন আপডেট دینا चाहता/চাই।
+Arabic (Middle East ke flow ke liye):
+4️⃣ أريد إضافة تحديث على قضيتي المقدَّمة.
+________________
+
+
+🔹 Step — Update Submitted Case (New Info / Case Closed)
+(User selects option 4 from existing-case menu)
+🌍 Main Update Menu Text
+English
+Would you like to share an update about your submitted case (Case ID: {{CASE_ID}})?
+Please choose an option:
+1️⃣ I have new information about the case.
+2️⃣ The case is closed – the missing person has been found.
+________________
+
+
+اُردو (Urdu)
+کیا آپ اپنے جمع شدہ کیس (کیس نمبر: {{CASE_ID}}) کے بارے میں کوئی اپڈیٹ شیئر کرنا چاہتے ہیں؟
+براہِ کرم ایک آپشن منتخب کریں:
+1️⃣ میرے پاس کیس کے بارے میں نئی معلومات ہے۔
+2️⃣ کیس کلوز ہو چکا ہے — گمشدہ شخص مل گیا ہے۔
+________________
+
+
+Roman Urdu
+Kya aap apne submit kiye gaye case (Case ID: {{CASE_ID}}) ke bare mein koi update share karna chahte hain?
+Barah-e-karam ek option ka intikhab karein:
+1️⃣ Mere paas case ke bare mein nayi maloomat hai.
+2️⃣ Case close ho chuka hai — gumshuda shakhs mil gaya hai.
+________________
+
+
+हिन्दी (Hindi) – India
+क्या आप अपने सबमिट किए गए केस (Case ID: {{CASE_ID}}) के बारे में कोई अपडेट देना चाहते हैं?
+कृपया एक विकल्प चुनें:
+1️⃣ मेरे पास केस के बारे में नई जानकारी है।
+2️⃣ केस क्लोज हो चुका है — गुमशुदा व्यक्ति मिल गया है।
+________________
+
+
+বাংলা (Bangla) – Bangladesh
+আপনি কি আপনার জমা দেওয়া কেস (Case ID: {{CASE_ID}}) সম্পর্কে কোনো আপডেট দিতে চান?
+অনুগ্রহ করে একটি অপশন নির্বাচন করুন:
+1️⃣ আমার কাছে কেস সম্পর্কে নতুন তথ্য আছে।
+2️⃣ কেস ক্লোজ হয়ে গেছে — নিখোঁজ ব্যক্তি মিলেছে।
+________________
+
+
+العربية (Arabic) – Middle East
+هل تودّ مشاركة تحديث بخصوص قضيتك المقدَّمة (رقم القضية: {{CASE_ID}})؟
+يرجى اختيار أحد الخيارات:
+1️⃣ لدي معلومات جديدة عن القضية.
+2️⃣ تم إغلاق القضية — تم العثور على الشخص المفقود.
+________________
+
+
+🔹 If User Selects 1️⃣ – “New Information”
+Ab hum user se kehte hain: jo bhi new info, pictures, voice notes, etc. dena chahein, idhar bhej dein — hamari team isey case file me add karegi.
+English
+Please type the new information you would like to add to your case (Case ID: {{CASE_ID}}).
+You can also send any new photos, documents, or voice notes that may help.
+Once you have shared everything, you can type DONE.
+Follow-up confirmation after DONE (English):
+JazakAllah khair, your new information has been added to your case.
+Our team will inshaAllah review these updates as well.
+________________
+
+
+اُردو (Urdu)
+براہِ کرم وہ نئی معلومات لکھیں جو آپ اپنے کیس (کیس نمبر: {{CASE_ID}}) میں شامل کرنا چاہتے ہیں۔
+آپ چاہیں تو نئی تصاویر، دستاویزات، یا وائس نوٹس بھی بھیج سکتے ہیں جو مددگار ہوں۔
+جب آپ ساری معلومات بھیج چکیں تو آخر میں DONE لکھ کر بھیج دیں۔
+DONE کے بعد تصدیقی پیغام (Urdu):
+جزاک اللہ خیر، آپ کی نئی معلومات آپ کے کیس میں شامل کر دی گئی ہیں۔
+ہماری ٹیم ان اپڈیٹس کا بھی ان شاء اللہ جائزہ لے گی۔
+________________
+
+
+Roman Urdu
+Barah-e-karam woh nayi maloomat likhein jo aap apne case (Case ID: {{CASE_ID}}) mein add karna chahte hain.
+Aap chahen to nayi tasveerain, documents, ya voice notes bhi bhej sakte hain jo madadgar hon.
+Jab aap sab kuch share kar chuken, to aakhri mein DONE likh kar bhej dein.
+DONE ke baad confirmation (Roman):
+JazakAllah khair, aap ki nayi maloomat aap ke case mein add kar di gayi hain.
+Hamari team in updates ka bhi InshaAllah jaiza legi.
+________________
+
+
+हिन्दी (Hindi)
+कृपया वह नई जानकारी लिखें जो आप अपने केस (Case ID: {{CASE_ID}}) में जोड़ना चाहते हैं।
+आप चाहें तो नई फोटो, डॉक्यूमेंट या वॉइस नोट भी भेज सकते हैं जो मदद कर सके।
+जब आप सारी जानकारी भेज दें, तो आख़िर में DONE लिखकर भेजें।
+DONE के बाद कन्फर्मेशन (Hindi):
+जज़ाकअल्लाह ख़ैर, आपकी नई जानकारी आपके केस में जोड़ दी गई है।
+हमारी टीम इंशाअल्लाह इन अपडेट्स की भी समीक्षा करेगी।
+________________
+
+
+বাংলা (Bangla)
+অনুগ্রহ করে সেই নতুন তথ্য লিখুন যা আপনি আপনার কেসে (Case ID: {{CASE_ID}}) যুক্ত করতে চান।
+আপনি চাইলে নতুন ছবি, ডকুমেন্ট বা ভয়েস নোটও পাঠাতে পারেন যা সহায়ক হতে পারে।
+সব তথ্য পাঠানোর পর শেষে DONE লিখে পাঠান।
+DONE-এর পর কনফার্মেশন (Bangla):
+জাযাকআল্লাহ খাইর, আপনার নতুন তথ্য কেসের সাথে যোগ করা হয়েছে।
+আমাদের টিম ইনশাআল্লাহ এই আপডেটগুলোও পর্যালোচনা করবে।
+________________
+
+
+العربية (Arabic)
+يرجى كتابة المعلومات الجديدة التي تودّ إضافتها إلى قضيتك (رقم القضية: {{CASE_ID}}).
+يمكنك أيضًا إرسال صور جديدة، مستندات، أو رسائل صوتية قد تكون مفيدة.
+بعد الانتهاء من مشاركة كل شيء، أرسل الكلمة DONE.
+تأكيد بعد DONE (Arabic):
+جزاك الله خيرًا، تمت إضافة المعلومات الجديدة إلى قضيتك.
+فريقنا سيقوم إن شاء الله بمراجعة هذه التحديثات أيضًا.
+________________
+
+
+🔹 If User Selects 2️⃣ – “Case Closed – Person Found”
+Yahan hum user ko mubarakbad + dua + system side par status “Closed by Initiator” mark karne wala flow likhenge.
+English
+Alhamdulillah!
+We are very happy to hear that the missing person has been found.
+We will now mark your case (Case ID: {{CASE_ID}}) as “Closed – Resolved by Family / Initiator” in our system.
+May Allah bless you and your family, and keep everyone safe. Ameen.
+________________
+
+
+اُردو (Urdu)
+الحمد للہ!
+یہ سن کر ہمیں بہت خوشی ہوئی کہ گمشدہ شخص مل گیا ہے۔
+ہم اب آپ کے کیس (کیس نمبر: {{CASE_ID}}) کو اپنے سسٹم میں
+"کلوزڈ — خاندان / درخواست دہندہ کی طرف سے حل شدہ" کے طور پر مارک کر رہے ہیں۔
+اللہ آپ کو اور آپ کے گھر والوں کو اپنی حفظ و امان میں رکھے۔ آمین۔
+________________
+
+
+Roman Urdu
+Alhamdulillah!
+Yeh sunkar hamein bohot khushi hui ke gumshuda shakhs mil gaya hai.
+Hum ab aap ke case (Case ID: {{CASE_ID}}) ko apne system mein
+"Closed — family / initiator ke zariye resolve ho chuka" mark kar rahe hain.
+Allah aap ko aur aap ke ghar walon ko hamesha apni hifazat mein rakhe. Ameen.
+________________
+
+
+हिन्दी (Hindi)
+अल्हम्दुलिल्लाह!
+यह सुनकर हमें बहुत खुशी हुई कि गुमशुदा व्यक्ति मिल चुका है।
+अब हम आपके केस (Case ID: {{CASE_ID}}) को अपने सिस्टम में
+"Closed — परिवार / इनिशिएटर द्वारा हल हो चुका" मार्क कर रहे हैं।
+अल्लाह आप और आपके परिवार को महफूज़ रखे। आमीन।
+________________
+
+
+বাংলা (Bangla)
+আলহামদুলিল্লাহ!
+এটি শুনে আমরা অত্যন্ত আনন্দিত যে নিখোঁজ ব্যক্তি ফিরে এসেছে।
+আমরা এখন আপনার কেস (Case ID: {{CASE_ID}}) আমাদের সিস্টেমে
+"Closed — পরিবার / উদ্যোগকারীর মাধ্যমে সমাধান হয়েছে" হিসেবে মার্ক করব।
+আল্লাহ আপনাকে এবং আপনার পরিবারকে নিরাপদে রাখুন। আমীন।
+________________
+
+
+العربية (Arabic)
+الحمد لله!
+سعدنا كثيرًا بسماع أن الشخص المفقود قد تم العثور عليه.
+سنقوم الآن بوضع علامـة على قضيتك (رقم القضية: {{CASE_ID}}) في نظامنا بأنها
+"مغلقة — تم حلّها بواسطة الأسرة / مقدّم البلاغ".
+نسأل الله أن يحفظك ويحفظ أسرتك، وأن يجمع بينكم دائمًا على خير. آمين.
+
+
+===== CHATGPT REVIEW Chat Flow & Messages file END =====
