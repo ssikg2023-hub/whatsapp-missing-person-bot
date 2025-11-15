@@ -1,45 +1,36 @@
-/*******************************************************
- * CONFIG.gs — CENTRAL ENVIRONMENT CONFIG (FINAL)
- * Credentials + Constants only — NO FLOW LOGIC.
- *******************************************************/
+/***************************************************************
+ * CONFIG.gs — Environment constants for WhatsApp Missing Person Bot
+ * Populate with production credentials before deployment.
+ ***************************************************************/
 
 const ENV = {
-
   /**********************
-   * WHATSAPP API CONFIG
+   * GOOGLE SHEETS CONFIG
    **********************/
-  WHATSAPP_TOKEN: "YOUR_WHATSAPP_TOKEN_HERE",
-  WHATSAPP_PHONE_NUMBER_ID: "890108940845609",
-  VERIFY_TOKEN: "YOUR_VERIFY_TOKEN_HERE",
-
-  // Recommended fixed API version
-  WHATSAPP_API_VERSION: "v20.0",
-  WHATSAPP_API_BASE_URL: "https://graph.facebook.com/",
-
+  SHEET_ID: "REPLACE_WITH_GOOGLE_SHEET_ID",
 
   /**********************
    * GOOGLE DRIVE CONFIG
    **********************/
-  MEDIA_FOLDER_ID: "YOUR_MEDIA_FOLDER_ID_HERE",
-
-
-  /**********************
-   * GOOGLE SHEETS CONFIG
-   **********************/
-  SHEET_ID: "YOUR_MAIN_SHEET_ID_HERE",
-
+  MEDIA_FOLDER_ID: "REPLACE_WITH_DRIVE_FOLDER_ID",
 
   /**********************
-   * SYSTEM SETTINGS
+   * SESSION SETTINGS
    **********************/
-  MAX_MEDIA_SIZE_MB: 25,      
-  ENABLE_DEBUG_LOGS: true     
+  SESSION_TTL_MINUTES: 1440, // 24 hours
+  ENABLE_DEBUG_LOGS: false,
+
+  /**********************
+   * WHATSAPP CLOUD API
+   **********************/
+  WHATSAPP_TOKEN: "REPLACE_WITH_WHATSAPP_TOKEN",
+  WHATSAPP_PHONE_NUMBER_ID: "REPLACE_WITH_PHONE_NUMBER_ID",
+  VERIFY_TOKEN: "REPLACE_WITH_WEBHOOK_VERIFY_TOKEN"
 };
 
-
-/*******************************************************
- * CONF — UNIVERSAL CONFIG ACCESSOR
- *******************************************************/
+/***************************************************************
+ * CONF — Universal config accessor
+ ***************************************************************/
 function CONF(key) {
   return ENV[key];
 }
