@@ -330,4 +330,442 @@ const FlowB = {
   start(session) {
     session.Temp = session.Temp || {};
     session.Flow_Type = "B";
-Type NEXT for the next file.
+
+const FlowB = {
+
+  start(session) {
+    session.Temp = session.Temp || {};
+    session.Flow_Type = "B";
+
+    const caseID = createCase(session);
+    session.Temp.caseID = caseID;
+    session.Temp.flow = "B";
+
+    session.Current_Step_Code = "B_Q1";
+    Session.save(session);
+
+    return Texts_B.sendQ1(session);
+  },
+
+  handle(session, msg, raw, mediaUrl, mediaMime) {
+    const step = session.Current_Step_Code;
+    const caseID = session.Temp.caseID;
+
+    switch (step) {
+      case "B_Q1":
+        saveAnswer(caseID, 1, msg);
+        session.Current_Step_Code = "B_Q2";
+        Session.save(session);
+        return Texts_B.sendQ2(session);
+
+      case "B_Q2":
+        saveAnswer(caseID, 2, msg);
+        session.Current_Step_Code = "B_Q3";
+        Session.save(session);
+        return Texts_B.sendQ3(session);
+
+      case "B_Q3":
+        if (mediaUrl && !msg) {
+          return Texts_B.sendQ3(session);
+        }
+        saveAnswer(caseID, 3, msg);
+        session.Current_Step_Code = "B_Q4";
+        Session.save(session);
+        return Texts_B.sendQ4(session);
+
+      case "B_Q4":
+        saveAnswer(caseID, 4, msg);
+        session.Current_Step_Code = "B_Q5";
+        Session.save(session);
+        return Texts_B.sendQ5(session);
+
+      case "B_Q5":
+        saveAnswer(caseID, 5, msg);
+        session.Current_Step_Code = "B_Q6";
+        Session.save(session);
+        return Texts_B.sendQ6(session);
+
+      case "B_Q6":
+        saveAnswer(caseID, 6, msg);
+        session.Current_Step_Code = "B_Q7";
+        Session.save(session);
+        return Texts_B.sendQ7(session);
+
+      case "B_Q7":
+        saveAnswer(caseID, 7, msg);
+        session.Current_Step_Code = "B_Q8";
+        Session.save(session);
+        return Texts_B.sendQ8(session);
+
+      case "B_Q8":
+        saveAnswer(caseID, 8, msg);
+        session.Current_Step_Code = "B_Q9";
+        Session.save(session);
+        return Texts_B.sendQ9(session);
+
+      case "B_Q9":
+        saveAnswer(caseID, 9, msg);
+        session.Current_Step_Code = "B_Q10";
+        Session.save(session);
+        return Texts_B.sendQ10(session);
+
+      case "B_Q10":
+        saveAnswer(caseID, 10, msg);
+        session.Current_Step_Code = "B_Q11";
+        Session.save(session);
+        return Texts_B.sendQ11(session);
+
+      case "B_Q11":
+        saveAnswer(caseID, 11, msg);
+        return this.finish(session);
+
+      default:
+        return Texts_Validation.sendInvalidOption(session);
+    }
+  },
+
+  finish(session) {
+    const dua = Texts_Closing.sendClosing(session);
+
+    const existingFlag = session.Temp?.existingChecked;
+    session.Current_Step_Code = "";
+    session.Flow_Type = "";
+    session.Temp = {};
+    if (existingFlag) session.Temp.existingChecked = true;
+    Session.save(session);
+
+    Session.delete(session.WhatsApp_Number);
+    return dua;
+  }
+};
+
+
+/************************************************************
+ * ================== FLOW C (FLOW TYPE C) ===================
+ ************************************************************/
+const FlowC = {
+
+  start(session) {
+    session.Temp = session.Temp || {};
+    session.Flow_Type = "C";
+
+    const caseID = createCase(session);
+    session.Temp.caseID = caseID;
+    session.Temp.flow = "C";
+
+    session.Current_Step_Code = "C_Q0";
+    Session.save(session);
+
+    return Texts_C.sendIntro(session);
+  },
+
+  handle(session, msg, raw, mediaUrl, mediaMime) {
+    const step = session.Current_Step_Code;
+    const caseID = session.Temp.caseID;
+
+    switch (step) {
+      case "C_Q0":
+        session.Current_Step_Code = "C_Q1";
+        Session.save(session);
+        return Texts_C.sendQ1(session);
+
+      case "C_Q1":
+        if (mediaUrl && !msg) {
+          return Texts_C.sendQ1(session);
+        }
+        saveAnswer(caseID, 1, msg);
+        session.Current_Step_Code = "C_Q2";
+        Session.save(session);
+        return Texts_C.sendQ2(session);
+
+      case "C_Q2":
+        saveAnswer(caseID, 2, msg);
+        session.Current_Step_Code = "C_Q3";
+        Session.save(session);
+        return Texts_C.sendQ3(session);
+
+      case "C_Q3":
+        saveAnswer(caseID, 3, msg);
+        session.Current_Step_Code = "C_Q4";
+        Session.save(session);
+        return Texts_C.sendQ4(session);
+
+      case "C_Q4":
+        saveAnswer(caseID, 4, msg);
+        session.Current_Step_Code = "C_Q5";
+        Session.save(session);
+        return Texts_C.sendQ5(session);
+
+      case "C_Q5":
+        saveAnswer(caseID, 5, msg);
+        session.Current_Step_Code = "C_Q6";
+        Session.save(session);
+        return Texts_C.sendQ6(session);
+
+      case "C_Q6":
+        saveAnswer(caseID, 6, msg);
+        session.Current_Step_Code = "C_Q7";
+        Session.save(session);
+        return Texts_C.sendQ7(session);
+
+      case "C_Q7":
+        saveAnswer(caseID, 7, msg);
+        session.Current_Step_Code = "C_Q8";
+        Session.save(session);
+        return Texts_C.sendQ8(session);
+
+      case "C_Q8":
+        saveAnswer(caseID, 8, msg);
+        session.Current_Step_Code = "C_Q9";
+        Session.save(session);
+        return Texts_C.sendQ9(session);
+
+      case "C_Q9":
+        saveAnswer(caseID, 9, msg);
+        session.Current_Step_Code = "C_Q10";
+        Session.save(session);
+        return Texts_C.sendQ10(session);
+
+      case "C_Q10":
+        saveAnswer(caseID, 10, msg);
+        session.Current_Step_Code = "C_Q11";
+        Session.save(session);
+        return Texts_C.sendQ11(session);
+
+      case "C_Q11":
+        saveAnswer(caseID, 11, msg);
+        session.Current_Step_Code = "C_Q12";
+        Session.save(session);
+        return Texts_C.sendQ12(session);
+
+      case "C_Q12":
+        saveAnswer(caseID, 12, msg);
+        session.Current_Step_Code = "C_Q13";
+        Session.save(session);
+        return Texts_C.sendQ13(session);
+
+      case "C_Q13":
+        saveAnswer(caseID, 13, msg);
+        session.Current_Step_Code = "C_Q14";
+        Session.save(session);
+        return Texts_C.sendQ14(session);
+
+      case "C_Q14":
+        saveAnswer(caseID, 14, msg);
+        session.Current_Step_Code = "C_Q15";
+        Session.save(session);
+        return Texts_C.sendQ15(session);
+
+      case "C_Q15":
+        saveAnswer(caseID, 15, msg);
+        return this.finish(session);
+
+      default:
+        return Texts_Validation.sendInvalidOption(session);
+    }
+  },
+
+  finish(session) {
+    const dua = Texts_Closing.sendClosing(session);
+
+    const existingFlag = session.Temp?.existingChecked;
+    session.Current_Step_Code = "";
+    session.Flow_Type = "";
+    session.Temp = {};
+    if (existingFlag) session.Temp.existingChecked = true;
+    Session.save(session);
+
+    Session.delete(session.WhatsApp_Number);
+    return dua;
+  }
+};
+
+
+/************************************************************
+ * ========== EXISTING CASE FLOW (VIEW/UPDATE) ===============
+ ************************************************************/
+const ExistingCaseFlow = {
+
+  route(session, msg) {
+    session.Temp = session.Temp || {};
+
+    const caseID = session.Temp.lastCaseID || session.Temp.caseID;
+    if (!caseID) {
+      session.Current_Step_Code = "USER_TYPE";
+      Session.save(session);
+      return Texts.sendUserTypeMenu(session);
+    }
+
+    const normalized = (msg || "").trim();
+
+    switch (normalized) {
+      case "1":
+        session.Current_Step_Code = "EXISTING_CASE_REVIEW";
+        Session.save(session);
+        return this.showCaseDetails(caseID, session);
+
+      case "2":
+        session.Current_Step_Code = "CASE_UPDATE_MENU";
+        Session.save(session);
+        return Texts_CaseUpdates.sendUpdateMenu(session, caseID);
+
+      case "3":
+        session.Temp = {};
+        session.Flow_Type = "";
+        session.Current_Step_Code = "USER_TYPE";
+        Session.save(session);
+        return Texts.sendUserTypeMenu(session);
+
+      case "4":
+        session.Temp = {};
+        session.Flow_Type = "";
+        session.Current_Step_Code = "";
+        Session.save(session);
+        Session.delete(session.WhatsApp_Number);
+        return Texts_Closing.sendClosing(session);
+
+      default:
+        return (
+          Texts_Validation.sendInvalidOption(session)
+          + "\n\n"
+          + Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
+        );
+    }
+  },
+
+  handleReview(session, msg, mediaUrl, mediaMime) {
+    const choice = (msg || "").trim();
+    if (!choice) {
+      return this.showCaseDetails(session.Temp.lastCaseID, session);
+    }
+
+    if (choice === "BACK" || choice === "0") {
+      session.Current_Step_Code = "EXISTING_CASE_MENU";
+      Session.save(session);
+      return Texts_ExistingCases.sendExistingCaseMenu(session, session.Temp.lastCaseID);
+    }
+
+    return this.showCaseDetails(session.Temp.lastCaseID, session);
+  },
+
+  showCaseDetails(caseID, session) {
+    const record = getCaseById(caseID);
+    if (!record) {
+      session.Current_Step_Code = "USER_TYPE";
+      session.Temp = {};
+      Session.save(session);
+      return Texts.sendUserTypeMenu(session);
+    }
+
+    return Texts_ExistingCases.sendCaseDetails(session, record);
+  }
+};
+
+
+/************************************************************
+ * ========== CASE UPDATES (NEW INFO / CLOSE CASE) ===========
+ ************************************************************/
+const CaseUpdateFlow = {
+
+  handle(session, msg, mediaUrl, mediaMime) {
+    session.Temp = session.Temp || {};
+    const caseID = session.Temp.lastCaseID || session.Temp.caseID;
+
+    if (!caseID) {
+      session.Current_Step_Code = "USER_TYPE";
+      Session.save(session);
+      return Texts.sendUserTypeMenu(session);
+    }
+
+    if (session.Current_Step_Code === "CASE_UPDATE_MENU") {
+      return this.handleMenu(session, msg, caseID);
+    }
+
+    if (session.Current_Step_Code === "CASE_UPDATE_INFO") {
+      return this.handleInfo(session, msg, mediaUrl, mediaMime, caseID);
+    }
+
+    return Texts_Validation.sendInvalidOption(session);
+  },
+
+  handleMenu(session, msg, caseID) {
+    const choice = (msg || "").trim();
+
+    switch (choice) {
+      case "1":
+        session.Current_Step_Code = "CASE_UPDATE_INFO";
+        session.Temp.updateMode = "info";
+        Session.save(session);
+        return Texts_CaseUpdates.sendAskNewInfo(session, caseID);
+
+      case "2":
+        session.Temp.updateMode = "media";
+        session.Current_Step_Code = "CASE_UPDATE_INFO";
+        Session.save(session);
+        return Texts_CaseUpdates.sendAskMedia(session, caseID);
+
+      case "3":
+        session.Temp.updateMode = "close";
+        session.Current_Step_Code = "CASE_UPDATE_INFO";
+        Session.save(session);
+        return Texts_CaseUpdates.sendAskClosure(session, caseID);
+
+      case "4":
+        session.Current_Step_Code = "EXISTING_CASE_MENU";
+        session.Temp.updateMode = "";
+        Session.save(session);
+        return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
+
+      default:
+        return (
+          Texts_Validation.sendInvalidOption(session)
+          + "\n\n"
+          + Texts_CaseUpdates.sendUpdateMenu(session, caseID)
+        );
+    }
+  },
+
+  handleInfo(session, msg, mediaUrl, mediaMime, caseID) {
+    const mode = session.Temp.updateMode;
+
+    if (mode === "info") {
+      if (!msg) {
+        return Texts_CaseUpdates.sendAskNewInfo(session, caseID);
+      }
+      appendCaseUpdateText(caseID, msg, "");
+      session.Current_Step_Code = "CASE_UPDATE_MENU";
+      session.Temp.updateMode = "";
+      Session.save(session);
+      return Texts_CaseUpdates.sendUpdateConfirmation(session, caseID);
+    }
+
+    if (mode === "media") {
+      if (!mediaUrl) {
+        return Texts_CaseUpdates.sendAskMedia(session, caseID);
+      }
+      saveMediaToCase(caseID, mediaUrl, mediaMime, "");
+      session.Current_Step_Code = "CASE_UPDATE_MENU";
+      session.Temp.updateMode = "";
+      Session.save(session);
+      return Texts_CaseUpdates.sendUpdateConfirmation(session, caseID);
+    }
+
+    if (mode === "close") {
+      if (!msg) {
+        return Texts_CaseUpdates.sendAskClosure(session, caseID);
+      }
+      closeCaseWithUpdate(caseID, msg);
+      session.Current_Step_Code = "";
+      session.Temp = {};
+      Session.save(session);
+      return Texts_CaseUpdates.sendClosureConfirmation(session, caseID);
+    }
+
+    session.Current_Step_Code = "CASE_UPDATE_MENU";
+    session.Temp.updateMode = "";
+    Session.save(session);
+    return Texts_CaseUpdates.sendUpdateMenu(session, caseID);
+  }
+};
+
+
