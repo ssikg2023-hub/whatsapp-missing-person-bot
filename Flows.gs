@@ -1,110 +1,105 @@
 /************************************************************
- *  Flows.gs — MASTER FLOW ROUTER (FINAL FIXED VERSION)
+ *  Flows.gs — MASTER FLOW ROUTER (FINAL PRODUCTION)
  ************************************************************/
 
 const Flows = {
 
   /************************************************************
-   * MAIN ROUTER — Decides which flow will handle the message
+   * MAIN ROUTER — Delegates to the correct flow handler
    ************************************************************/
   routeMessage(session, msg, raw, mediaUrl, mediaMime) {
 
-    const step = session.Current_Step_Code || "";
-    const flow = session.Flow_Type || "";
+    session.Temp = session.Temp || {};
+
+    const incomingText = (msg || "").trim();
+    let step = session.Current_Step_Code || "";
 
     /****************************************************
-     * SAFETY FIX #1 — Ensure Region Detected
+     * Ensure region + language are always established
      ****************************************************/
     if (!session.Region_Group) {
       session.Region_Group = detectRegionByPhone(session.WhatsApp_Number);
       Session.save(session);
     }
 
-    /****************************************************
-     * SAFETY FIX #2 — If no language → force LANG_SELECT
-     ****************************************************/
-    if (!session.Preferred_Language) {
+    if (step !== "LANG_SELECT" && !session.Preferred_Language) {
       session.Current_Step_Code = "LANG_SELECT";
       Session.save(session);
       return Texts.sendLanguageMenu(session);
     }
 
-    /****************************************************
-     * STEP 1 — LANGUAGE SELECTION (NEW ADDED HANDLER)
-     ****************************************************/
     if (step === "LANG_SELECT") {
-      return this.handleLanguageSelection(session, msg);
+      return this.handleLanguageSelection(session, incomingText);
     }
 
-    /****************************************************
-     * STEP 2 — USER TYPE SELECT
-     ****************************************************/
+    // Default idle state → return to user type selection
+    if (!step) {
+      session.Current_Step_Code = "USER_TYPE";
+      Session.save(session);
+      step = "USER_TYPE";
+    }
+
     if (step === "USER_TYPE") {
-      return this.handleUserType(session, msg);
+      return this.handleUserType(session, incomingText);
     }
 
-    /****************************************************
-     * =================== FLOW A ========================
-     ****************************************************/
     if (step === "A_ELIGIBILITY") {
-      return this.handleEligibility_A(session, msg);
+      return this.handleEligibility_A(session, incomingText);
     }
 
     if (step === "A_ELIGIBILITY_REJECTED") {
-      return this.handleRejected_A(session, msg);
+      return this.handleRejected_A(session, incomingText);
+    }
+
+    if (step === "EXISTING_CASE_REVIEW") {
+      return ExistingCaseFlow.handleReview(session, incomingText, mediaUrl, mediaMime);
+    }
+
+    if (step === "CASE_UPDATE_MENU" || step === "CASE_UPDATE_INFO") {
+      return CaseUpdateFlow.handle(session, incomingText, mediaUrl, mediaMime);
     }
 
     if (step.startsWith("A_")) {
-      return FlowA.handle(session, msg, raw, mediaUrl, mediaMime);
+      return FlowA.handle(session, incomingText, raw, mediaUrl, mediaMime);
     }
 
-    /****************************************************
-     * =================== FLOW B ========================
-     ****************************************************/
     if (step.startsWith("B_")) {
-      return FlowB.handle(session, msg, raw, mediaUrl, mediaMime);
+      return FlowB.handle(session, incomingText, raw, mediaUrl, mediaMime);
     }
 
-    /****************************************************
-     * =================== FLOW C ========================
-     ****************************************************/
     if (step.startsWith("C_")) {
-      return FlowC.handle(session, msg, raw, mediaUrl, mediaMime);
+      return FlowC.handle(session, incomingText, raw, mediaUrl, mediaMime);
     }
 
-    /****************************************************
-     * DEFAULT
-     ****************************************************/
     return Texts_Validation.sendInvalidOption(session);
   },
 
 
   /************************************************************
-   * LANGUAGE SELECTION HANDLER (100% NEW)
+   * LANGUAGE SELECTION HANDLER
    ************************************************************/
   handleLanguageSelection(session, msg) {
 
-    // Map user choice → language
     const lang = Texts.mapLanguageChoice(session.Region_Group, msg);
 
     if (!lang) {
-      return Texts.sendInvalidOption(session);
+      return (
+        Texts_Validation.sendInvalidOption(session)
+        + "\n\n"
+        + Texts.sendLanguageMenu(session)
+      );
     }
 
-    // Save language
     session.Preferred_Language = lang;
-
-    // Move to next step
     session.Current_Step_Code = "USER_TYPE";
     Session.save(session);
 
-    // Send next menu
     return Texts.sendUserTypeMenu(session);
   },
 
 
   /************************************************************
-   * USER TYPE MENU HANDLER
+   * USER TYPE HANDLER — Routes to Flow A/B/C
    ************************************************************/
   handleUserType(session, msg) {
 
@@ -127,50 +122,91 @@ const Flows = {
       return FlowC.start(session);
     }
 
-    return Texts_Validation.sendInvalidOption(session);
+    if (msg === "9") {
+      session.Temp = session.Temp || {};
+      session.Temp.checkingExisting = true;
+      Session.save(session);
+
+      const cases = Cases.getCasesByNumber(session.WhatsApp_Number);
+      if (!cases.length) {
+        session.Temp.checkingExisting = false;
+        Session.save(session);
+        return Texts_ExistingCases.sendNoCases(session);
+      }
+
+      if (cases.length === 1) {
+        const caseID = cases[0].Case_ID;
+        session.Temp.lastCaseID = caseID;
+        session.Temp.caseID = caseID;
+        session.Temp.checkingExisting = false;
+        session.Temp.existingChecked = true;
+        session.Current_Step_Code = "EXISTING_CASE_MENU";
+        Session.save(session);
+        return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
+      }
+
+      const ids = cases.map(function(item) { return item.Case_ID; });
+      session.Temp.caseList = ids;
+      session.Temp.awaitingCaseSelection = true;
+      session.Temp.checkingExisting = false;
+      session.Temp.existingChecked = true;
+      session.Current_Step_Code = "EXISTING_CASE_MENU";
+      Session.save(session);
+
+      return Texts_ExistingCases.sendMultipleCasesMenu(session, ids.join("\n"));
+    }
+
+    return (
+      Texts_Validation.sendInvalidOption(session)
+      + "\n\n"
+      + Texts.sendUserTypeMenu(session)
+    );
   },
 
 
   /************************************************************
-   * FLOW A — Eligibility (YES/NO)
+   * ELIGIBILITY HANDLER — Flow A screening
    ************************************************************/
   handleEligibility_A(session, msg) {
 
-    if (msg === "1") {
-      session.Current_Step_Code = "A_ELIGIBILITY_REJECTED";
-      Session.save(session);
+    const normalized = (msg || "").trim();
 
-      return (
-        Texts_Eligibility.sendEligibilityRejection(session)
-        + "\n\n"
-        + Texts_Eligibility.sendEligibilityAfterRejectAsk(session)
-      );
-    }
-
-    if (msg === "2") {
+    if (normalized === "1") {
       session.Current_Step_Code = "A_Q1";
       Session.save(session);
       return FlowA.start(session);
     }
 
-    return Texts_Validation.sendInvalidOption(session);
+    if (normalized === "2") {
+      session.Current_Step_Code = "A_ELIGIBILITY_REJECTED";
+      Session.save(session);
+      return Texts_Eligibility.sendIneligibleResponse(session);
+    }
+
+    return (
+      Texts_Validation.sendInvalidOption(session)
+      + "\n\n"
+      + Texts_Eligibility.sendEligibilityQuestion(session)
+    );
   },
 
 
   /************************************************************
-   * FLOW A — Rejected Follow-up
+   * HANDLE FLOW A REJECTION BRANCH
    ************************************************************/
   handleRejected_A(session, msg) {
+    const choice = (msg || "").trim();
 
-    if (msg === "1") {
+    if (choice === "1") {
       session.Current_Step_Code = "USER_TYPE";
       session.Flow_Type = "";
-      session.Temp = {};
       Session.save(session);
       return Texts.sendUserTypeMenu(session);
     }
 
-    if (msg === "2") {
+    if (choice === "2") {
+      session.Current_Step_Code = "";
+      Session.save(session);
       const dua = Texts_Closing.sendClosing(session);
       Session.delete(session.WhatsApp_Number);
       return dua;
@@ -183,17 +219,17 @@ const Flows = {
 
 
 /************************************************************
- * ============= FLOW A (BLOCK 2) ===========================
+ * ================== FLOW A (FLOW TYPE A) ===================
  ************************************************************/
 const FlowA = {
 
   start(session) {
-
     session.Temp = session.Temp || {};
     session.Flow_Type = "A";
 
     const caseID = createCase(session);
     session.Temp.caseID = caseID;
+    session.Temp.flow = "A";
 
     session.Current_Step_Code = "A_Q1";
     Session.save(session);
@@ -204,17 +240,20 @@ const FlowA = {
   handle(session, msg, raw, mediaUrl, mediaMime) {
 
     const step = session.Current_Step_Code;
+    const caseID = session.Temp.caseID;
 
     switch (step) {
-
       case "A_Q1":
-        saveAnswer(session.Temp.caseID, 1, msg);
+        saveAnswer(caseID, 1, msg);
         session.Current_Step_Code = "A_Q2";
         Session.save(session);
         return Texts_A.sendQ2(session);
 
       case "A_Q2":
-        saveAnswer(session.Temp.caseID, 2, msg);
+        if (mediaUrl && !msg) {
+          return Texts_A.sendQ2(session);
+        }
+        saveAnswer(caseID, 2, msg);
         session.Current_Step_Code = "A_Q3";
         Session.save(session);
         return Texts_A.sendQ3(session);
@@ -223,327 +262,72 @@ const FlowA = {
         if (isNaN(Number(msg))) {
           return Texts_A.sendInvalidAge(session);
         }
-        saveAnswer(session.Temp.caseID, 3, msg);
+        saveAnswer(caseID, 3, msg);
         session.Current_Step_Code = "A_Q4";
         Session.save(session);
         return Texts_A.sendQ4(session);
 
       case "A_Q4":
-        saveAnswer(session.Temp.caseID, 4, msg);
+        saveAnswer(caseID, 4, msg);
         session.Current_Step_Code = "A_Q5";
         Session.save(session);
         return Texts_A.sendQ5(session);
 
       case "A_Q5":
-        saveAnswer(session.Temp.caseID, 5, msg);
+        saveAnswer(caseID, 5, msg);
         session.Current_Step_Code = "A_Q6";
         Session.save(session);
         return Texts_A.sendQ6(session);
 
       case "A_Q6":
-        saveAnswer(session.Temp.caseID, 6, msg);
+        saveAnswer(caseID, 6, msg);
         session.Current_Step_Code = "A_Q7";
         Session.save(session);
         return Texts_A.sendQ7(session);
 
       case "A_Q7":
-        saveAnswer(session.Temp.caseID, 7, msg);
+        saveAnswer(caseID, 7, msg);
         session.Current_Step_Code = "A_Q8";
         Session.save(session);
         return Texts_A.sendQ8(session);
 
       case "A_Q8":
-        saveAnswer(session.Temp.caseID, 8, msg);
+        saveAnswer(caseID, 8, msg);
         session.Current_Step_Code = "A_Q9";
         Session.save(session);
         return Texts_A.sendQ9(session);
 
       case "A_Q9":
-        saveAnswer(session.Temp.caseID, 9, msg);
-        return this._finishFlowA(session);
+        saveAnswer(caseID, 9, msg);
+        return this.finish(session);
 
       default:
         return Texts_Validation.sendInvalidOption(session);
     }
   },
 
-  _finishFlowA(session) {
-
+  finish(session) {
     const dua = Texts_Closing.sendClosing(session);
 
+    const existingFlag = session.Temp?.existingChecked;
     session.Current_Step_Code = "";
     session.Flow_Type = "";
     session.Temp = {};
+    if (existingFlag) session.Temp.existingChecked = true;
     Session.save(session);
 
     Session.delete(session.WhatsApp_Number);
-
     return dua;
   }
 };
 
 
 /************************************************************
- * ============= FLOW B (BLOCK 3) ===========================
+ * ================== FLOW B (FLOW TYPE B) ===================
  ************************************************************/
 const FlowB = {
 
   start(session) {
-
     session.Temp = session.Temp || {};
     session.Flow_Type = "B";
-
-    const caseID = createCase(session);
-    session.Temp.caseID = caseID;
-
-    session.Current_Step_Code = "B_Q1";
-    Session.save(session);
-
-    return Texts_B.sendQ1(session);
-  },
-
-  handle(session, msg, raw, mediaUrl, mediaMime) {
-
-    const step = session.Current_Step_Code;
-
-    switch (step) {
-
-      case "B_Q1":
-        saveAnswer(session.Temp.caseID, 1, msg);
-        session.Current_Step_Code = "B_Q2";
-        Session.save(session);
-        return Texts_B.sendQ2(session);
-
-      case "B_Q2":
-        saveAnswer(session.Temp.caseID, 2, msg);
-        session.Current_Step_Code = "B_Q3";
-        Session.save(session);
-        return Texts_B.sendQ3(session);
-
-      case "B_Q3":
-        saveAnswer(session.Temp.caseID, 3, msg);
-        session.Current_Step_Code = "B_Q4";
-        Session.save(session);
-        return Texts_B.sendQ4(session);
-
-      case "B_Q4":
-        saveAnswer(session.Temp.caseID, 4, msg);
-        session.Current_Step_Code = "B_Q5";
-        Session.save(session);
-        return Texts_B.sendQ5(session);
-
-      case "B_Q5":
-        saveAnswer(session.Temp.caseID, 5, msg);
-        session.Current_Step_Code = "B_Q6";
-        Session.save(session);
-        return Texts_B.sendQ6(session);
-
-      case "B_Q6":
-        saveAnswer(session.Temp.caseID, 6, msg);
-        session.Current_Step_Code = "B_Q7";
-        Session.save(session);
-        return Texts_B.sendQ7(session);
-
-      case "B_Q7":
-        saveAnswer(session.Temp.caseID, 7, msg);
-        session.Current_Step_Code = "B_Q8";
-        Session.save(session);
-        return Texts_B.sendQ8(session);
-
-      case "B_Q8":
-        saveAnswer(session.Temp.caseID, 8, msg);
-        session.Current_Step_Code = "B_Q9";
-        Session.save(session);
-        return Texts_B.sendQ9(session);
-
-      case "B_Q9":
-        saveAnswer(session.Temp.caseID, 9, msg);
-        session.Current_Step_Code = "B_Q10";
-        Session.save(session);
-        return Texts_B.sendQ10(session);
-
-      case "B_Q10":
-        saveAnswer(session.Temp.caseID, 10, msg);
-        session.Current_Step_Code = "B_Q11";
-        Session.save(session);
-        return Texts_B.sendQ11(session);
-
-      case "B_Q11":
-        if (mediaUrl) saveMediaToCase(session.Temp.caseID, mediaUrl, mediaMime);
-        else saveAnswer(session.Temp.caseID, 11, msg);
-        return this._finishFlowB(session);
-
-      default:
-        return Texts_Validation.sendInvalidOption(session);
-    }
-  },
-
-  _finishFlowB(session) {
-
-    const dua = Texts_Closing.sendClosing(session);
-
-    session.Current_Step_Code = "";
-    session.Flow_Type = "";
-    session.Temp = {};
-    Session.save(session);
-
-    Session.delete(session.WhatsApp_Number);
-
-    return dua;
-  }
-};
-
-
-/************************************************************
- * ============= FLOW C (BLOCK 4) ===========================
- ************************************************************/
-const FlowC = {
-
-  start(session) {
-
-    session.Temp = session.Temp || {};
-    session.Flow_Type = "C";
-
-    const caseID = createCase(session);
-    session.Temp.caseID = caseID;
-
-    session.Current_Step_Code = "C_Q0";
-    Session.save(session);
-
-    return Texts_C.sendQ0(session);
-  },
-
-  handle(session, msg, raw, mediaUrl, mediaMime) {
-
-    const step = session.Current_Step_Code;
-
-    switch (step) {
-
-      case "C_Q0":
-        if (msg === "2") return this._rejectNoAccess(session);
-        if (msg !== "1" && msg !== "3")
-          return Texts_Validation.sendInvalidOption(session);
-
-        saveAnswer(session.Temp.caseID, 1, msg);
-        session.Current_Step_Code = "C_Q1";
-        Session.save(session);
-        return Texts_C.sendQ1(session);
-
-      case "C_Q1":
-        saveAnswer(session.Temp.caseID, 2, msg);
-        session.Current_Step_Code = "C_Q2";
-        Session.save(session);
-        return Texts_C.sendQ2(session);
-
-      case "C_Q2":
-        saveAnswer(session.Temp.caseID, 3, msg);
-        session.Current_Step_Code = "C_Q3";
-        Session.save(session);
-        return Texts_C.sendQ3(session);
-
-      case "C_Q3":
-        saveAnswer(session.Temp.caseID, 4, msg);
-        session.Current_Step_Code = "C_Q4";
-        Session.save(session);
-        return Texts_C.sendQ4(session);
-
-      case "C_Q4":
-        saveAnswer(session.Temp.caseID, 5, msg);
-        session.Current_Step_Code = "C_Q5";
-        Session.save(session);
-        return Texts_C.sendQ5(session);
-
-      case "C_Q5":
-        saveAnswer(session.Temp.caseID, 6, msg);
-        session.Current_Step_Code = "C_Q6";
-        Session.save(session);
-        return Texts_C.sendQ6(session);
-
-      case "C_Q6":
-        saveAnswer(session.Temp.caseID, 7, msg);
-        session.Current_Step_Code = "C_Q7";
-        Session.save(session);
-        return Texts_C.sendQ7(session);
-
-      case "C_Q7":
-        saveAnswer(session.Temp.caseID, 8, msg);
-        session.Current_Step_Code = "C_Q8";
-        Session.save(session);
-        return Texts_C.sendQ8(session);
-
-      case "C_Q8":
-        saveAnswer(session.Temp.caseID, 9, msg);
-        session.Current_Step_Code = "C_Q9";
-        Session.save(session);
-        return Texts_C.sendQ9(session);
-
-      case "C_Q9":
-        saveAnswer(session.Temp.caseID, 10, msg);
-        session.Current_Step_Code = "C_Q10";
-        Session.save(session);
-        return Texts_C.sendQ10(session);
-
-      case "C_Q10":
-        saveAnswer(session.Temp.caseID, 11, msg);
-        session.Current_Step_Code = "C_Q11";
-        Session.save(session);
-        return Texts_C.sendQ11(session);
-
-      case "C_Q11":
-        saveAnswer(session.Temp.caseID, 12, msg);
-        session.Current_Step_Code = "C_Q12";
-        Session.save(session);
-        return Texts_C.sendQ12(session);
-
-      case "C_Q12":
-        saveAnswer(session.Temp.caseID, 13, msg);
-        session.Current_Step_Code = "C_Q13";
-        Session.save(session);
-        return Texts_C.sendQ13(session);
-
-      case "C_Q13":
-        saveAnswer(session.Temp.caseID, 14, msg);
-        session.Current_Step_Code = "C_Q14";
-        Session.save(session);
-        return Texts_C.sendQ14(session);
-
-      case "C_Q14":
-        saveAnswer(session.Temp.caseID, 15, msg);
-        session.Current_Step_Code = "C_Q15";
-        Session.save(session);
-        return Texts_C.sendQ15(session);
-
-      case "C_Q15":
-        if (mediaUrl)
-          saveMediaToCase(session.Temp.caseID, mediaUrl, mediaMime);
-        else
-          saveAnswer(session.Temp.caseID, 16, msg);
-
-        return this._finishFlowC(session);
-
-      default:
-        return Texts_Validation.sendInvalidOption(session);
-    }
-  },
-
-  _rejectNoAccess(session) {
-    const msg = Texts_C.sendRejectNoAccess(session);
-    Session.delete(session.WhatsApp_Number);
-    return msg;
-  },
-
-  _finishFlowC(session) {
-
-    const dua = Texts_Closing.sendClosing(session);
-
-    session.Current_Step_Code = "";
-    session.Flow_Type = "";
-    session.Temp = {};
-    Session.save(session);
-
-    Session.delete(session.WhatsApp_Number);
-
-    return dua;
-  }
-};
-
+Type NEXT for the next file.
