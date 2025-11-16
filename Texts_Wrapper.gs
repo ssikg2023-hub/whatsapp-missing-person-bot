@@ -69,11 +69,11 @@ if (typeof Texts === 'undefined') {
   };
 
   Texts.sendEligibilityRejected = function(session) {
-    return Texts.Validation.sendEligibilityRejected(session);
+    return Texts.Eligibility.sendEligibilityAfterRejectAsk(session);
   };
 
   Texts.closingAfterRejection = function(session) {
-    return Texts.Validation.closingAfterRejection(session);
+    return Texts.Closing.sendRejectionClosing(session);
   };
 
   /*************************************************************

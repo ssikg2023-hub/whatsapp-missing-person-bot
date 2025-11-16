@@ -31,9 +31,9 @@ const Texts_LangMenus = (() => {
       "Welcome! Please choose your preferred language:",
       ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
       "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-      "1️⃣ English",
-      "2️⃣ اردو",
-      "3️⃣ Roman Urdu"
+      "1️⃣ اردو",
+      "2️⃣ Roman Urdu",
+      "3️⃣ English"
     ].join("\n"),
 
     IN: [
@@ -41,10 +41,10 @@ const Texts_LangMenus = (() => {
       ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
       "स्वागत है! कृपया अपनी भाषा चुनें",
       "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-      "1️⃣ English",
-      "2️⃣ हिन्दी",
-      "3️⃣ اردو",
-      "4️⃣ Roman Urdu"
+      "1️⃣ हिन्दी",
+      "2️⃣ اردو",
+      "3️⃣ Roman Urdu",
+      "4️⃣ English"
     ].join("\n"),
 
     BD: [
@@ -52,10 +52,8 @@ const Texts_LangMenus = (() => {
       ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
       "স্বাগতম! দয়া করে আপনার ভাষা নির্বাচন করুন",
       "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-      "1️⃣ English",
-      "2️⃣ বাংলা",
-      "3️⃣ اردو",
-      "4️⃣ Roman Urdu"
+      "1️⃣ বাংলা",
+      "2️⃣ English"
     ].join("\n"),
 
     ME: [
@@ -63,8 +61,8 @@ const Texts_LangMenus = (() => {
       ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
       "مرحبًا! يرجى اختيار لغتك المفضلة",
       "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-      "1️⃣ English",
-      "2️⃣ العربية",
+      "1️⃣ العربية",
+      "2️⃣ English",
       "3️⃣ اردو",
       "4️⃣ Roman Urdu"
     ].join("\n"),
@@ -83,10 +81,10 @@ const Texts_LangMenus = (() => {
    * Official language availability lists (per region)
    ***********************************************************/
   const languageCodes = {
-    PK: ["EN", "UR", "RUR"],
-    IN: ["EN", "HI", "UR", "RUR"],
-    BD: ["EN", "BN", "UR", "RUR"],
-    ME: ["EN", "AR", "UR", "RUR"],
+    PK: ["UR", "RUR", "EN"],
+    IN: ["HI", "UR", "RUR", "EN"],
+    BD: ["BN", "EN"],
+    ME: ["AR", "EN", "UR", "RUR"],
     OTHER: ["EN", "UR", "RUR"]
   };
 

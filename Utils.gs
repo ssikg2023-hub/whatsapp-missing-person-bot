@@ -146,8 +146,12 @@ const REGION_PREFIXES = Object.freeze([
   { prefix: '+92', code: 'PK' },
   { prefix: '+91', code: 'IN' },
   { prefix: '+880', code: 'BD' },
-  { prefix: '+971', code: 'AE' },
-  { prefix: '+966', code: 'SA' }
+  { prefix: '+966', code: 'ME' },
+  { prefix: '+971', code: 'ME' },
+  { prefix: '+973', code: 'ME' },
+  { prefix: '+974', code: 'ME' },
+  { prefix: '+968', code: 'ME' },
+  { prefix: '+965', code: 'ME' }
 ]);
 const REGION_FALLBACK = 'OTHER';
 
@@ -293,8 +297,7 @@ const SessionEngine = (function() {
       if (normalizePhoneNumber(data[i][SESSION_COLUMNS.NUMBER - 1]) !== normalized) continue;
       var session = hydrate(data[i], i + 2);
       if (SessionTimeout.hasExpired(session)) {
-        sheet.deleteRow(session._row);
-        return null;
+        return ensureDefaults(session);
       }
       return ensureDefaults(session);
     }
