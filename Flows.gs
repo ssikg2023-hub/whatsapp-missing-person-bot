@@ -331,12 +331,6 @@ const FlowB = {
     session.Temp = session.Temp || {};
     session.Flow_Type = "B";
 
-const FlowB = {
-
-  start(session) {
-    session.Temp = session.Temp || {};
-    session.Flow_Type = "B";
-
     const caseID = createCase(session);
     session.Temp.caseID = caseID;
     session.Temp.flow = "B";
