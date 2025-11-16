@@ -1,83 +1,105 @@
 /***************************************************************
- * Texts_Wrapper.gs — MAIN WRAPPER + LANGUAGE ENGINE
+ * Texts_Wrapper.gs — GLOBAL TEXTS REGISTRY & HELPERS
+ * Source copy: “WhatsApp Chatbot Flow – Region wise.txt”
  ***************************************************************/
 
-// Create Texts object if not already created
+// Ensure the global Texts namespace exists
 if (typeof Texts === "undefined") {
   var Texts = {};
 }
 
+/***************************************************************
+ * REGISTER MODULES (each retains its own exported functions)
+ ***************************************************************/
+(function registerTextModules() {
+  const modules = {
+    FlowA: Texts_A,
+    FlowB: Texts_B,
+    FlowC: Texts_C,
+    Eligibility: Texts_Eligibility,
+    ExistingCases: Texts_ExistingCases,
+    CaseEntryCheck: Texts_CaseEntryCheck,
+    CaseUpdates: Texts_CaseUpdates,
+    Validation: Texts_Validation,
+    Closing: Texts_Closing,
+    LangMenus: Texts_LangMenus,
+    UserTypes: Texts_UserTypes
+  };
 
-/***********************************************************
- * MAIN SEND WRAPPER
- ***********************************************************/
-Texts.send = function (to, body) {
+  Object.keys(modules).forEach(function(key) {
+    Texts[key] = modules[key];
+  });
+
+  Texts.Closing = Texts_Closing;
+})();
+
+/***************************************************************
+ * OUTBOUND SEND WRAPPER
+ ***************************************************************/
+Texts.send = function(to, body) {
+  if (!body) return;
   return sendWhatsAppMessage(to, body);
 };
 
-
-/***********************************************************
- * INVALID OPTION (fallback only — actual version in Texts_Validation)
- ***********************************************************/
+/***************************************************************
+ * INVALID OPTION (delegates to Validation copy)
+ ***************************************************************/
 Texts.sendInvalidOption = function(session) {
-
-  const lang = session?.Preferred_Language || "EN";
-
-  const map = {
-    "EN": "❌ Invalid option. Please choose a valid number from the menu.",
-    "UR": "❌ غلط آپشن۔ براہ کرم درست نمبر منتخب کریں۔",
-    "RUR": "❌ Ghalat option. Barah-e-karam sahi number choose karein.",
-    "HI": "❌ गलत विकल्प। कृपया मेनू से सही नंबर चुनें।",
-    "BN": "❌ ভুল অপশন। অনুগ্রহ করে মেনু থেকে সঠিক নম্বর নির্বাচন করুন।",
-    "AR": "❌ خيار غير صالح. يرجى اختيار رقم صحيح من القائمة."
-  };
-
-  return map[lang] || map["EN"];
+  return Texts_Validation.sendInvalidOption(session);
 };
 
+Texts.sendInvalidCaseID = function(session) {
+  return Texts_Validation.sendInvalidCaseID(session);
+};
 
-/***********************************************************
- * REGION → AVAILABLE LANGUAGES
- ***********************************************************/
+Texts.sendEligibilityRejected = function(session) {
+  return Texts_Validation.sendEligibilityRejected(session);
+};
+
+Texts.closingAfterRejection = function(session) {
+  return Texts_Validation.closingAfterRejection(session);
+};
+
+/***************************************************************
+ * LANGUAGE MENU HELPERS (delegates to Texts_LangMenus)
+ ***************************************************************/
 Texts.getAvailableLanguages = function(region) {
-  switch (region) {
-
-    case "PK": return ["EN", "UR", "RUR"];
-    case "IN": return ["EN", "HI", "UR", "RUR"];
-    case "BD": return ["EN", "BN", "UR", "RUR"];
-    case "ME": return ["EN", "AR", "UR", "RUR"];
-
-    default:   return ["EN", "UR", "RUR"];
-  }
+  return Texts_LangMenus.getAvailableLanguages(region);
 };
 
-
-/***********************************************************
- * MAP USER CHOICE (1/2/3/4) → LANGUAGE CODE
- ***********************************************************/
 Texts.mapLanguageChoice = function(region, choice) {
-
-  const langs = Texts.getAvailableLanguages(region);
-
-  const index = Number(choice) - 1;
-
-  if (index < 0 || index >= langs.length) return null;
-
-  return langs[index];
+  return Texts_LangMenus.mapLanguageChoice(region, choice);
 };
 
-
-/***********************************************************
- * SEND LANGUAGE MENU  (delegates to Texts_LangMenus)
- ***********************************************************/
 Texts.sendLanguageMenu = function(session) {
   return Texts_LangMenus.getMenu(session.Region_Group);
 };
 
-
-/***********************************************************
- * SEND USER TYPE MENU  (delegates to Texts_UserTypes)
- ***********************************************************/
+/***************************************************************
+ * USER TYPE MENU (delegates to Texts_UserTypes)
+ ***************************************************************/
 Texts.sendUserTypeMenu = function(session) {
   return Texts_UserTypes.sendMenu(session);
+};
+
+/***************************************************************
+ * LANGUAGE FALLBACK UTILITY
+ ***************************************************************/
+Texts.resolveLanguage = function(session, allowedLanguages) {
+  const preferred = session && session.Preferred_Language;
+  const available = Array.isArray(allowedLanguages) ? allowedLanguages.slice() : [];
+
+  if (!available.length) {
+    return preferred || "EN";
+  }
+
+  if (preferred && available.indexOf(preferred) !== -1) {
+    return preferred;
+  }
+
+  if (available.indexOf("EN") !== -1) {
+    return "EN";
+  }
+
+  return available[0];
 };
