@@ -1,15 +1,14 @@
-/************************************************************
- *  Code.gs — ENTERPRISE MAIN ROUTER (FINAL FIXED VERSION)
- ************************************************************/
-
+/**
+ * Code.gs — Primary WhatsApp webhook entrypoint (aligned with Flows)
+ */
 
 /************************************************************
  * VERIFY WEBHOOK (GET)
  ************************************************************/
 function doGet(e) {
-  const mode = e.parameter["hub.mode"];
-  const token = e.parameter["hub.verify_token"];
-  const challenge = e.parameter["hub.challenge"];
+  const mode = e?.parameter?.["hub.mode"];
+  const token = e?.parameter?.["hub.verify_token"];
+  const challenge = e?.parameter?.["hub.challenge"];
 
   if (mode === "subscribe" && token === CONF("VERIFY_TOKEN")) {
     return ContentService.createTextOutput(challenge);
@@ -19,238 +18,45 @@ function doGet(e) {
 }
 
 
-
 /************************************************************
  * WEBHOOK RECEIVER (POST)
  ************************************************************/
 function doPost(e) {
   try {
+    const payload = parseJson(e?.postData?.contents);
+    const messageObj = extractIncomingMessage_(payload);
 
-    const data = JSON.parse(e.postData.contents || "{}");
-    const messageObj = extractMessage_(data);
-    if (!messageObj) return ok_();
+    if (!messageObj) {
+      return ok_();
+    }
 
     const userNumber = sanitizeNumber_(messageObj.from);
-    if (!userNumber) return ok_();
+    if (!userNumber) {
+      return ok_();
+    }
+
+    const { session, isNew } = loadOrCreateSession_(userNumber);
+
+    if (isNew) {
+      sendWhatsAppMessage(userNumber, Texts.sendLanguageMenu(session));
+      return ok_();
+    }
 
     const incomingText = (messageObj.text || "").trim();
 
-
-
-    /********************************************************
-     * SESSION LOAD OR CREATE
-     ********************************************************/
-    let session = Session.get(userNumber);
-
-    if (!session) {
-      session = Session.create(userNumber);
-      session.Region_Group = detectRegionByPhone(userNumber);
-      Session.save(session);
-
-      sendWhatsAppMessage(
-        userNumber,
-        Texts_LangMenus.getMenu(session.Region_Group)
-      );
-
+    if (incomingText && incomingText.toUpperCase() === "RESET") {
+      resetSession_(userNumber);
       return ok_();
     }
 
-
-
-    /********************************************************
-     * HARD RESET
-     ********************************************************/
-    if (incomingText.toUpperCase() === "RESET") {
-
-      Session.delete(userNumber);
-      session = Session.create(userNumber);
-
-      session.Region_Group = detectRegionByPhone(userNumber);
-
-      sendWhatsAppMessage(
-        userNumber,
-        Texts_LangMenus.getMenu(session.Region_Group)
-      );
+    if (handleMultiCaseSelection_(session, incomingText, userNumber)) {
       return ok_();
     }
 
-
-
-    /********************************************************
-     * EXISTING CASE CHECK
-     ********************************************************/
-    if (session.Preferred_Language && !session.Temp.existingChecked) {
-
-      const existing = Cases.getCasesByNumber(userNumber);   // ✅ FIXED
-      session.Temp.existingChecked = true;
-
-      if (existing.length === 1) {
-        session.Current_Step_Code = "EXISTING_CASE_MENU";
-        session.Temp.lastCaseID = existing[0].Case_ID;
-        Session.save(session);
-
-        sendWhatsAppMessage(
-          userNumber,
-          Texts_ExistingCases.sendExistingCaseMenu(session, session.Temp.lastCaseID)
-        );
-
-        return ok_();
-      }
-
-      if (existing.length > 1) {
-        session.Current_Step_Code = "MULTI_CASE_SELECT";
-        session.Temp.caseList = existing.map(c => c.Case_ID);
-        Session.save(session);
-
-        sendWhatsAppMessage(
-          userNumber,
-          Texts_ExistingCases.sendMultipleCasesMenu(
-            session,
-            session.Temp.caseList.join("\n")
-          )
-        );
-
-        return ok_();
-      }
-
-      Session.save(session);
-    }
-
-
-
-    /********************************************************
-     * MULTI CASE SELECT
-     ********************************************************/
-    if (session.Current_Step_Code === "MULTI_CASE_SELECT") {
-
-      const chosen = incomingText.trim();
-
-      if (!session.Temp.caseList.includes(chosen)) {
-        sendWhatsAppMessage(
-          userNumber,
-          Texts_Validation.sendInvalidOption(session)
-        );
-        return ok_();
-      }
-
-      session.Temp.lastCaseID = chosen;
-      session.Current_Step_Code = "EXISTING_CASE_MENU";
-      Session.save(session);
-
-      sendWhatsAppMessage(
-        userNumber,
-        Texts_ExistingCases.sendExistingCaseMenu(session, chosen)
-      );
-
+    if (handleExistingCaseMenu_(session, incomingText, userNumber)) {
       return ok_();
     }
 
-
-
-    /********************************************************
-     * EXISTING CASE ROUTER
-     ********************************************************/
-    if (session.Current_Step_Code === "EXISTING_CASE_MENU") {
-
-      const reply = ExistingCaseFlow.route(session, incomingText);
-
-      if (reply === "__EC_BACK__") {
-        session.Current_Step_Code = "USER_TYPE";
-        Session.save(session);
-
-        sendWhatsAppMessage(userNumber, Texts.sendUserTypeMenu(session)); // ✅ FIXED
-        return ok_();
-      }
-
-      if (reply?.startsWith("__END_SESSION__")) {
-        const message = reply.replace("__END_SESSION__:::", "").trim();
-        Session.delete(userNumber);
-        sendWhatsAppMessage(userNumber, message);
-        return ok_();
-      }
-
-      if (reply) sendWhatsAppMessage(userNumber, reply);
-
-      Session.save(session);
-      return ok_();
-    }
-
-
-
-    /********************************************************
-     * STEP 2 — LANGUAGE SELECTION
-     ********************************************************/
-    if (session.Current_Step_Code === "LANG_SELECT") {
-
-      const lang = Texts.mapLanguageChoice(   // ✅ FIXED
-        session.Region_Group,
-        incomingText
-      );
-
-      if (!lang) {
-        sendWhatsAppMessage(
-          userNumber,
-          Texts_Validation.sendInvalidOption(session)
-        );
-        return ok_();
-      }
-
-      session.Preferred_Language = lang;
-      session.Current_Step_Code = "USER_TYPE";
-      Session.save(session);
-
-      sendWhatsAppMessage(userNumber, Texts.sendUserTypeMenu(session)); // ✅ FIXED
-      return ok_();
-    }
-
-
-
-    /********************************************************
-     * STILL NO LANGUAGE (Fail-safe)
-     ********************************************************/
-    if (!session.Preferred_Language) {
-
-      session.Current_Step_Code = "LANG_SELECT";
-      Session.save(session);
-
-      sendWhatsAppMessage(
-        userNumber,
-        Texts_LangMenus.getMenu(session.Region_Group)
-      );
-
-      return ok_();
-    }
-
-
-
-    /********************************************************
-     * MEDIA HANDLING
-     ********************************************************/
-    if (messageObj.mediaUrl) {
-
-      MediaEngine.processIncomingMedia(session, messageObj);
-
-      let reply = Flows.handleMediaAftermath
-        ? Flows.handleMediaAftermath(session)
-        : Flows.routeMessage(
-            session,
-            "",
-            messageObj.raw,
-            messageObj.mediaUrl,
-            messageObj.mediaMime
-          );
-
-      if (reply) sendWhatsAppMessage(userNumber, reply);
-
-      Session.save(session);
-      return ok_();
-    }
-
-
-
-    /********************************************************
-     * MAIN FLOW ROUTER
-     ********************************************************/
     const reply = Flows.routeMessage(
       session,
       incomingText,
@@ -259,71 +65,102 @@ function doPost(e) {
       messageObj.mediaMime
     );
 
-    if (reply === "__END_SESSION__") {
-      Session.delete(userNumber);
+    if (checkExistingCases_(session, userNumber)) {
       return ok_();
     }
 
-    if (reply) sendWhatsAppMessage(userNumber, reply);
+    if (reply) {
+      sendWhatsAppMessage(userNumber, reply);
+    }
 
-    Session.save(session);
     return ok_();
 
-
   } catch (err) {
-    Logger.log("Webhook Error: " + err);
+    Logger.log("Webhook Error → " + err);
     return ok_();
   }
 }
 
 
-
 /************************************************************
- * EXTRACT MESSAGE — META WEBHOOK
+ * EXTRACT MESSAGE — Supports text, interactive, media, location
  ************************************************************/
-function extractMessage_(data) {
+function extractIncomingMessage_(data) {
   try {
     const entry = data?.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const msg = changes?.value?.messages?.[0];
-    if (!msg) return null;
+    const change = entry?.changes?.[0];
+    const value = change?.value;
+    const message = value?.messages?.[0];
+
+    if (!message) {
+      return null;
+    }
 
     let text = "";
     let mediaUrl = "";
     let mediaMime = "";
 
-    if (msg.text?.body) text = msg.text.body;
+    const type = message.type;
 
-    if (msg.image)      { mediaUrl = msg.image.id;    mediaMime = msg.image.mime_type; }
-    else if (msg.document){ mediaUrl = msg.document.id; mediaMime = msg.document.mime_type; }
-    else if (msg.audio) { mediaUrl = msg.audio.id;    mediaMime = msg.audio.mime_type; }
-    else if (msg.video) { mediaUrl = msg.video.id;    mediaMime = msg.video.mime_type; }
+    if (type === "text") {
+      text = message.text?.body || "";
+    } else if (type === "interactive") {
+      const interactive = message.interactive || {};
+      if (interactive.type === "button_reply") {
+        text = interactive.button_reply?.id || interactive.button_reply?.title || "";
+      } else if (interactive.type === "list_reply") {
+        text = interactive.list_reply?.id || interactive.list_reply?.title || "";
+      }
+    } else if (type === "image") {
+      mediaUrl = message.image?.id || "";
+      mediaMime = message.image?.mime_type || "";
+      text = message.image?.caption || "";
+    } else if (type === "video") {
+      mediaUrl = message.video?.id || "";
+      mediaMime = message.video?.mime_type || "";
+      text = message.video?.caption || "";
+    } else if (type === "audio") {
+      mediaUrl = message.audio?.id || "";
+      mediaMime = message.audio?.mime_type || "";
+    } else if (type === "document") {
+      mediaUrl = message.document?.id || "";
+      mediaMime = message.document?.mime_type || "";
+      text = message.document?.caption || message.document?.filename || "";
+    } else if (type === "sticker") {
+      mediaUrl = message.sticker?.id || "";
+      mediaMime = message.sticker?.mime_type || "";
+    } else if (type === "location") {
+      const loc = message.location;
+      if (loc) {
+        text = loc.latitude + "," + loc.longitude;
+      }
+    } else if (type === "button") {
+      text = message.button?.payload || message.button?.text || "";
+    }
 
     return {
-      from: msg.from || "",
-      text,
-      mediaUrl,
-      mediaMime,
-      raw: msg
+      from: message.from || "",
+      text: text || "",
+      mediaUrl: mediaUrl,
+      mediaMime: mediaMime,
+      raw: message,
     };
-
-  } catch (e) {
-    Logger.log("extractMessage_ Error: " + e);
+  } catch (err) {
+    Logger.log("extractIncomingMessage_ Error → " + err);
     return null;
   }
 }
 
 
-
 /************************************************************
- * SEND MESSAGE TO WHATSAPP — META v20
+ * SEND MESSAGE TO WHATSAPP — Graph API v20
  ************************************************************/
 function sendWhatsAppMessage(number, text) {
+  if (!text) {
+    return;
+  }
 
-  const url =
-    "https://graph.facebook.com/v20.0/" +
-    CONF("WHATSAPP_PHONE_NUMBER_ID") +
-    "/messages";
+  const url = "https://graph.facebook.com/v20.0/" + CONF("WHATSAPP_PHONE_NUMBER_ID") + "/messages";
 
   const payload = {
     messaging_product: "whatsapp",
@@ -343,15 +180,188 @@ function sendWhatsAppMessage(number, text) {
 }
 
 
-
 /************************************************************
  * HELPERS
  ************************************************************/
 function sanitizeNumber_(num) {
-  if (!num) return "";
-  return num.replace(/[^0-9]/g, "");
+  if (!num) {
+    return "";
+  }
+  return ("" + num).replace(/[^0-9]/g, "");
 }
 
 function ok_() {
   return ContentService.createTextOutput("OK");
+}
+
+
+/************************************************************
+ * SESSION + EXISTING CASE HELPERS
+ ************************************************************/
+function loadOrCreateSession_(number) {
+  let session = Session.get(number);
+
+  if (session) {
+    session.WhatsApp_Number = session.WhatsApp_Number || number;
+    session.Temp = session.Temp || {};
+
+    if (!session.Region_Group) {
+      session.Region_Group = detectRegionByPhone(number);
+      Session.save(session);
+    }
+
+    return { session: session, isNew: false };
+  }
+
+  session = Session.create(number);
+  session.Region_Group = detectRegionByPhone(number);
+  Session.save(session);
+
+  session.WhatsApp_Number = number;
+  session.Temp = session.Temp || {};
+
+  return { session: session, isNew: true };
+}
+
+function resetSession_(number) {
+  Session.delete(number);
+
+  const fresh = Session.create(number);
+  fresh.Region_Group = detectRegionByPhone(number);
+  Session.save(fresh);
+
+  sendWhatsAppMessage(number, Texts.sendLanguageMenu(fresh));
+}
+
+function handleMultiCaseSelection_(session, incomingText, userNumber) {
+  session.Temp = session.Temp || {};
+
+  if (!session.Temp.awaitingCaseSelection) {
+    return false;
+  }
+
+  const choice = (incomingText || "").trim();
+  const upperChoice = choice.toUpperCase();
+  const caseList = session.Temp.caseList || [];
+  const normalized = caseList.map(function(id) {
+    return (id || "").toUpperCase();
+  });
+
+  if (upperChoice === "0" || upperChoice === "BACK") {
+    session.Temp.awaitingCaseSelection = false;
+    session.Temp.caseList = undefined;
+    session.Temp.lastCaseID = undefined;
+    session.Current_Step_Code = "USER_TYPE";
+    Session.save(session);
+
+    sendWhatsAppMessage(userNumber, Texts.sendUserTypeMenu(session));
+    return true;
+  }
+
+  const listString = (caseList || []).join("\n");
+
+  if (!choice) {
+    sendWhatsAppMessage(
+      userNumber,
+      Texts_Validation.sendInvalidCaseID(session)
+        + "\n\n"
+        + Texts_ExistingCases.sendMultipleCasesMenu(session, listString)
+    );
+    return true;
+  }
+
+  const idx = normalized.indexOf(upperChoice);
+  if (idx === -1) {
+    sendWhatsAppMessage(
+      userNumber,
+      Texts_Validation.sendInvalidCaseID(session)
+        + "\n\n"
+        + Texts_ExistingCases.sendMultipleCasesMenu(session, listString)
+    );
+    return true;
+  }
+
+  const selectedCaseID = caseList[idx];
+
+  session.Temp.awaitingCaseSelection = false;
+  session.Temp.caseList = undefined;
+  session.Temp.lastCaseID = selectedCaseID;
+  session.Temp.caseID = selectedCaseID;
+  session.Current_Step_Code = "EXISTING_CASE_MENU";
+  Session.save(session);
+
+  sendWhatsAppMessage(
+    userNumber,
+    Texts_ExistingCases.sendExistingCaseMenu(session, selectedCaseID)
+  );
+
+  return true;
+}
+
+function handleExistingCaseMenu_(session, incomingText, userNumber) {
+  if (session.Current_Step_Code !== "EXISTING_CASE_MENU") {
+    return false;
+  }
+
+  const menuReply = ExistingCaseFlow.route(session, incomingText);
+
+  if (menuReply === "__EC_BACK__") {
+    session.Current_Step_Code = "USER_TYPE";
+    Session.save(session);
+
+    sendWhatsAppMessage(userNumber, Texts.sendUserTypeMenu(session));
+    return true;
+  }
+
+  if (menuReply) {
+    sendWhatsAppMessage(userNumber, menuReply);
+  }
+
+  return true;
+}
+
+function checkExistingCases_(session, userNumber) {
+  session.Temp = session.Temp || {};
+
+  if (!session.Preferred_Language) return false;
+  if (session.Temp.existingChecked) return false;
+  if (session.Current_Step_Code !== "USER_TYPE") return false;
+
+  const existingCases = Cases.getCasesByNumber(userNumber);
+  session.Temp.existingChecked = true;
+
+  if (!existingCases.length) {
+    Session.save(session);
+    return false;
+  }
+
+  if (existingCases.length === 1) {
+    const caseID = existingCases[0].Case_ID;
+
+    session.Temp.lastCaseID = caseID;
+    session.Temp.caseID = caseID;
+    session.Current_Step_Code = "EXISTING_CASE_MENU";
+    Session.save(session);
+
+    sendWhatsAppMessage(
+      userNumber,
+      Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
+    );
+    return true;
+  }
+
+  const caseIDs = existingCases.map(function(item) { return item.Case_ID; });
+
+  session.Temp.caseList = caseIDs;
+  session.Temp.awaitingCaseSelection = true;
+  session.Temp.lastCaseID = undefined;
+  session.Current_Step_Code = "EXISTING_CASE_MENU";
+  Session.save(session);
+
+  sendWhatsAppMessage(
+    userNumber,
+    Texts_ExistingCases.sendMultipleCasesMenu(session, caseIDs.join("\n"))
+  );
+
+  return true;
 }

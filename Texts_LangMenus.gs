@@ -8,65 +8,60 @@ const Texts_LangMenus = {
     switch (region) {
 
       case "PK":
-        return (
-`🇵🇰 *Welcome! Please choose your preferred language:*
-:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں
-Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
-
-1️⃣ English  
-2️⃣ اردو  
-3️⃣ Roman Urdu`
-        );
+        return [
+          "Welcome! Please choose your preferred language:",
+          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+          "1️⃣ English",
+          "2️⃣ اردو",
+          "3️⃣ Roman Urdu"
+        ].join("\n");
 
       case "IN":
-        return (
-`🇮🇳 *Welcome! Please choose your preferred language:*
-स्वागत है! कृपया अपनी भाषा चुनें  
-:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں  
-Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
-
-1️⃣ English  
-2️⃣ हिन्दी  
-3️⃣ اردو  
-4️⃣ Roman Urdu`
-        );
+        return [
+          "Welcome! Please choose your preferred language:",
+          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+          "स्वागत है! कृपया अपनी भाषा चुनें",
+          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+          "1️⃣ English",
+          "2️⃣ हिन्दी",
+          "3️⃣ اردو",
+          "4️⃣ Roman Urdu"
+        ].join("\n");
 
       case "BD":
-        return (
-`🇧🇩 *Welcome! Please choose your preferred language:*
-স্বাগতম! দয়া করে আপনার ভাষা নির্বাচন করুন  
-:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں  
-Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
-
-1️⃣ English  
-2️⃣ বাংলা  
-3️⃣ اردو  
-4️⃣ Roman Urdu`
-        );
+        return [
+          "Welcome! Please choose your preferred language:",
+          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+          "স্বাগতম! দয়া করে আপনার ভাষা নির্বাচন করুন",
+          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+          "1️⃣ English",
+          "2️⃣ বাংলা",
+          "3️⃣ اردو",
+          "4️⃣ Roman Urdu"
+        ].join("\n");
 
       case "ME":
-        return (
-`🌍 *Welcome! Please choose your preferred language:*
-مرحبًا! يرجى اختيار لغتك المفضلة  
-:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں  
-Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
-
-1️⃣ English  
-2️⃣ العربية  
-3️⃣ اردو  
-4️⃣ Roman Urdu`
-        );
+        return [
+          "Welcome! Please choose your preferred language:",
+          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+          "مرحبًا! يرجى اختيار لغتك المفضلة",
+          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+          "1️⃣ English",
+          "2️⃣ العربية",
+          "3️⃣ اردو",
+          "4️⃣ Roman Urdu"
+        ].join("\n");
 
       default:
-        return (
-`🌐 *Welcome! Please choose your preferred language:*
-:خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں  
-Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:
-
-1️⃣ English  
-2️⃣ اردو  
-3️⃣ Roman Urdu`
-        );
+        return [
+          "Welcome! Please choose your preferred language:",
+          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+          "1️⃣ English",
+          "2️⃣ اردو",
+          "3️⃣ Roman Urdu"
+        ].join("\n");
     }
   },
 
