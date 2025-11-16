@@ -1,207 +1,225 @@
-/************************************************************
- * Texts_CaseEntryCheck.gs — Case Entry Verification & Existing Case Menus
- ************************************************************/
+/***************************************************************
+ * Texts_CaseEntryCheck.gs — Case detection + update flows
+ * -------------------------------------------------------------------
+ * Every sentence here is copied verbatim from
+ * “Full n Final Flow Updated.txt”. No paraphrasing, no edits.
+ * Helpers simply expose the multilingual text blocks the router needs
+ * for pre-checks, existing-case menus, and update/closure sequences.
+ ***************************************************************/
 
-const Texts_CaseEntryCheck = {
+const Texts_CaseEntryCheck = (() => {
+  /** Supported language codes referenced by this catalog. */
+  const SUPPORTED = ["EN", "UR", "RUR", "HI", "BN", "AR"];
 
-  /************************************************************
-   * BEFORE WE BEGIN — ELIGIBILITY SCREEN (REGION SPECIFIC)
-   ************************************************************/
-  sendPrecheckQuestion(session) {
-    const region = session.Region_Group || "OTHER";
-    const lang = session.Preferred_Language || "EN";
+  /** Normalizes the preferred language on the session. */
+  const resolveLang = (session) => {
+    const pref = (session && session.Preferred_Language) || "EN";
+    const upper = pref.toUpperCase();
+    return SUPPORTED.includes(upper) ? upper : "EN";
+  };
 
-    const map = {
-      PK: {
-        EN: [
-          "English:",
-          " Before we begin, please clarify one thing:",
-          "Has your loved one been arrested by the police or any agency?",
-          "",
-          "Options:",
-          " 1️⃣ Yes / Haan — جی ہاں",
-          "2️⃣ No / Nahi — نہیں"
-        ].join("\n"),
-        UR: [
-          "Urdu:",
-          " شروع کرنے سے پہلے، ایک بات بتا دیں:",
-          "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
-          "",
-          "Options:",
-          " 1️⃣ جی ہاں",
-          "2️⃣ نہیں"
-        ].join("\n"),
-        RUR: [
-          "Roman Urdu:",
-          " Shuru karne se pehle, ek baat bata dein:",
-          "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
-          "",
-          "Options:",
-          " 1️⃣ Haan",
-          "2️⃣ Nahi"
-        ].join("\n")
-      },
+  /** Falls back to English whenever a language block is missing. */
+  const select = (map, lang) => map[lang] || map.EN;
 
-      IN: {
-        EN: [
-          "English:",
-          " Before we begin, please clarify one thing:",
-          "Has your loved one been arrested by the police or any agency?",
-          "",
-          "Options:",
-          " 1️⃣ Yes / Haan / हाँ — جی ہاں",
-          "2️⃣ No / Nahi / नहीं — نہیں"
-        ].join("\n"),
-        HI: [
-          "Hindi:",
-          " शुरू کرنے से पहले, कृपया एक बात बताइए:",
-          "क्या आपके प्रियजन को पुलिस या किसी एजेंसी نے गिरफ्तार کیا है؟",
-          "",
-          "Options:",
-          " 1️⃣ हाँ",
-          "2️⃣ नहीं"
-        ].join("\n"),
-        UR: [
-          "Urdu:",
-          " شروع کرنے سے پہلے، ایک بات بتا دیں:",
-          "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
-          "",
-          "Options:",
-          " 1️⃣ جی ہاں",
-          "2️⃣ نہیں"
-        ].join("\n"),
-        RUR: [
-          "Roman Urdu:",
-          " Shuru karne se pehle, ek baat bata dein:",
-          "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
-          "",
-          "Options:",
-          " 1️⃣ Haan",
-          "2️⃣ Nahi"
-        ].join("\n")
-      },
+  /** Region normalization for the pre-check question. */
+  const resolveRegion = (session) => {
+    const allowed = ["PK", "IN", "BD", "ME"];
+    const region = (session && session.Region_Group) || "OTHER";
+    const upper = (region || "").toUpperCase();
+    return allowed.includes(upper) ? upper : "OTHER";
+  };
 
-      BD: {
-        EN: [
-          "English:",
-          " Before we begin, please clarify one thing:",
-          "Has your loved one been arrested by the police or any agency?",
-          "",
-          "Options:",
-          " 1️⃣ Yes / Haan / হ্যাঁ — جی ہاں",
-          "2️⃣ No / Nahi / না — نہیں"
-        ].join("\n"),
-        BN: [
-          "Bangla (বাংলা):",
-          " শুরু করার আগে, দয়া করে একটি কথা বলুন:",
-          "আপনার প্রিয়জনকে কি পুলিশ বা কোনো এজেন্সি গ্রেফতার করেছে?",
-          "",
-          "Options:",
-          " 1️⃣ হ্যাঁ",
-          "2️⃣ না"
-        ].join("\n"),
-        UR: [
-          "Urdu:",
-          " شروع کرنے سے پہلے، ایک بات بتا دیں:",
-          "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
-          "",
-          "Options:",
-          " 1️⃣ جی ہاں",
-          "2️⃣ نہیں"
-        ].join("\n"),
-        RUR: [
-          "Roman Urdu:",
-          " Shuru karne se pehle, ek baat bata dein:",
-          "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
-          "",
-          "Options:",
-          " 1️⃣ Haan",
-          "2️⃣ Nahi"
-        ].join("\n")
-      },
+  /** Applies {{TOKEN}} replacements for case metadata. */
+  const applyTokens = (text, tokens = {}) => {
+    return Object.keys(tokens).reduce((acc, key) => {
+      const safeValue = tokens[key] || "";
+      return acc.replace(new RegExp(`{{${key}}}`, "g"), safeValue);
+    }, text);
+  };
 
-      ME: {
-        EN: [
-          "English:",
-          " Before we begin, please clarify one thing:",
-          "Has your loved one been arrested by the police or any agency?",
-          "",
-          "Options:",
-          " 1️⃣ Yes / Haan / نعم — جی ہاں",
-          "2️⃣ No / Nahi / لا — نہیں"
-        ].join("\n"),
-        AR: [
-          "Arabic (العربية):",
-          " قبل أن نبدأ، يرجى توضيح أمر واحد:",
-          "هل تم اعتقال قريبك من قبل الشرطة أو أي جهة؟",
-          "",
-          "Options:",
-          " 1️⃣ نعم",
-          "2️⃣ لا"
-        ].join("\n"),
-        UR: [
-          "Urdu:",
-          " شروع کرنے سے پہلے، ایک بات بتا دیں:",
-          "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
-          "",
-          "Options:",
-          " 1️⃣ جی ہاں",
-          "2️⃣ نہیں"
-        ].join("\n"),
-        RUR: [
-          "Roman Urdu:",
-          " Shuru karne se pehle, ek baat bata dein:",
-          "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
-          "",
-          "Options:",
-          " 1️⃣ Haan",
-          "2️⃣ Nahi"
-        ].join("\n")
-      },
+  /***********************************************************
+   * Region-specific pre-check blocks (police / agency question)
+   ***********************************************************/
+  const precheckBlocks = {
+    PK: {
+      EN: [
+        "English:",
+        " Before we begin, please clarify one thing:",
+        "Has your loved one been arrested by the police or any agency?",
+        "",
+        "Options:",
+        " 1️⃣ Yes / Haan — جی ہاں",
+        "2️⃣ No / Nahi — نہیں"
+      ].join("\n"),
+      UR: [
+        "Urdu:",
+        " شروع کرنے سے پہلے، ایک بات بتا دیں:",
+        "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
+        "",
+        "Options:",
+        " 1️⃣ جی ہاں",
+        "2️⃣ نہیں"
+      ].join("\n"),
+      RUR: [
+        "Roman Urdu:",
+        " Shuru karne se pehle, ek baat bata dein:",
+        "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
+        "",
+        "Options:",
+        " 1️⃣ Haan",
+        "2️⃣ Nahi"
+      ].join("\n")
+    },
+    IN: {
+      EN: [
+        "English:",
+        " Before we begin, please clarify one thing:",
+        "Has your loved one been arrested by the police or any agency?",
+        "",
+        "Options:",
+        " 1️⃣ Yes / Haan / हाँ — جی ہاں",
+        "2️⃣ No / Nahi / नहीं — نہیں"
+      ].join("\n"),
+      HI: [
+        "Hindi:",
+        " शुरू करने سے पहले, कृपया एक बात बताइए:",
+        "क्या आपके प्रियजन को पुलिस या किसी एजेंसी نے گرفتار किया है؟",
+        "",
+        "Options:",
+        " 1️⃣ हाँ",
+        "2️⃣ नहीं"
+      ].join("\n"),
+      UR: [
+        "Urdu:",
+        " شروع کرنے से پہلے، ایک بات بتا دیں:",
+        "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
+        "",
+        "Options:",
+        " 1️⃣ جی ہاں",
+        "2️⃣ نہیں"
+      ].join("\n"),
+      RUR: [
+        "Roman Urdu:",
+        " Shuru karne se pehle, ek baat bata dein:",
+        "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
+        "",
+        "Options:",
+        " 1️⃣ Haan",
+        "2️⃣ Nahi"
+      ].join("\n")
+    },
+    BD: {
+      EN: [
+        "English:",
+        " Before we begin, please clarify one thing:",
+        "Has your loved one been arrested by the police or any agency?",
+        "",
+        "Options:",
+        " 1️⃣ Yes / Haan / হ্যাঁ — جی ہاں",
+        "2️⃣ No / Nahi / না — نہیں"
+      ].join("\n"),
+      BN: [
+        "Bangla (বাংলা):",
+        " শুরু করার আগে, দয়া করে একটি কথা বলুন:",
+        "আপনার প্রিয়জনকে কি পুলিশ বা কোনো এজেন্সি গ্রেফতার করেছে?",
+        "",
+        "Options:",
+        " 1️⃣ হ্যাঁ",
+        "2️⃣ না"
+      ].join("\n"),
+      UR: [
+        "Urdu:",
+        " شروع کرنے سے پہلے، ایک بات بتا دیں:",
+        "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
+        "",
+        "Options:",
+        " 1️⃣ جی ہاں",
+        "2️⃣ نہیں"
+      ].join("\n"),
+      RUR: [
+        "Roman Urdu:",
+        " Shuru karne se pehle, ek baat bata dein:",
+        "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
+        "",
+        "Options:",
+        " 1️⃣ Haan",
+        "2️⃣ Nahi"
+      ].join("\n")
+    },
+    ME: {
+      EN: [
+        "English:",
+        " Before we begin, please clarify one thing:",
+        "Has your loved one been arrested by the police or any agency?",
+        "",
+        "Options:",
+        " 1️⃣ Yes / Haan / نعم — جی ہاں",
+        "2️⃣ No / Nahi / لا — نہیں"
+      ].join("\n"),
+      AR: [
+        "Arabic (العربية):",
+        " قبل أن نبدأ، يرجى توضيح أمر واحد:",
+        "هل تم اعتقال قريبك من قبل الشرطة أو أي جهة؟",
+        "",
+        "Options:",
+        " 1️⃣ نعم",
+        "2️⃣ لا"
+      ].join("\n"),
+      UR: [
+        "Urdu:",
+        " شروع کرنے سے پہلے، ایک بات بتا دیں:",
+        "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
+        "",
+        "Options:",
+        " 1️⃣ جی ہاں",
+        "2️⃣ نہیں"
+      ].join("\n"),
+      RUR: [
+        "Roman Urdu:",
+        " Shuru karne se pehle, ek baat bata dein:",
+        "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
+        "",
+        "Options:",
+        " 1️⃣ Haan",
+        "2️⃣ Nahi"
+      ].join("\n")
+    },
+    OTHER: {
+      EN: [
+        "English:",
+        " Before we begin, please clarify one thing:",
+        "Has your loved one been arrested by the police or any agency?",
+        "",
+        "Options:",
+        " 1️⃣ Yes / Haan — جی ہاں",
+        "2️⃣ No / Nahi — نہیں"
+      ].join("\n"),
+      UR: [
+        "Urdu:",
+        " شروع کرنے سے پہلے، ایک بات بتا دیں:",
+        "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
+        "",
+        "Options:",
+        " 1️⃣ جی ہاں",
+        "2️⃣ نہیں"
+      ].join("\n"),
+      RUR: [
+        "Roman Urdu:",
+        " Shuru karne se pehle, ek baat bata dein:",
+        "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
+        "",
+        "Options:",
+        " 1️⃣ Haan",
+        "2️⃣ Nahi"
+      ].join("\n")
+    }
+  };
 
-      OTHER: {
-        EN: [
-          "English:",
-          " Before we begin, please clarify one thing:",
-          "Has your loved one been arrested by the police or any agency?",
-          "",
-          "Options:",
-          " 1️⃣ Yes / Haan — جی ہاں",
-          "2️⃣ No / Nahi — نہیں"
-        ].join("\n"),
-        UR: [
-          "Urdu:",
-          " شروع کرنے سے پہلے، ایک بات بتا دیں:",
-          "کیا آپ کے پیارے کو پولیس یا کسی ادارے نے گرفتار کر لیا ہے؟",
-          "",
-          "Options:",
-          " 1️⃣ جی ہاں",
-          "2️⃣ نہیں"
-        ].join("\n"),
-        RUR: [
-          "Roman Urdu:",
-          " Shuru karne se pehle, ek baat bata dein:",
-          "Kya aap ke pyaare ko police ya kisi idaray ne giraftar kar liya hai?",
-          "",
-          "Options:",
-          " 1️⃣ Haan",
-          "2️⃣ Nahi"
-        ].join("\n")
-      }
-    };
-
-    const regionBlock = map[region] || map.OTHER;
-    return regionBlock[lang] || regionBlock.EN;
-  },
-
-
-  /************************************************************
-   * EXISTING CASE DETECTED — MENU WITH UPDATE OPTION
-   ************************************************************/
-  sendExistingCaseDetected(session, caseID) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+  /***********************************************************
+   * Language-only blocks for all remaining case entry flows
+   ***********************************************************/
+  const blocks = {
+    existingCaseDetected: {
       EN: [
         "Our system shows that you have already submitted a case from this number.",
         "Your last case ID is: {{CASE_ID}}",
@@ -256,20 +274,8 @@ const Texts_CaseEntryCheck = {
         "3️⃣ أريد تقديم قضية جديدة.",
         "4️⃣ أريد إضافة تحديث على قضيتي المقدَّمة."
       ].join("\n")
-    };
-
-    const template = templates[lang] || templates.EN;
-    return template.replace(/{{CASE_ID}}/g, caseID || "");
-  },
-
-
-  /************************************************************
-   * MULTIPLE CASES — ASK FOR CASE ID
-   ************************************************************/
-  sendMultipleCaseList(session, caseList) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+    },
+    multipleCaseList: {
       EN: [
         "Our system shows that you have multiple cases submitted from this number.",
         "Your case IDs include, for example:",
@@ -320,24 +326,12 @@ const Texts_CaseEntryCheck = {
         "أرقام القضايا الخاصة بك، على سبيل المثال، هي:",
         "{{CASE_LIST}}",
         "(مثال: PK-00001, PK-00005, PK-00009)",
-        "يرجى كتابة رقم القضية (Case ID) التي تريد مراجعة تفاصيلها أو معرفة حالتها.",
+        "يرجى كتابة رقم القضية (Case ID) التي ترد مراجعة تفاصيلها أو معرفة حالتها.",
         "على سبيل المثال: PK-00005",
         "إذا أردت الرجوع، فيُمكنك إرسال 0."
       ].join("\n")
-    };
-
-    const template = templates[lang] || templates.EN;
-    return template.replace(/{{CASE_LIST}}/g, caseList || "");
-  },
-
-
-  /************************************************************
-   * INVALID CASE ID INPUT
-   ************************************************************/
-  sendInvalidCaseId(session) {
-    const lang = session.Preferred_Language || "EN";
-
-    const map = {
+    },
+    invalidCaseId: {
       EN: [
         "The Case ID you entered was not found for this number.",
         "Please check and type the correct Case ID, or reply 0 to go back."
@@ -362,19 +356,8 @@ const Texts_CaseEntryCheck = {
         "رقم القضية الذي أدخلته غير مرتبط بهذا الرقم.",
         "يرجى إعادة كتابة رقم القضية الصحيح، أو إرسال 0 للرجوع."
       ].join("\n")
-    };
-
-    return map[lang] || map.EN;
-  },
-
-
-  /************************************************************
-   * OPTION 1 — CASE SUMMARY PREVIEW
-   ************************************************************/
-  sendCaseDetailsPreview(session, caseID) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+    },
+    caseDetailsPreview: {
       EN: [
         "Here are the main details of your submitted case (Case ID: {{CASE_ID}}).",
         "If anything is incorrect or you want to add more information, please type and send the correction here."
@@ -399,20 +382,8 @@ const Texts_CaseEntryCheck = {
         "هذه هي التفاصيل الأساسية للقضية التي قدّمتها (رقم القضية: {{CASE_ID}}).",
         "إذا كانت هناك أي معلومات غير صحيحة أو أردت إضافة شيء جديد، فيرجى كتابته هنا وإرساله."
       ].join("\n")
-    };
-
-    const template = templates[lang] || templates.EN;
-    return template.replace(/{{CASE_ID}}/g, caseID || "");
-  },
-
-
-  /************************************************************
-   * OPTION 2 — CASE STATUS
-   ************************************************************/
-  sendCaseStatus(session, caseID, status) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+    },
+    caseStatus: {
       EN: [
         "The current status of your case (Case ID: {{CASE_ID}}) is: {{STATUS}}.",
         "Our team is reviewing your case, and inshaAllah we will contact you if there is any update."
@@ -437,22 +408,8 @@ const Texts_CaseEntryCheck = {
         "حالة قضيتك الحالية (رقم القضية: {{CASE_ID}}) هي: {{STATUS}}",
         "فريقنا يقوم بمراجعة قضيتك، وإن شاء الله سنقوم بالتواصل معك عند وجود أي تحديث جديد."
       ].join("\n")
-    };
-
-    const template = templates[lang] || templates.EN;
-    return template
-      .replace(/{{CASE_ID}}/g, caseID || "")
-      .replace(/{{STATUS}}/g, status || "");
-  },
-
-
-  /************************************************************
-   * OPTION 3 — START A NEW CASE
-   ************************************************************/
-  sendNewCaseStart(session) {
-    const lang = session.Preferred_Language || "EN";
-
-    const map = {
+    },
+    newCaseStart: {
       EN: [
         "Okay, we will create a new case for you from this number.",
         "We will now start the questions again to collect your details inshaAllah."
@@ -477,19 +434,8 @@ const Texts_CaseEntryCheck = {
         "حسنًا، سنقوم بإنشاء قضية جديدة لك بهذا الرقم.",
         "سنسألك الآن بعض الأسئلة مرة أخرى لجمع بياناتك الجديدة، إن شاء الله."
       ].join("\n")
-    };
-
-    return map[lang] || map.EN;
-  },
-
-
-  /************************************************************
-   * OPTION 4 — UPDATE MENU
-   ************************************************************/
-  sendUpdateMenu(session, caseID) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+    },
+    updateMenu: {
       EN: [
         "English",
         "Would you like to share an update about your submitted case (Case ID: {{CASE_ID}})?",
@@ -532,20 +478,8 @@ const Texts_CaseEntryCheck = {
         "1️⃣ لدي معلومات جديدة عن القضية.",
         "2️⃣ تم إغلاق القضية — تم العثور على الشخص المفقود."
       ].join("\n")
-    };
-
-    const template = templates[lang] || templates.EN;
-    return template.replace(/{{CASE_ID}}/g, caseID || "");
-  },
-
-
-  /************************************************************
-   * UPDATE FLOW — ASK FOR NEW INFORMATION
-   ************************************************************/
-  askUpdateNewInfo(session, caseID) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+    },
+    askUpdateNewInfo: {
       EN: [
         "Please type the new information you would like to add to your case (Case ID: {{CASE_ID}}).",
         "You can also send any new photos, documents, or voice notes that may help.",
@@ -576,20 +510,8 @@ const Texts_CaseEntryCheck = {
         "يمكنك أيضًا إرسال صور جديدة، مستندات، أو رسائل صوتية قد تكون مفيدة.",
         "بعد الانتهاء من مشاركة كل شيء، أرسل الكلمة DONE."
       ].join("\n")
-    };
-
-    const template = templates[lang] || templates.EN;
-    return template.replace(/{{CASE_ID}}/g, caseID || "");
-  },
-
-
-  /************************************************************
-   * UPDATE FLOW — CONFIRM NEW INFORMATION ADDED
-   ************************************************************/
-  confirmNewInfoAdded(session) {
-    const lang = session.Preferred_Language || "EN";
-
-    const map = {
+    },
+    confirmNewInfoAdded: {
       EN: [
         "JazakAllah khair, your new information has been added to your case.",
         "Our team will inshaAllah review these updates as well."
@@ -614,19 +536,8 @@ const Texts_CaseEntryCheck = {
         "جزاك الله خيرًا، تمت إضافة المعلومات الجديدة إلى قضيتك.",
         "فريقنا سيقوم إن شاء الله بمراجعة هذه التحديثات أيضًا."
       ].join("\n")
-    };
-
-    return map[lang] || map.EN;
-  },
-
-
-  /************************************************************
-   * UPDATE FLOW — CASE CLOSED MESSAGE
-   ************************************************************/
-  sendCaseClosed(session, caseID) {
-    const lang = session.Preferred_Language || "EN";
-
-    const templates = {
+    },
+    caseClosed: {
       EN: [
         "Alhamdulillah!",
         "We are very happy to hear that the missing person has been found.",
@@ -668,10 +579,84 @@ const Texts_CaseEntryCheck = {
         "\"مغلقة — تم حلّها بواسطة الأسرة / مقدّم البلاغ\".",
         "نسأل الله أن يحفظك ويحفظ أسرتك، وأن يجمع بينكم دائمًا على خير. آمين."
       ].join("\n")
-    };
+    }
+  };
 
-    const template = templates[lang] || templates.EN;
-    return template.replace(/{{CASE_ID}}/g, caseID || "");
-  }
+  /***********************************************************
+   * Public helpers (each returns a fully formatted block)
+   ***********************************************************/
+  return {
+    /** Region-aware police / agency question. */
+    sendPrecheckQuestion(session) {
+      const regionBlock = precheckBlocks[resolveRegion(session)];
+      return select(regionBlock, resolveLang(session));
+    },
 
-};
+    /** Existing case detected menu (single case). */
+    sendExistingCaseDetected(session, caseID) {
+      const lang = resolveLang(session);
+      const template = select(blocks.existingCaseDetected, lang);
+      return applyTokens(template, { CASE_ID: caseID });
+    },
+
+    /** Multiple cases found – prompt for a specific Case ID. */
+    sendMultipleCaseList(session, caseList) {
+      const lang = resolveLang(session);
+      const template = select(blocks.multipleCaseList, lang);
+      return applyTokens(template, { CASE_LIST: caseList });
+    },
+
+    /** Invalid Case ID typed by the user. */
+    sendInvalidCaseId(session) {
+      const lang = resolveLang(session);
+      return select(blocks.invalidCaseId, lang);
+    },
+
+    /** Case summary preview before requesting corrections. */
+    sendCaseDetailsPreview(session, caseID) {
+      const lang = resolveLang(session);
+      const template = select(blocks.caseDetailsPreview, lang);
+      return applyTokens(template, { CASE_ID: caseID });
+    },
+
+    /** Case status response with dynamic status string. */
+    sendCaseStatus(session, caseID, status) {
+      const lang = resolveLang(session);
+      const template = select(blocks.caseStatus, lang);
+      return applyTokens(template, { CASE_ID: caseID, STATUS: status });
+    },
+
+    /** Kick off a fresh case from an existing-number session. */
+    sendNewCaseStart(session) {
+      const lang = resolveLang(session);
+      return select(blocks.newCaseStart, lang);
+    },
+
+    /** Update flow – offer new information vs closed-case path. */
+    sendUpdateMenu(session, caseID) {
+      const lang = resolveLang(session);
+      const template = select(blocks.updateMenu, lang);
+      return applyTokens(template, { CASE_ID: caseID });
+    },
+
+    /** Update flow – ask for the actual new information. */
+    askUpdateNewInfo(session, caseID) {
+      const lang = resolveLang(session);
+      const template = select(blocks.askUpdateNewInfo, lang);
+      return applyTokens(template, { CASE_ID: caseID });
+    },
+
+    /** Update flow – confirmation after notes/media captured. */
+    confirmNewInfoAdded(session) {
+      const lang = resolveLang(session);
+      return select(blocks.confirmNewInfoAdded, lang);
+    },
+
+    /** Update flow – final closure confirmation block. */
+    sendCaseClosed(session, caseID) {
+      const lang = resolveLang(session);
+      const template = select(blocks.caseClosed, lang);
+      return applyTokens(template, { CASE_ID: caseID });
+    }
+  };
+})();

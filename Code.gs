@@ -1,367 +1,323 @@
-/**
- * Code.gs — Primary WhatsApp webhook entrypoint (aligned with Flows)
- */
+/************************************************************
+ * Code.gs — WhatsApp webhook entrypoint & dispatcher
+ * --------------------------------------------------
+ * Responsibilities:
+ *   • Expose doGet/doPost for Google Apps Script web app
+ *   • Complete webhook verification handshake with Meta
+ *   • Parse WhatsApp Cloud API payloads into normalized events
+ *   • Load/manage chat sessions and invoke Flows.routeMessage()
+ *   • Send outbound messages via WhatsApp Graph API
+ ************************************************************/
 
 /************************************************************
- * VERIFY WEBHOOK (GET)
+ * APPS SCRIPT ENTRYPOINTS
  ************************************************************/
+/**
+ * Webhook verification (GET) — Meta calls this when saving the URL.
+ */
 function doGet(e) {
-  const mode = e?.parameter?.["hub.mode"];
-  const token = e?.parameter?.["hub.verify_token"];
-  const challenge = e?.parameter?.["hub.challenge"];
-
-  if (mode === "subscribe" && token === CONF("VERIFY_TOKEN")) {
-    return ContentService.createTextOutput(challenge);
-  }
-
-  return ContentService.createTextOutput("INVALID TOKEN");
+  return WebhookHandler.verify(e);
 }
 
+/**
+ * WhatsApp webhook (POST) — Processes inbound user messages.
+ */
+function doPost(e) {
+  return WebhookHandler.handle(e);
+}
 
 /************************************************************
- * WEBHOOK RECEIVER (POST)
+ * WEBHOOK HANDLER MODULE
  ************************************************************/
-function doPost(e) {
-  try {
-    const payload = parseJson(e?.postData?.contents);
-    const messageObj = extractIncomingMessage_(payload);
+const WebhookHandler = (function() {
+  /** Convenience helper for Meta's verification handshake. */
+  function verify(e) {
+    const params = (e && e.parameter) || {};
+    const mode = params['hub.mode'];
+    const token = params['hub.verify_token'];
+    const challenge = params['hub.challenge'];
 
-    if (!messageObj) {
-      return ok_();
+    if (mode === 'subscribe' && token === CONF('VERIFY_TOKEN')) {
+      return ContentService.createTextOutput(challenge || '');
     }
 
-    const userNumber = sanitizeNumber_(messageObj.from);
+    return ContentService.createTextOutput('VERIFICATION_FAILED');
+  }
+
+  /** Primary webhook processor for POST requests. */
+  function handle(e) {
+    const ack = ContentService.createTextOutput('EVENT_RECEIVED');
+
+    try {
+      const rawBody = e && e.postData && e.postData.contents;
+      if (!rawBody) {
+        return ack;
+      }
+
+      const payload = parseJson(rawBody);
+      const events = WebhookParser.extractMessages(payload);
+
+      if (!events.length) {
+        WebhookParser.logStatuses(payload);
+        return ack;
+      }
+
+      events.forEach(function(event) {
+        try {
+          processEvent(event);
+        } catch (err) {
+          Logger.log('Webhook event failure → ' + err);
+        }
+      });
+
+      return ack;
+    } catch (err) {
+      Logger.log('Webhook handler error → ' + err);
+      return ack;
+    }
+  }
+
+  /** Individual message processor — loads session + dispatches. */
+  function processEvent(event) {
+    const userNumber = normalizePhoneNumber(event.from);
     if (!userNumber) {
-      return ok_();
+      return;
     }
 
-    const { session, isNew } = loadOrCreateSession_(userNumber);
+    let session = loadSession(userNumber);
+    let isNewSession = false;
 
-    if (isNew) {
-      sendWhatsAppMessage(userNumber, Texts.sendLanguageMenu(session));
-      return ok_();
+    if (!session) {
+      session = newSession(userNumber);
+      isNewSession = true;
     }
 
-    const incomingText = (messageObj.text || "").trim();
+    session.WhatsApp_Number = userNumber;
+    ensurePreferredLanguage(session);
 
-    if (incomingText && incomingText.toUpperCase() === "RESET") {
-      resetSession_(userNumber);
-      return ok_();
+    const incomingText = sanitizeInput(event.text || event.caption || '');
+
+    if (isResetCommand(incomingText)) {
+      resetSession(userNumber);
+      const fresh = newSession(userNumber);
+      Texts.send(userNumber, Texts.sendLanguageMenu(fresh));
+      return;
     }
 
-    if (handleMultiCaseSelection_(session, incomingText, userNumber)) {
-      return ok_();
-    }
-
-    if (handleExistingCaseMenu_(session, incomingText, userNumber)) {
-      return ok_();
+    if (isNewSession) {
+      Texts.send(userNumber, Texts.sendLanguageMenu(session));
+      return;
     }
 
     const reply = Flows.routeMessage(
       session,
       incomingText,
-      messageObj.raw,
-      messageObj.mediaUrl,
-      messageObj.mediaMime
+      event.raw,
+      event.mediaId,
+      event.mediaMime
     );
-
-    if (checkExistingCases_(session, userNumber)) {
-      return ok_();
-    }
 
     if (reply) {
       sendWhatsAppMessage(userNumber, reply);
     }
-
-    return ok_();
-
-  } catch (err) {
-    Logger.log("Webhook Error → " + err);
-    return ok_();
   }
-}
 
+  return { verify: verify, handle: handle };
+})();
 
 /************************************************************
- * EXTRACT MESSAGE — Supports text, interactive, media, location
+ * WEBHOOK PARSER — NORMALIZES WHATSAPP EVENTS
  ************************************************************/
-function extractIncomingMessage_(data) {
-  try {
-    const entry = data?.entry?.[0];
-    const change = entry?.changes?.[0];
-    const value = change?.value;
-    const message = value?.messages?.[0];
+const WebhookParser = (function() {
+  /** Flatten entry → changes → messages into a simple list. */
+  function extractMessages(payload) {
+    const messages = [];
+    if (!payload || !payload.entry) {
+      return messages;
+    }
 
-    if (!message) {
+    payload.entry.forEach(function(entry) {
+      (entry.changes || []).forEach(function(change) {
+        const value = change.value || {};
+        const waMessages = value.messages || [];
+
+        waMessages.forEach(function(message) {
+          const normalized = normalizeMessage(message);
+          if (normalized) {
+            messages.push(normalized);
+          }
+        });
+      });
+    });
+
+    return messages;
+  }
+
+  /** Extract statuses for logging/diagnostics. */
+  function logStatuses(payload) {
+    try {
+      if (!payload || !payload.entry) {
+        return;
+      }
+      payload.entry.forEach(function(entry) {
+        (entry.changes || []).forEach(function(change) {
+          const statuses = (change.value && change.value.statuses) || [];
+          statuses.forEach(function(status) {
+            Logger.log('WhatsApp status event → ' + JSON.stringify(status));
+          });
+        });
+      });
+    } catch (err) {
+      Logger.log('Status log failure → ' + err);
+    }
+  }
+
+  /** Convert a WhatsApp message into a normalized structure. */
+  function normalizeMessage(message) {
+    if (!message || !message.from) {
       return null;
     }
 
-    let text = "";
-    let mediaUrl = "";
-    let mediaMime = "";
+    const base = {
+      id: message.id || '',
+      from: message.from || '',
+      timestamp: Number(message.timestamp || 0),
+      type: message.type || '',
+      text: '',
+      caption: '',
+      mediaId: '',
+      mediaMime: '',
+      location: null,
+      raw: message
+    };
 
     const type = message.type;
 
-    if (type === "text") {
-      text = message.text?.body || "";
-    } else if (type === "interactive") {
+    if (type === 'text') {
+      base.text = sanitizeInput(message.text && message.text.body);
+    } else if (type === 'interactive') {
       const interactive = message.interactive || {};
-      if (interactive.type === "button_reply") {
-        text = interactive.button_reply?.id || interactive.button_reply?.title || "";
-      } else if (interactive.type === "list_reply") {
-        text = interactive.list_reply?.id || interactive.list_reply?.title || "";
+      if (interactive.type === 'button_reply') {
+        base.text = sanitizeInput(
+          interactive.button_reply && (interactive.button_reply.id || interactive.button_reply.title)
+        );
+      } else if (interactive.type === 'list_reply') {
+        base.text = sanitizeInput(
+          interactive.list_reply && (interactive.list_reply.id || interactive.list_reply.title)
+        );
       }
-    } else if (type === "image") {
-      mediaUrl = message.image?.id || "";
-      mediaMime = message.image?.mime_type || "";
-      text = message.image?.caption || "";
-    } else if (type === "video") {
-      mediaUrl = message.video?.id || "";
-      mediaMime = message.video?.mime_type || "";
-      text = message.video?.caption || "";
-    } else if (type === "audio") {
-      mediaUrl = message.audio?.id || "";
-      mediaMime = message.audio?.mime_type || "";
-    } else if (type === "document") {
-      mediaUrl = message.document?.id || "";
-      mediaMime = message.document?.mime_type || "";
-      text = message.document?.caption || message.document?.filename || "";
-    } else if (type === "sticker") {
-      mediaUrl = message.sticker?.id || "";
-      mediaMime = message.sticker?.mime_type || "";
-    } else if (type === "location") {
-      const loc = message.location;
-      if (loc) {
-        text = loc.latitude + "," + loc.longitude;
+    } else if (type === 'button') {
+      base.text = sanitizeInput(message.button && (message.button.payload || message.button.text));
+    } else if (type === 'location') {
+      base.location = parseLocation(message);
+      if (base.location) {
+        base.text = [base.location.latitude, base.location.longitude].join(',');
       }
-    } else if (type === "button") {
-      text = message.button?.payload || message.button?.text || "";
+    } else {
+      // Media types: image, video, audio, document, sticker, etc.
+      const mediaKey = message[type];
+      if (mediaKey) {
+        base.mediaId = mediaKey.id || '';
+        base.mediaMime = mediaKey.mime_type || '';
+        base.caption = sanitizeInput(mediaKey.caption || mediaKey.filename || '');
+        base.text = base.caption;
+      }
     }
 
-    return {
-      from: message.from || "",
-      text: text || "",
-      mediaUrl: mediaUrl,
-      mediaMime: mediaMime,
-      raw: message,
+    return base;
+  }
+
+  return { extractMessages: extractMessages, logStatuses: logStatuses };
+})();
+
+/************************************************************
+ * WHATSAPP API CLIENT — OUTBOUND TEXT MESSAGES
+ ************************************************************/
+const WhatsAppApi = (function() {
+  const baseUrl = (CONF('WHATSAPP_API_URL') || 'https://graph.facebook.com/v20.0').replace(/\/$/, '');
+  const phoneId = CONF('PHONE_ID') || CONF('WHATSAPP_PHONE_NUMBER_ID');
+  const token = CONF('WHATSAPP_TOKEN');
+  const timeout = Number(CONF('API_TIMEOUT_MS')) || 30000;
+  const maxRetries = Number(CONF('MAX_API_RETRIES')) || 3;
+
+  function endpoint(path) {
+    return baseUrl + '/' + path.replace(/^\//, '');
+  }
+
+  function request(payload) {
+    if (!token || !phoneId) {
+      throw new Error('WhatsApp API credentials missing.');
+    }
+
+    const url = endpoint(phoneId + '/messages');
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + token },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      escaping: false,
+      followRedirects: true,
+      timeout: timeout
     };
-  } catch (err) {
-    Logger.log("extractIncomingMessage_ Error → " + err);
-    return null;
+
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        UrlFetchApp.fetch(url, options);
+        return;
+      } catch (err) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          throw err;
+        }
+        Utilities.sleep(500 * attempt);
+      }
+    }
   }
-}
 
-
-/************************************************************
- * SEND MESSAGE TO WHATSAPP — Graph API v20
- ************************************************************/
-function sendWhatsAppMessage(number, text) {
-  if (!text) {
-    return;
-  }
-
-  const url = "https://graph.facebook.com/v20.0/" + CONF("WHATSAPP_PHONE_NUMBER_ID") + "/messages";
-
-  const payload = {
-    messaging_product: "whatsapp",
-    to: number,
-    type: "text",
-    text: { body: text }
-  };
-
-  UrlFetchApp.fetch(url, {
-    method: "post",
-    contentType: "application/json",
-    headers: {
-      Authorization: "Bearer " + CONF("WHATSAPP_TOKEN")
-    },
-    payload: JSON.stringify(payload)
-  });
-}
-
-
-/************************************************************
- * HELPERS
- ************************************************************/
-function sanitizeNumber_(num) {
-  if (!num) {
-    return "";
-  }
-  return ("" + num).replace(/[^0-9]/g, "");
-}
-
-function ok_() {
-  return ContentService.createTextOutput("OK");
-}
-
-
-/************************************************************
- * SESSION + EXISTING CASE HELPERS
- ************************************************************/
-function loadOrCreateSession_(number) {
-  let session = Session.get(number);
-
-  if (session) {
-    session.WhatsApp_Number = session.WhatsApp_Number || number;
-    session.Temp = session.Temp || {};
-
-    if (!session.Region_Group) {
-      session.Region_Group = detectRegionByPhone(number);
-      Session.save(session);
+  function sendText(to, body) {
+    if (!to || !body) {
+      return;
     }
 
-    return { session: session, isNew: false };
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: to,
+      type: 'text',
+      text: { body: body }
+    };
+
+    request(payload);
   }
 
-  session = Session.create(number);
-  session.Region_Group = detectRegionByPhone(number);
-  Session.save(session);
+  return { sendText: sendText };
+})();
 
-  session.WhatsApp_Number = number;
-  session.Temp = session.Temp || {};
-
-  return { session: session, isNew: true };
+/** Public helper used across Text modules and flows. */
+function sendWhatsAppMessage(number, text) {
+  try {
+    WhatsAppApi.sendText(number, text);
+  } catch (err) {
+    Logger.log('sendWhatsAppMessage error → ' + err);
+  }
 }
 
-function resetSession_(number) {
-  Session.delete(number);
+/************************************************************
+ * SESSION SHORTHANDS — REQUIRED BY FLOWS ROUTER
+ ************************************************************/
+const Session = {
+  load: loadSession,
+  save: saveSession,
+  create: newSession,
+  delete: resetSession,
+  touch: touchSessionTimestamp
+};
 
-  const fresh = Session.create(number);
-  fresh.Region_Group = detectRegionByPhone(number);
-  Session.save(fresh);
-
-  sendWhatsAppMessage(number, Texts.sendLanguageMenu(fresh));
-}
-
-function handleMultiCaseSelection_(session, incomingText, userNumber) {
-  session.Temp = session.Temp || {};
-
-  if (!session.Temp.awaitingCaseSelection) {
-    return false;
-  }
-
-  const choice = (incomingText || "").trim();
-  const upperChoice = choice.toUpperCase();
-  const caseList = session.Temp.caseList || [];
-  const normalized = caseList.map(function(id) {
-    return (id || "").toUpperCase();
-  });
-
-  if (upperChoice === "0" || upperChoice === "BACK") {
-    session.Temp.awaitingCaseSelection = false;
-    session.Temp.caseList = undefined;
-    session.Temp.lastCaseID = undefined;
-    session.Current_Step_Code = "USER_TYPE";
-    Session.save(session);
-
-    sendWhatsAppMessage(userNumber, Texts.sendUserTypeMenu(session));
-    return true;
-  }
-
-  const listString = (caseList || []).join("\n");
-
-  if (!choice) {
-    sendWhatsAppMessage(
-      userNumber,
-      Texts_Validation.sendInvalidCaseID(session)
-        + "\n\n"
-        + Texts_ExistingCases.sendMultipleCasesMenu(session, listString)
-    );
-    return true;
-  }
-
-  const idx = normalized.indexOf(upperChoice);
-  if (idx === -1) {
-    sendWhatsAppMessage(
-      userNumber,
-      Texts_Validation.sendInvalidCaseID(session)
-        + "\n\n"
-        + Texts_ExistingCases.sendMultipleCasesMenu(session, listString)
-    );
-    return true;
-  }
-
-  const selectedCaseID = caseList[idx];
-
-  session.Temp.awaitingCaseSelection = false;
-  session.Temp.caseList = undefined;
-  session.Temp.lastCaseID = selectedCaseID;
-  session.Temp.caseID = selectedCaseID;
-  session.Current_Step_Code = "EXISTING_CASE_MENU";
-  Session.save(session);
-
-  sendWhatsAppMessage(
-    userNumber,
-    Texts_ExistingCases.sendExistingCaseMenu(session, selectedCaseID)
-  );
-
-  return true;
-}
-
-function handleExistingCaseMenu_(session, incomingText, userNumber) {
-  if (session.Current_Step_Code !== "EXISTING_CASE_MENU") {
-    return false;
-  }
-
-  const menuReply = ExistingCaseFlow.route(session, incomingText);
-
-  if (menuReply === "__EC_BACK__") {
-    session.Current_Step_Code = "USER_TYPE";
-    Session.save(session);
-
-    sendWhatsAppMessage(userNumber, Texts.sendUserTypeMenu(session));
-    return true;
-  }
-
-  if (menuReply) {
-    sendWhatsAppMessage(userNumber, menuReply);
-  }
-
-  return true;
-}
-
-function checkExistingCases_(session, userNumber) {
-  session.Temp = session.Temp || {};
-
-  if (!session.Preferred_Language) return false;
-  if (session.Temp.existingChecked) return false;
-  if (session.Current_Step_Code !== "USER_TYPE") return false;
-
-  const existingCases = Cases.getCasesByNumber(userNumber);
-  session.Temp.existingChecked = true;
-
-  if (!existingCases.length) {
-    Session.save(session);
-    return false;
-  }
-
-  if (existingCases.length === 1) {
-    const caseID = existingCases[0].Case_ID;
-
-    session.Temp.lastCaseID = caseID;
-    session.Temp.caseID = caseID;
-    session.Current_Step_Code = "EXISTING_CASE_MENU";
-    Session.save(session);
-
-    sendWhatsAppMessage(
-      userNumber,
-      Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
-    );
-    return true;
-  }
-
-  const caseIDs = existingCases.map(function(item) { return item.Case_ID; });
-
-  session.Temp.caseList = caseIDs;
-  session.Temp.awaitingCaseSelection = true;
-  session.Temp.lastCaseID = undefined;
-  session.Current_Step_Code = "EXISTING_CASE_MENU";
-  Session.save(session);
-
-  sendWhatsAppMessage(
-    userNumber,
-    Texts_ExistingCases.sendMultipleCasesMenu(session, caseIDs.join("\n"))
-  );
-
-  return true;
+/************************************************************
+ * MISC HELPERS
+ ************************************************************/
+function isResetCommand(text) {
+  return sanitizeInput(text).toUpperCase() === 'RESET';
 }

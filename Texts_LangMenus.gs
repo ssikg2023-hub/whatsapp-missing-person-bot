@@ -1,98 +1,130 @@
 /***************************************************************
- * Texts_LangMenus.gs — Language Menus (Region Based)
+ * Texts_LangMenus.gs — Region-Based Language Menus
+ * -------------------------------------------------------------------
+ * Every menu string in this file is copied verbatim from
+ * “Full n Final Flow Updated.txt”. No paraphrasing, no edits.
+ * Helpers below simply choose the correct region grouping and
+ * expose utilities for downstream flows to interpret selections.
  ***************************************************************/
 
-const Texts_LangMenus = {
-
-  getMenu(region) {
-    switch (region) {
-
-      case "PK":
-        return [
-          "Welcome! Please choose your preferred language:",
-          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
-          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-          "1️⃣ English",
-          "2️⃣ اردو",
-          "3️⃣ Roman Urdu"
-        ].join("\n");
-
-      case "IN":
-        return [
-          "Welcome! Please choose your preferred language:",
-          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
-          "स्वागत है! कृपया अपनी भाषा चुनें",
-          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-          "1️⃣ English",
-          "2️⃣ हिन्दी",
-          "3️⃣ اردو",
-          "4️⃣ Roman Urdu"
-        ].join("\n");
-
-      case "BD":
-        return [
-          "Welcome! Please choose your preferred language:",
-          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
-          "স্বাগতম! দয়া করে আপনার ভাষা নির্বাচন করুন",
-          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-          "1️⃣ English",
-          "2️⃣ বাংলা",
-          "3️⃣ اردو",
-          "4️⃣ Roman Urdu"
-        ].join("\n");
-
-      case "ME":
-        return [
-          "Welcome! Please choose your preferred language:",
-          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
-          "مرحبًا! يرجى اختيار لغتك المفضلة",
-          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-          "1️⃣ English",
-          "2️⃣ العربية",
-          "3️⃣ اردو",
-          "4️⃣ Roman Urdu"
-        ].join("\n");
-
-      default:
-        return [
-          "Welcome! Please choose your preferred language:",
-          ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
-          "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
-          "1️⃣ English",
-          "2️⃣ اردو",
-          "3️⃣ Roman Urdu"
-        ].join("\n");
+const Texts_LangMenus = (() => {
+  /**
+   * Canonical mapping so any Gulf country code collapses to the
+   * "ME" (Middle East) menu defined in the source-of-truth file.
+   */
+  const resolveRegion = (region) => {
+    const upper = (region || "OTHER").toUpperCase();
+    if (["AE", "SA", "QA", "OM", "BH", "KW", "ME"].includes(upper)) {
+      return "ME";
     }
-  },
-
+    if (["PK", "IN", "BD"].includes(upper)) {
+      return upper;
+    }
+    return "OTHER";
+  };
 
   /***********************************************************
-   * AVAILABLE LANGUAGES PER REGION (REQUIRED)
+   * Verbatim menu blocks (exact wording + emoji ordering)
    ***********************************************************/
-  getAvailableLanguages(region) {
+  const menus = {
+    PK: [
+      "Welcome! Please choose your preferred language:",
+      ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+      "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+      "1️⃣ English",
+      "2️⃣ اردو",
+      "3️⃣ Roman Urdu"
+    ].join("\n"),
 
-    switch (region) {
-      case "PK": return ["EN", "UR", "RUR"];
-      case "IN": return ["EN", "HI", "UR", "RUR"];
-      case "BD": return ["EN", "BN", "UR", "RUR"];
-      case "ME": return ["EN", "AR", "UR", "RUR"];
-      default:   return ["EN", "UR", "RUR"];
-    }
-  },
+    IN: [
+      "Welcome! Please choose your preferred language:",
+      ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+      "स्वागत है! कृपया अपनी भाषा चुनें",
+      "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+      "1️⃣ English",
+      "2️⃣ हिन्दी",
+      "3️⃣ اردو",
+      "4️⃣ Roman Urdu"
+    ].join("\n"),
 
+    BD: [
+      "Welcome! Please choose your preferred language:",
+      ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+      "স্বাগতম! দয়া করে আপনার ভাষা নির্বাচন করুন",
+      "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+      "1️⃣ English",
+      "2️⃣ বাংলা",
+      "3️⃣ اردو",
+      "4️⃣ Roman Urdu"
+    ].join("\n"),
+
+    ME: [
+      "Welcome! Please choose your preferred language:",
+      ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+      "مرحبًا! يرجى اختيار لغتك المفضلة",
+      "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+      "1️⃣ English",
+      "2️⃣ العربية",
+      "3️⃣ اردو",
+      "4️⃣ Roman Urdu"
+    ].join("\n"),
+
+    OTHER: [
+      "Welcome! Please choose your preferred language:",
+      ":خوش آمدید! براہ کرم اپنی زبان کا انتخاب کریں",
+      "Khush aamdeed! Barah-e-karam apni zuban ka intikhab karein:",
+      "1️⃣ English",
+      "2️⃣ اردو",
+      "3️⃣ Roman Urdu"
+    ].join("\n")
+  };
 
   /***********************************************************
-   * MAP USER INPUT TO LANGUAGE CODE (REQUIRED)
+   * Official language availability lists (per region)
    ***********************************************************/
-  mapLanguageChoice(region, choice) {
+  const languageCodes = {
+    PK: ["EN", "UR", "RUR"],
+    IN: ["EN", "HI", "UR", "RUR"],
+    BD: ["EN", "BN", "UR", "RUR"],
+    ME: ["EN", "AR", "UR", "RUR"],
+    OTHER: ["EN", "UR", "RUR"]
+  };
 
-    const langs = this.getAvailableLanguages(region);
+  /***********************************************************
+   * PUBLIC API — used by the flow/router engines
+   ***********************************************************/
+  return {
+    /**
+     * Returns the exact menu string specified for the user’s
+     * detected region group (defaults to OTHER when unknown).
+     */
+    getMenu(region) {
+      const key = resolveRegion(region);
+      return menus[key];
+    },
 
-    const index = Number(choice) - 1;
+    /**
+     * Provides the supported language codes in display order so
+     * downstream validation mirrors the presented menu.
+     */
+    getAvailableLanguages(region) {
+      const key = resolveRegion(region);
+      return languageCodes[key];
+    },
 
-    if (index < 0 || index >= langs.length) return null;
-
-    return langs[index];
-  }
-
-};
+    /**
+     * Maps a numeric user choice to its canonical language code.
+     * Returns null for invalid/out-of-range selections so flows
+     * can re-prompt exactly as defined in the master spec.
+     */
+    mapLanguageChoice(region, choice) {
+      const key = resolveRegion(region);
+      const options = languageCodes[key];
+      const index = Number(choice) - 1;
+      if (!Number.isFinite(index) || index < 0 || index >= options.length) {
+        return null;
+      }
+      return options[index];
+    }
+  };
+})();
