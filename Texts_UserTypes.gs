@@ -48,7 +48,7 @@ const Texts_UserTypes = (() => {
 
     BD: [
       "Please tell us who you are so we can help better.",
-      "অনুগ্রহ করে আমাদের বলুন আপনি কে, যাতে আমরা আরও ভালোভাবে সাহায্য রতে পারি।",
+      "অনুগ্রহ করে আমাদের বলুন আপনি কে, যাতে আমরা আরও ভালোভাবে সাহায্য করতে পারি।",
       "",
       "1️⃣ I’m searching for a missing loved one.",
       "   আমি একজন নিখোঁজ প্রিয়জনকে খুঁজছি।",

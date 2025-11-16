@@ -25,7 +25,8 @@ const STEP_CODES = Object.freeze({
   EXISTING_MENU: 'EXISTING_CASE_MENU',
   EXISTING_REVIEW: 'EXISTING_CASE_REVIEW',
   CASE_UPDATE_MENU: 'CASE_UPDATE_MENU',
-  CASE_UPDATE_INFO: 'CASE_UPDATE_INFO'
+  CASE_UPDATE_TEXT: 'CASE_UPDATE_TEXT',
+  CASE_UPDATE_MEDIA: 'CASE_UPDATE_MEDIA'
 });
 
 /************************************************************
@@ -59,6 +60,11 @@ const Flows = {
       Session.save(session);
     }
 
+    // Timeout handling per Block 18H — reminder + repeat last question.
+    if (checkSessionTimeout(session)) {
+      return this.handleSessionTimeout(session);
+    }
+
     // Step 0: force the language menu until the user picks one.
     if (currentStep === STEP_CODES.LANG) {
       return this.handleLanguageSelection(session, trimmed);
@@ -81,7 +87,7 @@ const Flows = {
       return ExistingCaseFlow.handle(session, currentStep, trimmed, rawEvent, mediaId, mediaMime);
     }
 
-    if (currentStep === STEP_CODES.CASE_UPDATE_MENU || currentStep === STEP_CODES.CASE_UPDATE_INFO) {
+    if ([STEP_CODES.CASE_UPDATE_MENU, STEP_CODES.CASE_UPDATE_TEXT, STEP_CODES.CASE_UPDATE_MEDIA].indexOf(currentStep) !== -1) {
       return CaseUpdateFlow.handle(session, trimmed, mediaId, mediaMime, rawEvent);
     }
 
@@ -206,6 +212,161 @@ const Flows = {
     }
 
     return Texts.sendInvalidOption(session);
+  },
+
+  handleSessionTimeout(session) {
+    const reminder = Texts.sendSessionExpiredReminder(session);
+    const repeat = this.repeatCurrentPrompt(session);
+    Session.touch(session);
+    if (repeat) {
+      return [reminder, repeat].join('\n\n');
+    }
+    return reminder;
+  },
+
+  repeatCurrentPrompt(session) {
+    const step = session.Current_Step_Code || STEP_CODES.LANG;
+    switch (step) {
+      case STEP_CODES.LANG:
+        return Texts.sendLanguageMenu(session);
+      case STEP_CODES.USER_TYPE:
+        return Texts.sendUserTypeMenu(session);
+      case STEP_CODES.A_ELIGIBILITY:
+        return Texts_Eligibility.sendEligibilityQuestion(session);
+      case STEP_CODES.A_REJECTED:
+        return Texts.sendEligibilityRejected(session);
+      case STEP_CODES.EXISTING_SELECT: {
+        const list = (session.Temp && session.Temp.caseList) || [];
+        return Texts_ExistingCases.sendMultipleCasesMenu(session, list.join('\n'));
+      }
+      case STEP_CODES.EXISTING_MENU: {
+        const caseId = (session.Temp && (session.Temp.caseID || session.Temp.lastCaseID)) || '';
+        return Texts_ExistingCases.sendExistingCaseMenu(session, caseId);
+      }
+      case STEP_CODES.EXISTING_REVIEW: {
+        const caseId = (session.Temp && (session.Temp.caseID || session.Temp.lastCaseID)) || '';
+        return Texts_ExistingCases.sendCaseDetails(
+          session,
+          caseId,
+          ExistingCaseFlow.formatCaseDetails(session, caseId)
+        );
+      }
+      case STEP_CODES.CASE_UPDATE_MENU:
+        return Texts_CaseUpdates.sendUpdateMenu(session, session.Temp && session.Temp.updateCaseID);
+      case STEP_CODES.CASE_UPDATE_TEXT:
+        return Texts_CaseUpdates.askNewInfo(session, session.Temp && session.Temp.updateCaseID);
+      case STEP_CODES.CASE_UPDATE_MEDIA:
+        return Texts_CaseUpdates.promptUploadMedia(session);
+      default:
+        break;
+    }
+
+    if (/^A_Q/.test(step)) {
+      return this.repeatFlowAPrompt(step, session);
+    }
+
+    if (/^B_Q/.test(step)) {
+      return this.repeatFlowBPrompt(step, session);
+    }
+
+    if (/^C_Q/.test(step)) {
+      return this.repeatFlowCPrompt(step, session);
+    }
+
+    return Texts.sendLanguageMenu(session);
+  },
+
+  repeatFlowAPrompt(step, session) {
+    switch (step) {
+      case 'A_Q1':
+        return Texts_A.q1(session);
+      case 'A_Q2':
+        return Texts_A.q2(session);
+      case 'A_Q3':
+        return Texts_A.q3(session);
+      case 'A_Q4':
+        return Texts_A.q4(session);
+      case 'A_Q5':
+        return Texts_A.q5(session);
+      case 'A_Q6':
+        return Texts_A.q6(session);
+      case 'A_Q7':
+        return Texts_A.q7(session);
+      case 'A_Q8':
+        return Texts_A.q8(session);
+      case 'A_Q9':
+        return Texts_A.q9(session);
+      default:
+        return '';
+    }
+  },
+
+  repeatFlowBPrompt(step, session) {
+    switch (step) {
+      case 'B_Q1':
+        return Texts_B.q1(session);
+      case 'B_Q2':
+        return Texts_B.q2(session);
+      case 'B_Q3':
+        return Texts_B.q3(session);
+      case 'B_Q4':
+        return Texts_B.q4(session);
+      case 'B_Q5':
+        return Texts_B.q5(session);
+      case 'B_Q6':
+        return Texts_B.q6(session);
+      case 'B_Q7':
+        return Texts_B.q7(session);
+      case 'B_Q8':
+        return Texts_B.q8(session);
+      case 'B_Q9':
+        return Texts_B.q9(session);
+      case 'B_Q10':
+        return Texts_B.q10(session);
+      case 'B_Q11':
+        return Texts_B.q11(session);
+      default:
+        return '';
+    }
+  },
+
+  repeatFlowCPrompt(step, session) {
+    switch (step) {
+      case 'C_Q0':
+        return Texts_C.sendQ0(session);
+      case 'C_Q1':
+        return Texts_C.sendQ1(session);
+      case 'C_Q2':
+        return Texts_C.sendQ2(session);
+      case 'C_Q3':
+        return Texts_C.sendQ3(session);
+      case 'C_Q4':
+        return Texts_C.sendQ4(session);
+      case 'C_Q5':
+        return Texts_C.sendQ5(session);
+      case 'C_Q6':
+        return Texts_C.sendQ6(session);
+      case 'C_Q7':
+        return Texts_C.sendQ7(session);
+      case 'C_Q8':
+        return Texts_C.sendQ8(session);
+      case 'C_Q9':
+        return Texts_C.sendQ9(session);
+      case 'C_Q10':
+        return Texts_C.sendQ10(session);
+      case 'C_Q11':
+        return Texts_C.sendQ11(session);
+      case 'C_Q12':
+        return Texts_C.sendQ12(session);
+      case 'C_Q13':
+        return Texts_C.sendQ13(session);
+      case 'C_Q14':
+        return Texts_C.sendQ14(session);
+      case 'C_Q15':
+        return Texts_C.sendQ15(session);
+      default:
+        return '';
+    }
   }
 };
 
@@ -223,7 +384,10 @@ const FlowA = {
 
     session.Current_Step_Code = 'A_Q1';
     Session.save(session);
-    return Texts_A.sendQ1(session);
+    return [
+      Texts_A.empatheticIntro(session),
+      Texts_A.q1(session)
+    ].join('\n\n');
   },
 
   handle(session, msg, mediaId, mediaMime, rawEvent) {
@@ -233,41 +397,41 @@ const FlowA = {
     switch (step) {
       case 'A_Q1':
         FlowStorage.saveAnswer(caseId, 1, msg);
-        return this.next(session, 'A_Q2', Texts_A.sendQ2);
+        return this.next(session, 'A_Q2', Texts_A.q2);
 
       case 'A_Q2':
         if (mediaId && !msg) {
-          return Texts_A.sendQ2(session);
+          return Texts_A.q2(session);
         }
         FlowStorage.saveAnswer(caseId, 2, msg);
-        return this.next(session, 'A_Q3', Texts_A.sendQ3);
+        return this.next(session, 'A_Q3', Texts_A.q3);
 
       case 'A_Q3':
         if (isNaN(Number(msg))) {
-          return Texts_A.sendInvalidAge(session);
+          return this.sendInvalidAge(session);
         }
         FlowStorage.saveAnswer(caseId, 3, msg);
-        return this.next(session, 'A_Q4', Texts_A.sendQ4);
+        return this.next(session, 'A_Q4', Texts_A.q4);
 
       case 'A_Q4':
         FlowStorage.saveAnswer(caseId, 4, msg);
-        return this.next(session, 'A_Q5', Texts_A.sendQ5);
+        return this.next(session, 'A_Q5', Texts_A.q5);
 
       case 'A_Q5':
         FlowStorage.saveAnswer(caseId, 5, msg);
-        return this.next(session, 'A_Q6', Texts_A.sendQ6);
+        return this.next(session, 'A_Q6', Texts_A.q6);
 
       case 'A_Q6':
         FlowStorage.saveAnswer(caseId, 6, msg);
-        return this.next(session, 'A_Q7', Texts_A.sendQ7);
+        return this.next(session, 'A_Q7', Texts_A.q7);
 
       case 'A_Q7':
         FlowStorage.saveAnswer(caseId, 7, msg);
-        return this.next(session, 'A_Q8', Texts_A.sendQ8);
+        return this.next(session, 'A_Q8', Texts_A.q8);
 
       case 'A_Q8':
         FlowStorage.saveAnswer(caseId, 8, msg);
-        return this.next(session, 'A_Q9', Texts_A.sendQ9);
+        return this.next(session, 'A_Q9', Texts_A.q9);
 
       case 'A_Q9':
         FlowStorage.saveAnswer(caseId, 9, msg);
@@ -281,6 +445,13 @@ const FlowA = {
     session.Current_Step_Code = nextCode;
     Session.save(session);
     return promptFn(session);
+  },
+
+  sendInvalidAge(session) {
+    return [
+      Texts.sendInvalidText(session),
+      Texts_A.q3(session)
+    ].join('\n\n');
   }
 };
 
@@ -298,7 +469,10 @@ const FlowB = {
 
     session.Current_Step_Code = 'B_Q1';
     Session.save(session);
-    return Texts_B.sendQ1(session);
+    return [
+      Texts_B.empatheticIntro(session),
+      Texts_B.q1(session)
+    ].join('\n\n');
   },
 
   handle(session, msg, mediaId, mediaMime, rawEvent) {
@@ -308,46 +482,46 @@ const FlowB = {
     switch (step) {
       case 'B_Q1':
         FlowStorage.saveAnswer(caseId, 1, msg);
-        return this.next(session, 'B_Q2', Texts_B.sendQ2);
+        return this.next(session, 'B_Q2', Texts_B.q2);
 
       case 'B_Q2':
         FlowStorage.saveAnswer(caseId, 2, msg);
-        return this.next(session, 'B_Q3', Texts_B.sendQ3);
+        return this.next(session, 'B_Q3', Texts_B.q3);
 
       case 'B_Q3':
         if (mediaId && !msg) {
-          return Texts_B.sendQ3(session);
+          return Texts_B.q3(session);
         }
         FlowStorage.saveAnswer(caseId, 3, msg);
-        return this.next(session, 'B_Q4', Texts_B.sendQ4);
+        return this.next(session, 'B_Q4', Texts_B.q4);
 
       case 'B_Q4':
         FlowStorage.saveAnswer(caseId, 4, msg);
-        return this.next(session, 'B_Q5', Texts_B.sendQ5);
+        return this.next(session, 'B_Q5', Texts_B.q5);
 
       case 'B_Q5':
         FlowStorage.saveAnswer(caseId, 5, msg);
-        return this.next(session, 'B_Q6', Texts_B.sendQ6);
+        return this.next(session, 'B_Q6', Texts_B.q6);
 
       case 'B_Q6':
         FlowStorage.saveAnswer(caseId, 6, msg);
-        return this.next(session, 'B_Q7', Texts_B.sendQ7);
+        return this.next(session, 'B_Q7', Texts_B.q7);
 
       case 'B_Q7':
         FlowStorage.saveAnswer(caseId, 7, msg);
-        return this.next(session, 'B_Q8', Texts_B.sendQ8);
+        return this.next(session, 'B_Q8', Texts_B.q8);
 
       case 'B_Q8':
         FlowStorage.saveAnswer(caseId, 8, msg);
-        return this.next(session, 'B_Q9', Texts_B.sendQ9);
+        return this.next(session, 'B_Q9', Texts_B.q9);
 
       case 'B_Q9':
         FlowStorage.saveAnswer(caseId, 9, msg);
-        return this.next(session, 'B_Q10', Texts_B.sendQ10);
+        return this.next(session, 'B_Q10', Texts_B.q10);
 
       case 'B_Q10':
         FlowStorage.saveAnswer(caseId, 10, msg);
-        return this.next(session, 'B_Q11', Texts_B.sendQ11);
+        return this.next(session, 'B_Q11', Texts_B.q11);
 
       case 'B_Q11':
         if (mediaId) {
@@ -687,28 +861,28 @@ const ExistingCaseFlow = {
   getPromptProviders(flowType) {
     const map = {
       A: [
-        function(s) { return Texts_A.sendQ1(s); },
-        function(s) { return Texts_A.sendQ2(s); },
-        function(s) { return Texts_A.sendQ3(s); },
-        function(s) { return Texts_A.sendQ4(s); },
-        function(s) { return Texts_A.sendQ5(s); },
-        function(s) { return Texts_A.sendQ6(s); },
-        function(s) { return Texts_A.sendQ7(s); },
-        function(s) { return Texts_A.sendQ8(s); },
-        function(s) { return Texts_A.sendQ9(s); }
+        function(s) { return Texts_A.q1(s); },
+        function(s) { return Texts_A.q2(s); },
+        function(s) { return Texts_A.q3(s); },
+        function(s) { return Texts_A.q4(s); },
+        function(s) { return Texts_A.q5(s); },
+        function(s) { return Texts_A.q6(s); },
+        function(s) { return Texts_A.q7(s); },
+        function(s) { return Texts_A.q8(s); },
+        function(s) { return Texts_A.q9(s); }
       ],
       B: [
-        function(s) { return Texts_B.sendQ1(s); },
-        function(s) { return Texts_B.sendQ2(s); },
-        function(s) { return Texts_B.sendQ3(s); },
-        function(s) { return Texts_B.sendQ4(s); },
-        function(s) { return Texts_B.sendQ5(s); },
-        function(s) { return Texts_B.sendQ6(s); },
-        function(s) { return Texts_B.sendQ7(s); },
-        function(s) { return Texts_B.sendQ8(s); },
-        function(s) { return Texts_B.sendQ9(s); },
-        function(s) { return Texts_B.sendQ10(s); },
-        function(s) { return Texts_B.sendQ11(s); }
+        function(s) { return Texts_B.q1(s); },
+        function(s) { return Texts_B.q2(s); },
+        function(s) { return Texts_B.q3(s); },
+        function(s) { return Texts_B.q4(s); },
+        function(s) { return Texts_B.q5(s); },
+        function(s) { return Texts_B.q6(s); },
+        function(s) { return Texts_B.q7(s); },
+        function(s) { return Texts_B.q8(s); },
+        function(s) { return Texts_B.q9(s); },
+        function(s) { return Texts_B.q10(s); },
+        function(s) { return Texts_B.q11(s); }
       ],
       C: [
         function(s) { return Texts_C.sendQ0(s); },
@@ -742,62 +916,91 @@ const CaseUpdateFlow = {
     const caseId = session.Temp.updateCaseID;
 
     if (!caseId) {
+      session.Temp.updateCaseID = undefined;
       session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
       Session.save(session);
       return Texts_ExistingCases.sendExistingCaseMenu(session, session.Temp.lastCaseID || '');
     }
 
+    const trimmed = (msg || '').trim();
+    const upper = trimmed.toUpperCase();
+
     if (session.Current_Step_Code === STEP_CODES.CASE_UPDATE_MENU) {
-      if (msg === '1') {
-        session.Current_Step_Code = STEP_CODES.CASE_UPDATE_INFO;
-        Session.save(session);
-        return Texts_CaseUpdates.askNewInfo(session, caseId);
+      switch (trimmed) {
+        case '1':
+          session.Current_Step_Code = STEP_CODES.CASE_UPDATE_TEXT;
+          Session.save(session);
+          return Texts_CaseUpdates.askNewInfo(session, caseId);
+        case '2':
+          session.Current_Step_Code = STEP_CODES.CASE_UPDATE_MEDIA;
+          Session.save(session);
+          return Texts_CaseUpdates.promptUploadMedia(session);
+        case '3':
+          CaseEngine.close(caseId, 'Closed — Resolved by Family / Initiator');
+          CaseUpdateEngine.logStatus(caseId, 'Closed — Resolved by Family / Initiator', 'User confirmed closure');
+          session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
+          Session.save(session);
+          return [
+            Texts_CaseUpdates.acknowledgeCaseResolved(session),
+            Texts_ExistingCases.sendExistingCaseMenu(session, caseId)
+          ].join('\n\n');
+        case '4':
+          session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
+          Session.save(session);
+          return Texts_ExistingCases.sendExistingCaseMenu(session, caseId);
+        default:
+          return [
+            Texts.sendInvalidOption(session),
+            Texts_CaseUpdates.sendUpdateMenu(session, caseId)
+          ].join('\n\n');
       }
-      if (msg === '2') {
-        CaseEngine.close(caseId, 'Closed — Resolved by Family / Initiator');
-        CaseUpdateEngine.logStatus(caseId, 'Closed — Resolved by Family / Initiator', 'User confirmed closure');
-        session.Temp.updateCaseID = undefined;
-        session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
-        Session.save(session);
-        return Texts_CaseUpdates.sendCaseClosed(session, caseId);
-      }
-      return [
-        Texts.sendInvalidOption(session),
-        Texts_CaseUpdates.sendUpdateMenu(session, caseId)
-      ].join('\n\n');
     }
 
-    if (session.Current_Step_Code === STEP_CODES.CASE_UPDATE_INFO) {
-      const trimmed = (msg || '').trim();
-      const upper = trimmed.toUpperCase();
-
-      if (trimmed === '0' || upper === 'BACK') {
-        session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
+    if (session.Current_Step_Code === STEP_CODES.CASE_UPDATE_TEXT) {
+      if (upper === '0' || upper === 'BACK') {
+        session.Current_Step_Code = STEP_CODES.CASE_UPDATE_MENU;
         Session.save(session);
-        return Texts_ExistingCases.sendExistingCaseMenu(session, caseId);
+        return Texts_CaseUpdates.sendUpdateMenu(session, caseId);
       }
 
-      if (upper === 'DONE') {
-        session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
-        Session.save(session);
+      if (!trimmed) {
         return [
-          Texts_CaseUpdates.confirmNewInfoAdded(session),
-          Texts_ExistingCases.sendExistingCaseMenu(session, caseId)
+          Texts.sendInvalidText(session),
+          Texts_CaseUpdates.askNewInfo(session, caseId)
         ].join('\n\n');
       }
 
-      if (mediaId) {
-        FlowStorage.saveMedia(session, caseId, mediaId, mediaMime, rawEvent);
-        return '';
+      CaseEngine.appendExtraNotes(caseId, trimmed);
+      CaseUpdateEngine.create(caseId, 'UPDATE_TEXT', trimmed, '', rawEvent || {});
+      session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
+      Session.save(session);
+      return [
+        Texts_CaseUpdates.confirmNewInfoAdded(session),
+        Texts_ExistingCases.sendExistingCaseMenu(session, caseId)
+      ].join('\n\n');
+    }
+
+    if (session.Current_Step_Code === STEP_CODES.CASE_UPDATE_MEDIA) {
+      if (upper === '0' || upper === 'BACK') {
+        session.Current_Step_Code = STEP_CODES.CASE_UPDATE_MENU;
+        Session.save(session);
+        return Texts_CaseUpdates.sendUpdateMenu(session, caseId);
       }
 
-      if (trimmed) {
-        CaseEngine.appendExtraNotes(caseId, trimmed);
-        CaseUpdateEngine.create(caseId, 'UPDATE_TEXT', trimmed, '', rawEvent || {});
-        return '';
+      if (!mediaId) {
+        return [
+          Texts.sendPhotoRequired(session),
+          Texts_CaseUpdates.promptUploadMedia(session)
+        ].join('\n\n');
       }
 
-      return Texts_CaseUpdates.askNewInfo(session, caseId);
+      FlowStorage.saveMedia(session, caseId, mediaId, mediaMime, rawEvent);
+      session.Current_Step_Code = STEP_CODES.EXISTING_MENU;
+      Session.save(session);
+      return [
+        Texts_CaseUpdates.confirmNewInfoAdded(session),
+        Texts_ExistingCases.sendExistingCaseMenu(session, caseId)
+      ].join('\n\n');
     }
 
     return Texts.sendInvalidOption(session);
