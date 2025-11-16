@@ -1,176 +1,229 @@
 /***************************************************************
- * Texts_Validation.gs — INVALID / ERROR / RESTRICTION MESSAGES
- * EXACT text from Chat Flow & Messages file — NO CHANGES.
+ * Texts_Validation.gs — Additional Logic 3–8
+ * -----------------------------------------------------------------
+ * Holds every validation / reminder message mandated by the
+ * “Full n Final Flow Updated.txt” spec. All text blocks are copied
+ * verbatim (EN, UR, RUR, HI, BN, AR) for:
+ *   1) Invalid menu option selections
+ *   2) Invalid free-text responses
+ *   3) Photo-required reminders
+ *   4) Voice-note not accepted notices
+ *   5) Unexpected keyword nudges
+ *   6) Session timeout reminders
  ***************************************************************/
 
-const Texts_Validation = {
-
-  /***********************************************************
-   * GENERIC PROMPT TO RESELECT FROM MENU (All menus reuse this)
-   ***********************************************************/
-  sendInvalidOption(session) {
-    const lang = session.Preferred_Language;
-
-    const map = {
-      "EN": "Please choose an option:",
-      "UR": "براہِ کرم ایک آپشن منتخب کریں:",
-      "RUR": "Barah-e-karam ek option ka intikhab karein:",
-      "HI": "कृपया एक विकल्प चुनें:",
-      "BN": "অনুগ্রহ করে একটি অপশন নির্বাচন করুন:",
-      "AR": "يرجى اختيار أحد الخيارات:"
-    };
-
-    return map[lang] || map["EN"];
-  },
-
-
-  /***********************************************************
-   * INVALID CASE ID (Multiple-case scenario)
-   ***********************************************************/
-  sendInvalidCaseID(session) {
-    const lang = session.Preferred_Language;
-
-    const map = {
-      "EN": [
-        "The Case ID you entered was not found for this number.",
-        "Please check and type the correct Case ID, or reply 0 to go back."
+const Texts_Validation = (() => {
+  /**
+   * Central repository of validation text blocks.
+   */
+  const BLOCKS = {
+    invalidOption: {
+      EN: [
+        "❌ Invalid option.",
+        "Please select one of the valid numbers from the menu."
       ].join("\n"),
-
-      "UR": [
-        "آپ نے جو کیس نمبر بھیجا ہے وہ اس نمبر کے ساتھ نہیں ملا۔",
-        "براہِ کرم دوبارہ درست کیس نمبر لکھیں، یا واپس جانے کے لیے 0 لکھ دیں۔"
+      UR: [
+        "❌ غلط آپشن۔",
+        "براہ کرم مینو میں سے درست نمبر منتخب کریں۔"
       ].join("\n"),
-
-      "RUR": [
-        "Aap ne jo Case ID bheji hai woh is number ke sath match nahi hui.",
-        "Meherbani karke sahi Case ID dobara type karein, ya wapas jane ke liye 0 likh dein."
+      RUR: [
+        "❌ Ghalat option.",
+        "Barah-e-karam menu me se sahi number select karein."
       ].join("\n"),
-
-      "HI": [
-        "आपने जो Case ID भेजी है, वह इस नंबर के लिए नहीं मिली।",
-        "कृपया सही Case ID दोबारा लिखें, या वापस जाने के लिए 0 लिख दें।"
+      HI: [
+        "❌ गलत विकल्प।",
+        "कृपया मेनू में दिए गए सही नंबरों में से एक चुनें।"
       ].join("\n"),
-
-      "BN": [
-        "আপনি যে Case ID পাঠিয়েছেন, সেটি এই নম্বরের সাথে মিলে না।",
-        "অনুগ্রহ করে সঠিক Case ID আবার লিখুন, অথবা ফিরে যেতে 0 লিখুন।"
+      BN: [
+        "❌ ভুল অপশন।",
+        "অনুগ্রহ করে মেনু থেকে সঠিক নম্বরটি নির্বাচন করুন।"
       ].join("\n"),
-
-      "AR": [
-        "رقم القضية الذي أدخلته غير مرتبط بهذا الرقم.",
-        "يرجى إعادة كتابة رقم القضية الصحيح، أو إرسال 0 للرجوع."
+      AR: [
+        "❌ خيار غير صحيح.",
+        "يرجى اختيار رقم صحيح من القائمة."
       ].join("\n")
-    };
+    },
 
-    return map[lang] || map["EN"];
-  },
-
-
-  /***********************************************************
-   * ELIGIBILITY REJECTION (Police / Agency cases)
-   ***********************************************************/
-  sendEligibilityRejected(session) {
-    const lang = session.Preferred_Language;
-
-    const map = {
-      "EN": [
-        "We are sorry for your situation, but we are unable to take police or agency-related cases.",
-        "Would you like to submit a new case?",
-        "1️⃣ Yes",
-        "2️⃣ No"
+    invalidText: {
+      EN: [
+        "⚠️ I couldn’t understand your message.",
+        "Please answer the question clearly."
       ].join("\n"),
-
-      "UR": [
-        "ہم آپ کے دُکھ میں شریک ہیں، مگر ہم پولیس یا ادارے کے کیسز نہیں لیتے۔",
-        "کیا آپ کوئی نیا کیس جمع کروانا چاہتے ہیں؟",
-        "1️⃣ جی ہاں",
-        "2️⃣ نہیں"
+      UR: [
+        "⚠️ معذرت، میں سمجھ نہیں سکا。",
+        "براہ کرم سوال کا واضح جواب دیں۔"
       ].join("\n"),
-
-      "RUR": [
-        "Hum aap ke dukh mein shareek hain, magar hum police ya idaray ke cases handle nahi karte.",
-        "Kya aap koi naya case submit karna chahte hain?",
-        "1️⃣ Haan",
-        "2️⃣ Nahi"
+      RUR: [
+        "⚠️ Maazrat, main samajh nahi saka.",
+        "Barah-e-karam sawal ka wazeh jawab dein."
       ].join("\n"),
-
-      "HI": [
-        "हमें आपके हालात का दुःख है, लेकिन हम पुलिस या एजेंसी से जुड़े मामलों को नहीं ले सकते।",
-        "क्या आप नया केस जमा करना चाहते हैं?",
-        "1️⃣ हाँ",
-        "2️⃣ नहीं"
+      HI: [
+        "⚠️ मुझे आपकी बात समझ नहीं आई。",
+        "कृपया सवाल का सही जवाब दें।"
       ].join("\n"),
-
-      "BN": [
-        "আমরা আপনার পরিস্থিতির জন্য দুঃখিত, কিন্তু আমরা পুলিশ বা এজেন্সি-সংক্রান্ত মামলা গ্রহণ করি না।",
-        "আপনি কি একটি নতুন কেস জমা দিতে চান?",
-        "1️⃣ হ্যাঁ",
-        "2️⃣ না"
+      BN: [
+        "⚠️ দুঃখিত, আমি বুঝতে পারিনি।",
+        "অনুগ্রহ করে প্রশ্নের সঠিক উত্তর দিন।"
       ].join("\n"),
-
-      "AR": [
-        "نحن متأسفون لوضعك، ولكن لا يمكننا التعامل مع القضايا المتعلقة بالشرطة أو الجهات الأمنية.",
-        "هل ترغب في تقديم بلاغ جديد؟",
-        "1️⃣ نعم",
-        "2️⃣ لا"
+      AR: [
+        "⚠️ عذرًا، لم أفهم رسالتك.",
+        "يرجى توضيح الإجابة على السؤال."
       ].join("\n")
-    };
+    },
 
-    return map[lang] || map["EN"];
-  },
-
-
-  /***********************************************************
-   * CLOSING MESSAGE after user selects “No”
-   ***********************************************************/
-  closingAfterRejection(session) {
-    const lang = session.Preferred_Language;
-
-    const map = {
-      "EN": [
-        "May Allah reunite every family with their loved ones. Ameen.",
-        "Thank you for trusting us."
+    photoRequired: {
+      EN: [
+        "📸 A photo was required.",
+        "Please send the picture now."
       ].join("\n"),
-
-      "UR": [
-        "اللہ ہر خاندان کو ان کے پیاروں سے ملائے۔ آمین۔",
-        "ہم پر بھروسہ کرنے کا شکریہ۔"
+      UR: [
+        "📸 تصویر درکار تھی۔",
+        "براہ کرم ابھی تصویر بھیجیں۔"
       ].join("\n"),
-
-      "RUR": [
-        "Allah har khandaan ko unke pyaron se milaye. Ameen.",
-        "Hum par bharosa karne ka shukriya."
+      RUR: [
+        "📸 Tasveer zaroori thi.",
+        "Meherbani karke ab tasveer bhej dein."
       ].join("\n"),
-
-      "HI": [
-        "अल्लाह हर परिवार को उनके अपनों से मिला दे। आमीन।",
-        "हम पर भरोसा करने के लिए शुक्रिया।"
+      HI: [
+        "📸 यहाँ फोटो भेजनी थी।",
+        "कृपया अभी फोटो भेजें।"
       ].join("\n"),
-
-      "BN": [
-        "আল্লাহ প্রতিটি পরিবারকে তাদের প্রিয়জনদের সাথে মিলিয়ে দিন। আমীন।",
-        "আমাদের উপর ভরসা করার জন্য ধন্যবাদ।"
+      BN: [
+        "📸 এখানে একটি ছবি প্রয়োজন ছিল।",
+        "অনুগ্রহ করে এখন ছবি পাঠান।"
       ].join("\n"),
-
-      "AR": [
-        "اللهم اجمع كل أسرة مع أحبّائها. آمين.",
-        "شكراً لثقتكم بنا."
+      AR: [
+        "📸 كان من المفترض إرسال صورة.",
+        "يرجى إرسال الصورة الآن."
       ].join("\n")
-    };
+    },
 
-    return map[lang] || map["EN"];
-  }
+    voiceNotAllowed: {
+      EN: [
+        "🎤 I received a voice note, but this step needs a written answer.",
+        "Please type your reply."
+      ].join("\n"),
+      UR: [
+        "🎤 وائس نوٹ موصول ہوا، مگر اس سوال کا جواب لکھ کر دینا ضروری ہے۔",
+        "براہ کرم اپنا جواب لکھیں۔"
+      ].join("\n"),
+      RUR: [
+        "🎤 Voice note mila hai, lekin yahan likh kar jawaab dena zaroori hai.",
+        "Barah-e-karam reply type karein."
+      ].join("\n"),
+      HI: [
+        "🎤 वॉइस नोट मिला, लेकिन यहाँ लिखित जवाब ज़रूरी है।",
+        "कृपया अपना उत्तर टाइप करें।"
+      ].join("\n"),
+      BN: [
+        "🎤 ভয়েস নোট পাওয়া গেছে, কিন্ত এই ধাপে লিখিত উত্তর প্রয়োজন।",
+        "অনুগ্রহ করে টাইপ করে উত্তর দিন।"
+      ].join("\n"),
+      AR: [
+        "🎤 وصلنا مقطع صوتي، لكن هذه الخطوة تحتاج إلى إجابة مكتوبة.",
+        "يرجى كتابة ردك."
+      ].join("\n")
+    },
 
-};
+    unexpectedKeyword: {
+      EN: [
+        "ℹ I will continue from the previous question.",
+        "Please answer the question shown above."
+      ].join("\n"),
+      UR: [
+        "ℹ میں پچھلے سوال سے گفتگو جاری رکھوں گا۔",
+        "براہ کرم اوپر پوچھے گئے سوال کا جواب دیں۔"
+      ].join("\n"),
+      RUR: [
+        "ℹ Main pichlay sawal se flow continue kar raha hoon.",
+        "Barah-e-karam upar wale sawal ka jawab dein."
+      ].join("\n"),
+      HI: [
+        "ℹ मैं पिछले प्रश्न से आगे बढ़ रहा हूँ।",
+        "कृपया उसी का जवाब दीजिए।"
+      ].join("\n"),
+      BN: [
+        "ℹ আমি আগের প্রশ্ন থেকে আবার শুরু করছি।",
+        "অনুগ্রহ করে সেই প্রশ্নের উত্তর দিন।"
+      ].join("\n"),
+      AR: [
+        "ℹ سأكمل من السؤال السابق.",
+        "يرجى الإجابة على السؤال الموجود بالأعلى."
+      ].join("\n")
+    },
+
+    sessionTimeout: {
+      EN: [
+        "⏳ Your session was inactive for a long time.",
+        "I will repeat the last question."
+      ].join("\n"),
+      UR: [
+        "⏳ آپ کافی دیر غیر فعال رہے تھے۔",
+        "میں آخری سوال دوبارہ بھیج رہا ہوں۔"
+      ].join("\n"),
+      RUR: [
+        "⏳ Aap kaafi dair inactive rahe.",
+        "Main aakhri sawal repeat kar raha hoon."
+      ].join("\n"),
+      HI: [
+        "⏳ आप काफी देर तक निष्क्रिय थे।",
+        "मैं पिछला सवाल दोबारा भेज रहा हूँ।"
+      ].join("\n"),
+      BN: [
+        "⏳ আপনি অনেকক্ষণ নিষ্ক্রিয় ছিলেন।",
+        "আমি আগের প্রশ্নটি আবার পাঠাচ্ছি।"
+      ].join("\n"),
+      AR: [
+        "⏳ لقد كنت غير نشط لفترة طويلة.",
+        "سأعيد إرسال السؤال الأخير."
+      ].join("\n")
+    }
+  };
+
+  const DEFAULT_LANGUAGE = "EN";
+
+  /**
+   * Resolves the preferred language and falls back to English when the
+   * session has not yet stored a preference. This keeps all validation
+   * responses deterministic even if the flow is still in STEP 0/1.
+   */
+  const resolveLanguage = (session) => {
+    const lang = (session && session.Preferred_Language) || DEFAULT_LANGUAGE;
+    return BLOCKS.invalidOption[lang] ? lang : DEFAULT_LANGUAGE;
+  };
+
+  return {
+    sendInvalidOption(session) {
+      return BLOCKS.invalidOption[resolveLanguage(session)];
+    },
+    sendInvalidText(session) {
+      return BLOCKS.invalidText[resolveLanguage(session)];
+    },
+    sendPhotoRequired(session) {
+      return BLOCKS.photoRequired[resolveLanguage(session)];
+    },
+    sendVoiceNotAllowed(session) {
+      return BLOCKS.voiceNotAllowed[resolveLanguage(session)];
+    },
+    sendUnexpectedKeywordReminder(session) {
+      return BLOCKS.unexpectedKeyword[resolveLanguage(session)];
+    },
+    sendSessionExpiredReminder(session) {
+      return BLOCKS.sessionTimeout[resolveLanguage(session)];
+    }
+  };
+})();
 
 /***************************************************************
- * REGISTER INTO GLOBAL Texts WRAPPER
+ * REGISTER INTO GLOBAL TEXTS WRAPPER
  ***************************************************************/
 if (typeof Texts === "undefined") {
   var Texts = {};
 }
 
-Texts.sendInvalidOption       = (s) => Texts_Validation.sendInvalidOption(s);
-Texts.sendInvalidCaseID       = (s) => Texts_Validation.sendInvalidCaseID(s);
-Texts.sendEligibilityRejected = (s) => Texts_Validation.sendEligibilityRejected(s);
-Texts.closingAfterRejection   = (s) => Texts_Validation.closingAfterRejection(s);
+Texts.sendInvalidOption = (session) => Texts_Validation.sendInvalidOption(session);
+Texts.sendInvalidText = (session) => Texts_Validation.sendInvalidText(session);
+Texts.sendPhotoRequired = (session) => Texts_Validation.sendPhotoRequired(session);
+Texts.sendVoiceNotAllowed = (session) => Texts_Validation.sendVoiceNotAllowed(session);
+Texts.sendUnexpectedKeywordReminder = (session) => Texts_Validation.sendUnexpectedKeywordReminder(session);
+Texts.sendSessionExpiredReminder = (session) => Texts_Validation.sendSessionExpiredReminder(session);
