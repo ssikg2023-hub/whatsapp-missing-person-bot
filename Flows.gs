@@ -122,6 +122,40 @@ const Flows = {
       return FlowC.start(session);
     }
 
+    if (msg === "9") {
+      session.Temp = session.Temp || {};
+      session.Temp.checkingExisting = true;
+      Session.save(session);
+
+      const cases = Cases.getCasesByNumber(session.WhatsApp_Number);
+      if (!cases.length) {
+        session.Temp.checkingExisting = false;
+        Session.save(session);
+        return Texts_ExistingCases.sendNoCases(session);
+      }
+
+      if (cases.length === 1) {
+        const caseID = cases[0].Case_ID;
+        session.Temp.lastCaseID = caseID;
+        session.Temp.caseID = caseID;
+        session.Temp.checkingExisting = false;
+        session.Temp.existingChecked = true;
+        session.Current_Step_Code = "EXISTING_CASE_MENU";
+        Session.save(session);
+        return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
+      }
+
+      const ids = cases.map(function(item) { return item.Case_ID; });
+      session.Temp.caseList = ids;
+      session.Temp.awaitingCaseSelection = true;
+      session.Temp.checkingExisting = false;
+      session.Temp.existingChecked = true;
+      session.Current_Step_Code = "EXISTING_CASE_MENU";
+      Session.save(session);
+
+      return Texts_ExistingCases.sendMultipleCasesMenu(session, ids.join("\n"));
+    }
+
     return (
       Texts_Validation.sendInvalidOption(session)
       + "\n\n"
@@ -131,25 +165,22 @@ const Flows = {
 
 
   /************************************************************
-   * FLOW A — Eligibility gate
+   * ELIGIBILITY HANDLER — Flow A screening
    ************************************************************/
   handleEligibility_A(session, msg) {
 
-    if (msg === "1") {
-      session.Current_Step_Code = "A_ELIGIBILITY_REJECTED";
-      Session.save(session);
+    const normalized = (msg || "").trim();
 
-      return (
-        Texts_Eligibility.sendEligibilityRejection(session)
-        + "\n\n"
-        + Texts_Eligibility.sendEligibilityAfterRejectAsk(session)
-      );
-    }
-
-    if (msg === "2") {
+    if (normalized === "1") {
       session.Current_Step_Code = "A_Q1";
       Session.save(session);
       return FlowA.start(session);
+    }
+
+    if (normalized === "2") {
+      session.Current_Step_Code = "A_ELIGIBILITY_REJECTED";
+      Session.save(session);
+      return Texts_Eligibility.sendIneligibleResponse(session);
     }
 
     return (
@@ -161,19 +192,21 @@ const Flows = {
 
 
   /************************************************************
-   * FLOW A — Rejection follow-up
+   * HANDLE FLOW A REJECTION BRANCH
    ************************************************************/
   handleRejected_A(session, msg) {
+    const choice = (msg || "").trim();
 
-    if (msg === "1") {
-      session.Flow_Type = "";
-      session.Temp = session.Temp || {};
+    if (choice === "1") {
       session.Current_Step_Code = "USER_TYPE";
+      session.Flow_Type = "";
       Session.save(session);
       return Texts.sendUserTypeMenu(session);
     }
 
-    if (msg === "2") {
+    if (choice === "2") {
+      session.Current_Step_Code = "";
+      Session.save(session);
       const dua = Texts_Closing.sendClosing(session);
       Session.delete(session.WhatsApp_Number);
       return dua;
@@ -298,6 +331,12 @@ const FlowB = {
     session.Temp = session.Temp || {};
     session.Flow_Type = "B";
 
+const FlowB = {
+
+  start(session) {
+    session.Temp = session.Temp || {};
+    session.Flow_Type = "B";
+
     const caseID = createCase(session);
     session.Temp.caseID = caseID;
     session.Temp.flow = "B";
@@ -309,7 +348,6 @@ const FlowB = {
   },
 
   handle(session, msg, raw, mediaUrl, mediaMime) {
-
     const step = session.Current_Step_Code;
     const caseID = session.Temp.caseID;
 
@@ -378,11 +416,7 @@ const FlowB = {
         return Texts_B.sendQ11(session);
 
       case "B_Q11":
-        if (mediaUrl) {
-          saveMediaToCase(caseID, mediaUrl, mediaMime);
-        } else {
-          saveAnswer(caseID, 11, msg);
-        }
+        saveAnswer(caseID, 11, msg);
         return this.finish(session);
 
       default:
@@ -422,23 +456,15 @@ const FlowC = {
     session.Current_Step_Code = "C_Q0";
     Session.save(session);
 
-    return Texts_C.sendIntro(session) + "\n\n" + Texts_C.sendQ0(session);
+    return Texts_C.sendIntro(session);
   },
 
   handle(session, msg, raw, mediaUrl, mediaMime) {
-
     const step = session.Current_Step_Code;
     const caseID = session.Temp.caseID;
 
     switch (step) {
       case "C_Q0":
-        if (msg === "2") {
-          return this.rejectNoAccess(session);
-        }
-        if (msg !== "1" && msg !== "3") {
-          return Texts_Validation.sendInvalidOption(session);
-        }
-        saveAnswer(caseID, 1, msg);
         session.Current_Step_Code = "C_Q1";
         Session.save(session);
         return Texts_C.sendQ1(session);
@@ -447,106 +473,96 @@ const FlowC = {
         if (mediaUrl && !msg) {
           return Texts_C.sendQ1(session);
         }
-        saveAnswer(caseID, 2, msg);
+        saveAnswer(caseID, 1, msg);
         session.Current_Step_Code = "C_Q2";
         Session.save(session);
         return Texts_C.sendQ2(session);
 
       case "C_Q2":
-        saveAnswer(caseID, 3, msg);
+        saveAnswer(caseID, 2, msg);
         session.Current_Step_Code = "C_Q3";
         Session.save(session);
         return Texts_C.sendQ3(session);
 
       case "C_Q3":
-        saveAnswer(caseID, 4, msg);
+        saveAnswer(caseID, 3, msg);
         session.Current_Step_Code = "C_Q4";
         Session.save(session);
         return Texts_C.sendQ4(session);
 
       case "C_Q4":
-        saveAnswer(caseID, 5, msg);
+        saveAnswer(caseID, 4, msg);
         session.Current_Step_Code = "C_Q5";
         Session.save(session);
         return Texts_C.sendQ5(session);
 
       case "C_Q5":
-        saveAnswer(caseID, 6, msg);
+        saveAnswer(caseID, 5, msg);
         session.Current_Step_Code = "C_Q6";
         Session.save(session);
         return Texts_C.sendQ6(session);
 
       case "C_Q6":
-        saveAnswer(caseID, 7, msg);
+        saveAnswer(caseID, 6, msg);
         session.Current_Step_Code = "C_Q7";
         Session.save(session);
         return Texts_C.sendQ7(session);
 
       case "C_Q7":
-        saveAnswer(caseID, 8, msg);
+        saveAnswer(caseID, 7, msg);
         session.Current_Step_Code = "C_Q8";
         Session.save(session);
         return Texts_C.sendQ8(session);
 
       case "C_Q8":
-        saveAnswer(caseID, 9, msg);
+        saveAnswer(caseID, 8, msg);
         session.Current_Step_Code = "C_Q9";
         Session.save(session);
         return Texts_C.sendQ9(session);
 
       case "C_Q9":
-        saveAnswer(caseID, 10, msg);
+        saveAnswer(caseID, 9, msg);
         session.Current_Step_Code = "C_Q10";
         Session.save(session);
         return Texts_C.sendQ10(session);
 
       case "C_Q10":
-        saveAnswer(caseID, 11, msg);
+        saveAnswer(caseID, 10, msg);
         session.Current_Step_Code = "C_Q11";
         Session.save(session);
         return Texts_C.sendQ11(session);
 
       case "C_Q11":
-        saveAnswer(caseID, 12, msg);
+        saveAnswer(caseID, 11, msg);
         session.Current_Step_Code = "C_Q12";
         Session.save(session);
         return Texts_C.sendQ12(session);
 
       case "C_Q12":
-        saveAnswer(caseID, 13, msg);
+        saveAnswer(caseID, 12, msg);
         session.Current_Step_Code = "C_Q13";
         Session.save(session);
         return Texts_C.sendQ13(session);
 
       case "C_Q13":
-        saveAnswer(caseID, 14, msg);
+        saveAnswer(caseID, 13, msg);
         session.Current_Step_Code = "C_Q14";
         Session.save(session);
         return Texts_C.sendQ14(session);
 
       case "C_Q14":
-        saveAnswer(caseID, 15, msg);
+        saveAnswer(caseID, 14, msg);
         session.Current_Step_Code = "C_Q15";
         Session.save(session);
         return Texts_C.sendQ15(session);
 
       case "C_Q15":
-        if (mediaUrl) {
-          saveMediaToCase(caseID, mediaUrl, mediaMime);
-        } else {
-          saveAnswer(caseID, 16, msg);
-        }
+        saveAnswer(caseID, 15, msg);
         return this.finish(session);
 
       default:
         return Texts_Validation.sendInvalidOption(session);
     }
-  },
-
-  rejectNoAccess(session) {
-    const message = Texts_C.sendRejectNoAccess(session);
-    Session.delete(session.WhatsApp_Number);
-    return message;
   },
 
   finish(session) {
@@ -566,63 +582,47 @@ const FlowC = {
 
 
 /************************************************************
- * ============== EXISTING CASE FLOW (MENU) =================
+ * ========== EXISTING CASE FLOW (VIEW/UPDATE) ===============
  ************************************************************/
 const ExistingCaseFlow = {
 
   route(session, msg) {
     session.Temp = session.Temp || {};
 
-    const choice = (msg || "").trim();
-    const caseID = session.Temp.lastCaseID;
-
+    const caseID = session.Temp.lastCaseID || session.Temp.caseID;
     if (!caseID) {
-      return "__EC_BACK__";
+      session.Current_Step_Code = "USER_TYPE";
+      Session.save(session);
+      return Texts.sendUserTypeMenu(session);
     }
 
-    if (choice === "0" || choice.toUpperCase() === "BACK") {
-      return "__EC_BACK__";
-    }
+    const normalized = (msg || "").trim();
 
-    switch (choice) {
+    switch (normalized) {
       case "1":
-        session.Temp.reviewCaseID = caseID;
-        session.Temp.caseID = caseID;
         session.Current_Step_Code = "EXISTING_CASE_REVIEW";
         Session.save(session);
-
-        const record = this.lookupCase(session, caseID);
-        const details = this.formatCaseDetails(session, record);
-        return Texts_ExistingCases.sendCaseDetails(session, caseID, details);
+        return this.showCaseDetails(caseID, session);
 
       case "2":
-        session.Current_Step_Code = "EXISTING_CASE_MENU";
-        Session.save(session);
-        const status = Cases.getCaseStatus(caseID) || "";
-        return (
-          Texts_ExistingCases.sendCaseStatus(session, caseID, status)
-          + "\n\n"
-          + Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
-        );
-
-      case "3":
-        session.Flow_Type = "";
-        session.Temp.caseID = undefined;
-        session.Temp.reviewCaseID = undefined;
-        session.Current_Step_Code = "USER_TYPE";
-        Session.save(session);
-        return (
-          Texts_ExistingCases.sendNewCaseStart(session)
-          + "\n\n"
-          + Texts.sendUserTypeMenu(session)
-        );
-
-      case "4":
-        session.Temp.updateCaseID = caseID;
-        session.Temp.caseID = caseID;
         session.Current_Step_Code = "CASE_UPDATE_MENU";
         Session.save(session);
         return Texts_CaseUpdates.sendUpdateMenu(session, caseID);
+
+      case "3":
+        session.Temp = {};
+        session.Flow_Type = "";
+        session.Current_Step_Code = "USER_TYPE";
+        Session.save(session);
+        return Texts.sendUserTypeMenu(session);
+
+      case "4":
+        session.Temp = {};
+        session.Flow_Type = "";
+        session.Current_Step_Code = "";
+        Session.save(session);
+        Session.delete(session.WhatsApp_Number);
+        return Texts_Closing.sendClosing(session);
 
       default:
         return (
@@ -634,209 +634,138 @@ const ExistingCaseFlow = {
   },
 
   handleReview(session, msg, mediaUrl, mediaMime) {
-    session.Temp = session.Temp || {};
+    const choice = (msg || "").trim();
+    if (!choice) {
+      return this.showCaseDetails(session.Temp.lastCaseID, session);
+    }
 
-    const caseID = session.Temp.reviewCaseID || session.Temp.lastCaseID;
+    if (choice === "BACK" || choice === "0") {
+      session.Current_Step_Code = "EXISTING_CASE_MENU";
+      Session.save(session);
+      return Texts_ExistingCases.sendExistingCaseMenu(session, session.Temp.lastCaseID);
+    }
+
+    return this.showCaseDetails(session.Temp.lastCaseID, session);
+  },
+
+  showCaseDetails(caseID, session) {
+    const record = getCaseById(caseID);
+    if (!record) {
+      session.Current_Step_Code = "USER_TYPE";
+      session.Temp = {};
+      Session.save(session);
+      return Texts.sendUserTypeMenu(session);
+    }
+
+    return Texts_ExistingCases.sendCaseDetails(session, record);
+  }
+};
+
+
+/************************************************************
+ * ========== CASE UPDATES (NEW INFO / CLOSE CASE) ===========
+ ************************************************************/
+const CaseUpdateFlow = {
+
+  handle(session, msg, mediaUrl, mediaMime) {
+    session.Temp = session.Temp || {};
+    const caseID = session.Temp.lastCaseID || session.Temp.caseID;
+
     if (!caseID) {
       session.Current_Step_Code = "USER_TYPE";
       Session.save(session);
       return Texts.sendUserTypeMenu(session);
     }
 
-    const trimmed = (msg || "").trim();
-
-    if (trimmed === "0" || trimmed.toUpperCase() === "BACK") {
-      session.Current_Step_Code = "EXISTING_CASE_MENU";
-      Session.save(session);
-      return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
+    if (session.Current_Step_Code === "CASE_UPDATE_MENU") {
+      return this.handleMenu(session, msg, caseID);
     }
 
-    if (mediaUrl) {
-      saveMediaToCase(caseID, mediaUrl, mediaMime);
-      session.Current_Step_Code = "EXISTING_CASE_MENU";
-      Session.save(session);
-      return (
-        Texts_CaseUpdates.confirmNewInfoAdded(session)
-        + "\n\n"
-        + Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
-      );
-    }
-
-    if (trimmed) {
-      saveExtra(caseID, trimmed);
-      saveCaseUpdate(caseID, "UPDATE_TEXT", trimmed, "", "");
-      session.Current_Step_Code = "EXISTING_CASE_MENU";
-      Session.save(session);
-      return (
-        Texts_CaseUpdates.confirmNewInfoAdded(session)
-        + "\n\n"
-        + Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
-      );
-    }
-
-    return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
-  },
-
-  lookupCase(session, caseID) {
-    const list = Cases.getCasesByNumber(session.WhatsApp_Number);
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].Case_ID === caseID) {
-        return list[i];
-      }
-    }
-    return null;
-  },
-
-  formatCaseDetails(session, record) {
-    if (!record) return "";
-
-    const reviewSession = Object.assign({}, session, {
-      Preferred_Language: record.Language || session.Preferred_Language
-    });
-
-    const map = {
-      A: [
-        () => Texts_A.sendQ1(reviewSession),
-        () => Texts_A.sendQ2(reviewSession),
-        () => Texts_A.sendQ3(reviewSession),
-        () => Texts_A.sendQ4(reviewSession),
-        () => Texts_A.sendQ5(reviewSession),
-        () => Texts_A.sendQ6(reviewSession),
-        () => Texts_A.sendQ7(reviewSession),
-        () => Texts_A.sendQ8(reviewSession),
-        () => Texts_A.sendQ9(reviewSession)
-      ],
-      B: [
-        () => Texts_B.sendQ1(reviewSession),
-        () => Texts_B.sendQ2(reviewSession),
-        () => Texts_B.sendQ3(reviewSession),
-        () => Texts_B.sendQ4(reviewSession),
-        () => Texts_B.sendQ5(reviewSession),
-        () => Texts_B.sendQ6(reviewSession),
-        () => Texts_B.sendQ7(reviewSession),
-        () => Texts_B.sendQ8(reviewSession),
-        () => Texts_B.sendQ9(reviewSession),
-        () => Texts_B.sendQ10(reviewSession),
-        () => Texts_B.sendQ11(reviewSession)
-      ],
-      C: [
-        () => Texts_C.sendQ0(reviewSession),
-        () => Texts_C.sendQ1(reviewSession),
-        () => Texts_C.sendQ2(reviewSession),
-        () => Texts_C.sendQ3(reviewSession),
-        () => Texts_C.sendQ4(reviewSession),
-        () => Texts_C.sendQ5(reviewSession),
-        () => Texts_C.sendQ6(reviewSession),
-        () => Texts_C.sendQ7(reviewSession),
-        () => Texts_C.sendQ8(reviewSession),
-        () => Texts_C.sendQ9(reviewSession),
-        () => Texts_C.sendQ10(reviewSession),
-        () => Texts_C.sendQ11(reviewSession),
-        () => Texts_C.sendQ12(reviewSession),
-        () => Texts_C.sendQ13(reviewSession),
-        () => Texts_C.sendQ14(reviewSession),
-        () => Texts_C.sendQ15(reviewSession)
-      ]
-    };
-
-    const flowKey = (record.Flow_Type || "").toUpperCase();
-    const providers = map[flowKey] || [];
-    const answers = record.Q || [];
-
-    const lines = [];
-    for (let i = 0; i < answers.length; i++) {
-      const answer = (answers[i] || "").toString().trim();
-      if (!answer) continue;
-      const provider = providers[i];
-      const prompt = provider ? provider() : ("Q" + (i + 1));
-      lines.push(prompt + "\n" + answer);
-    }
-
-    return lines.join("\n\n");
-  }
-};
-
-
-/************************************************************
- * ================= CASE UPDATE FLOW =======================
- ************************************************************/
-const CaseUpdateFlow = {
-
-  handle(session, msg, mediaUrl, mediaMime) {
-    session.Temp = session.Temp || {};
-
-    const step = session.Current_Step_Code;
-    const caseID = session.Temp.updateCaseID;
-
-    if (!caseID) {
-      session.Current_Step_Code = "EXISTING_CASE_MENU";
-      Session.save(session);
-      return Texts_ExistingCases.sendExistingCaseMenu(session, session.Temp.lastCaseID || "");
-    }
-
-    if (step === "CASE_UPDATE_MENU") {
-      if (msg === "1") {
-        session.Current_Step_Code = "CASE_UPDATE_INFO";
-        session.Temp.caseID = caseID;
-        Session.save(session);
-        return Texts_CaseUpdates.askNewInfo(session, caseID);
-      }
-
-      if (msg === "2") {
-        closeCase(caseID, "Closed — Resolved by Family / Initiator");
-        saveCaseUpdate(caseID, "STATUS", "Closed — Resolved by Family / Initiator", "", "");
-
-        session.Current_Step_Code = "";
-        session.Flow_Type = "";
-        session.Temp.caseID = undefined;
-        session.Temp.updateCaseID = undefined;
-        Session.save(session);
-
-        return Texts_CaseUpdates.sendCaseClosed(session, caseID);
-      }
-
-      return (
-        Texts_Validation.sendInvalidOption(session)
-        + "\n\n"
-        + Texts_CaseUpdates.sendUpdateMenu(session, caseID)
-      );
-    }
-
-    if (step === "CASE_UPDATE_INFO") {
-      const trimmed = (msg || "").trim();
-
-      if (trimmed === "0" || trimmed.toUpperCase() === "BACK") {
-        session.Current_Step_Code = "EXISTING_CASE_MENU";
-        session.Temp.caseID = caseID;
-        Session.save(session);
-        return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
-      }
-
-      if (trimmed.toUpperCase() === "DONE") {
-        session.Current_Step_Code = "EXISTING_CASE_MENU";
-        session.Temp.caseID = caseID;
-        Session.save(session);
-        return (
-          Texts_CaseUpdates.confirmNewInfoAdded(session)
-          + "\n\n"
-          + Texts_ExistingCases.sendExistingCaseMenu(session, caseID)
-        );
-      }
-
-      if (mediaUrl) {
-        saveMediaToCase(caseID, mediaUrl, mediaMime);
-        return "";
-      }
-
-      if (trimmed) {
-        saveExtra(caseID, trimmed);
-        saveCaseUpdate(caseID, "UPDATE_TEXT", trimmed, "", "");
-        return "";
-      }
-
-      return Texts_CaseUpdates.askNewInfo(session, caseID);
+    if (session.Current_Step_Code === "CASE_UPDATE_INFO") {
+      return this.handleInfo(session, msg, mediaUrl, mediaMime, caseID);
     }
 
     return Texts_Validation.sendInvalidOption(session);
+  },
+
+  handleMenu(session, msg, caseID) {
+    const choice = (msg || "").trim();
+
+    switch (choice) {
+      case "1":
+        session.Current_Step_Code = "CASE_UPDATE_INFO";
+        session.Temp.updateMode = "info";
+        Session.save(session);
+        return Texts_CaseUpdates.sendAskNewInfo(session, caseID);
+
+      case "2":
+        session.Temp.updateMode = "media";
+        session.Current_Step_Code = "CASE_UPDATE_INFO";
+        Session.save(session);
+        return Texts_CaseUpdates.sendAskMedia(session, caseID);
+
+      case "3":
+        session.Temp.updateMode = "close";
+        session.Current_Step_Code = "CASE_UPDATE_INFO";
+        Session.save(session);
+        return Texts_CaseUpdates.sendAskClosure(session, caseID);
+
+      case "4":
+        session.Current_Step_Code = "EXISTING_CASE_MENU";
+        session.Temp.updateMode = "";
+        Session.save(session);
+        return Texts_ExistingCases.sendExistingCaseMenu(session, caseID);
+
+      default:
+        return (
+          Texts_Validation.sendInvalidOption(session)
+          + "\n\n"
+          + Texts_CaseUpdates.sendUpdateMenu(session, caseID)
+        );
+    }
+  },
+
+  handleInfo(session, msg, mediaUrl, mediaMime, caseID) {
+    const mode = session.Temp.updateMode;
+
+    if (mode === "info") {
+      if (!msg) {
+        return Texts_CaseUpdates.sendAskNewInfo(session, caseID);
+      }
+      appendCaseUpdateText(caseID, msg, "");
+      session.Current_Step_Code = "CASE_UPDATE_MENU";
+      session.Temp.updateMode = "";
+      Session.save(session);
+      return Texts_CaseUpdates.sendUpdateConfirmation(session, caseID);
+    }
+
+    if (mode === "media") {
+      if (!mediaUrl) {
+        return Texts_CaseUpdates.sendAskMedia(session, caseID);
+      }
+      saveMediaToCase(caseID, mediaUrl, mediaMime, "");
+      session.Current_Step_Code = "CASE_UPDATE_MENU";
+      session.Temp.updateMode = "";
+      Session.save(session);
+      return Texts_CaseUpdates.sendUpdateConfirmation(session, caseID);
+    }
+
+    if (mode === "close") {
+      if (!msg) {
+        return Texts_CaseUpdates.sendAskClosure(session, caseID);
+      }
+      closeCaseWithUpdate(caseID, msg);
+      session.Current_Step_Code = "";
+      session.Temp = {};
+      Session.save(session);
+      return Texts_CaseUpdates.sendClosureConfirmation(session, caseID);
+    }
+
+    session.Current_Step_Code = "CASE_UPDATE_MENU";
+    session.Temp.updateMode = "";
+    Session.save(session);
+    return Texts_CaseUpdates.sendUpdateMenu(session, caseID);
   }
 };
+
+
