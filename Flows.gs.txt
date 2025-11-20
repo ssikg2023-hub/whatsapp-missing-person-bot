@@ -21,53 +21,53 @@ const Flows = {
 
     // Timeout handling
     if (Utils.isSessionExpired(session)) {
-      return this._handleTimeout(session);
+      return this._sendResponse(session, this._handleTimeout(session));
     }
 
     // Unexpected keyword handling
     if (Utils.isUnexpectedKeyword(msg)) {
-      return this._handleUnexpectedKeyword(session);
+      return this._sendResponse(session, this._handleUnexpectedKeyword(session));
     }
 
     // Media handling (before language/user-type checks)
     if (mediaUrl) {
-      return this._handleMedia(session, mediaUrl, mediaMime);
+      return this._sendResponse(session, this._handleMedia(session, mediaUrl, mediaMime));
     }
 
     // Step 1 — Language selection
     if (!session.Preferred_Language || session.Current_Step_Code === "LANG_SELECT") {
-      return this._processLanguageSelection(session, msg);
+      return this._sendResponse(session, this._processLanguageSelection(session, msg));
     }
 
     // Step 2 — User type selection
     if (session.Current_Step_Code === "USER_TYPE") {
-      return this._processUserType(session, msg);
+      return this._sendResponse(session, this._processUserType(session, msg));
     }
 
     // Existing case interceptors
     if (session.Current_Step_Code === "EXISTING_CASE_MENU" || session.Current_Step_Code === "EXISTING_CASE_SELECT") {
-      return ExistingCaseFlow.processMenu(session, msg);
+      return this._sendResponse(session, ExistingCaseFlow.processMenu(session, msg));
     }
 
     // Case update interceptors
     if ((session.Current_Step_Code || "").startsWith("UPDATE_")) {
-      return CaseUpdateFlow.process(session, msg, raw, mediaUrl, mediaMime);
+      return this._sendResponse(session, CaseUpdateFlow.process(session, msg, raw, mediaUrl, mediaMime));
     }
 
     // Primary flow routing
     switch (session.Flow_Type) {
       case "A":
-        return FlowA.process(session, msg, raw, mediaUrl, mediaMime);
+        return this._sendResponse(session, FlowA.process(session, msg, raw, mediaUrl, mediaMime));
       case "B":
-        return FlowB.process(session, msg, raw, mediaUrl, mediaMime);
+        return this._sendResponse(session, FlowB.process(session, msg, raw, mediaUrl, mediaMime));
       case "C":
-        return FlowC.process(session, msg, raw, mediaUrl, mediaMime);
+        return this._sendResponse(session, FlowC.process(session, msg, raw, mediaUrl, mediaMime));
       case "EXISTING_CASE":
-        return ExistingCaseFlow.processMenu(session, msg);
+        return this._sendResponse(session, ExistingCaseFlow.processMenu(session, msg));
       case "CASE_UPDATE":
-        return CaseUpdateFlow.process(session, msg, raw, mediaUrl, mediaMime);
+        return this._sendResponse(session, CaseUpdateFlow.process(session, msg, raw, mediaUrl, mediaMime));
       default:
-        return Texts_Validation.getInvalidInput(session);
+        return this._sendResponse(session, Texts_Validation.getInvalidInput(session));
     }
   },
 
@@ -204,5 +204,16 @@ const Flows = {
     session.Current_Step_Code = "FLOW_C_START";
     SessionEngine.save(session);
     return FlowC.process(session, "", null, null, null);
+  },
+
+  /************************************************************
+   * SEND RESPONSE HELPER — ensures replies reach the user
+   ************************************************************/
+  _sendResponse(session, response) {
+    if (typeof response === "string" && response.trim() !== "") {
+      Utils.sendText(session.WhatsApp_Number, response);
+    }
+
+    return response || "";
   },
 };

@@ -20,10 +20,38 @@ const Texts_CaseUpdates = {
     };
   },
 
+  _normalizeLang(lang) {
+    if (!lang) return null;
+
+    const normalized = (lang || "").toUpperCase().replace(/[\s-]/g, "");
+    const map = {
+      EN: "English",
+      ENGLISH: "English",
+      UR: "Urdu",
+      URDU: "Urdu",
+      RUR: "RomanUrdu",
+      ROMANURDU: "RomanUrdu",
+      ROMAN_URDU: "RomanUrdu",
+      HI: "Hindi",
+      HINDI: "Hindi",
+      BN: "Bangla",
+      BANGLA: "Bangla",
+      AR: "Arabic",
+      ARABIC: "Arabic",
+    };
+
+    return map[normalized] || null;
+  },
+
   _pickByLang(set, lang) {
     if (!set) return "";
     if (!lang) return set;
-    return set[lang] || set.English;
+    if (set[lang]) return set[lang];
+
+    const normalized = this._normalizeLang(lang);
+    if (normalized && set[normalized]) return set[normalized];
+
+    return set.English || set;
   },
 
   /************************************************************

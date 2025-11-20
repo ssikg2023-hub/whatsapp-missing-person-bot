@@ -25,7 +25,7 @@ const CaseUpdateFlow = {
 
   _setStep(session, stepCode) {
     session.Current_Step_Code = stepCode;
-    Session.save(session);
+    SessionEngine.save(session);
   },
 
   _getLang(session) {
@@ -39,8 +39,13 @@ const CaseUpdateFlow = {
     session.Flow_Type = "CASE_UPDATE";
     this._setStep(session, "UPDATE_INIT");
 
-    session.Temp = session.Temp || {};
-    session.Temp.Update = {}; // reset temp
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json.Update = {
+      Case_ID: "",
+      Media_Links: [],
+      Content: [],
+    }; // reset temp
+    SessionEngine.save(session);
 
     return this.askCaseID(session);
   },
@@ -66,7 +71,7 @@ const CaseUpdateFlow = {
     if (input === "0") {
       session.Flow_Type = "EXISTING_CASE";
       session.Current_Step_Code = "EC_MAIN_MENU";
-      Session.save(session);
+      SessionEngine.save(session);
       return Texts_ExistingCases.getMenu(lang);
     }
 
@@ -83,13 +88,13 @@ const CaseUpdateFlow = {
     }
 
     // Store case info
-    session.Temp.Update = {
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json.Update = {
       Case_ID: input,
       Media_Links: [],
       Content: [],
     };
-
-    Session.save(session);
+    SessionEngine.save(session);
     return this.showMenu(session);
   },
 
@@ -127,7 +132,7 @@ const CaseUpdateFlow = {
       case "4":
         session.Flow_Type = "EXISTING_CASE";
         session.Current_Step_Code = "EC_MAIN_MENU";
-        Session.save(session);
+        SessionEngine.save(session);
         return Texts_CaseUpdates.getBackMessage(lang);
     }
   },
@@ -143,8 +148,10 @@ const CaseUpdateFlow = {
       return Texts_Validation.get("REQUIRED", lang);
     }
 
-    session.Temp.Update.Content.push(text);
-    Session.save(session);
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json.Update = session.Temp_Data_Json.Update || { Case_ID: "", Media_Links: [], Content: [] };
+    session.Temp_Data_Json.Update.Content.push(text);
+    SessionEngine.save(session);
 
     this._setStep(session, "UPDATE_DONE");
 
@@ -161,8 +168,10 @@ const CaseUpdateFlow = {
       return Texts_Validation.get("MEDIA", lang);
     }
 
-    session.Temp.Update.Media_Links.push(mediaUrl);
-    Session.save(session);
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json.Update = session.Temp_Data_Json.Update || { Case_ID: "", Media_Links: [], Content: [] };
+    session.Temp_Data_Json.Update.Media_Links.push(mediaUrl);
+    SessionEngine.save(session);
 
     this._setStep(session, "UPDATE_DONE");
 
@@ -175,23 +184,26 @@ const CaseUpdateFlow = {
   markResolved(session) {
     const lang = this._getLang(session);
 
+    const temp = session.Temp_Data_Json || {};
+    const update = temp.Update || { Case_ID: "" };
+
     CaseEngine.saveUpdate({
-      Case_ID: session.Temp.Update.Case_ID,
+      Case_ID: update.Case_ID,
       Update_Type: "RESOLVED",
       Content: "Case marked resolved",
       Media_Links: "",
       Raw_JSON: "{}"
     });
 
-    CaseEngine.markCaseResolved(session.Temp.Update.Case_ID);
+    CaseEngine.markCaseResolved(update.Case_ID);
 
     const success = Texts_CaseUpdates.getResolveMessage(lang);
     const closing = Texts_Closing.getFinalMessage(lang);
 
     session.Flow_Type = null;
     session.Current_Step_Code = null;
-    session.Temp = {};
-    Session.save(session);
+    session.Temp_Data_Json = {};
+    SessionEngine.save(session);
 
     return success + "\n\n" + closing;
   },
@@ -220,7 +232,8 @@ const CaseUpdateFlow = {
    ************************************************************/
   finish(session) {
     const lang = this._getLang(session);
-    const upd = session.Temp.Update;
+    const temp = session.Temp_Data_Json || {};
+    const upd = temp.Update || { Case_ID: "", Media_Links: [], Content: [] };
 
     CaseEngine.saveUpdate({
       Case_ID: upd.Case_ID,
@@ -235,8 +248,8 @@ const CaseUpdateFlow = {
 
     session.Flow_Type = null;
     session.Current_Step_Code = null;
-    session.Temp = {};
-    Session.save(session);
+    session.Temp_Data_Json = {};
+    SessionEngine.save(session);
 
     return success + "\n\n" + closing;
   },

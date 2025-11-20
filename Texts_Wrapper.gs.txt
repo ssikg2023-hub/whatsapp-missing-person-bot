@@ -173,7 +173,6 @@ Object.assign(Texts_Wrapper, {
       case "B_Q9": return Texts_B.getQ9();
       case "B_Q10": return Texts_B.getQ10();
       case "B_Q11": return Texts_B.getQ11();
-      case "B_NOTES": return Texts_B.getMediaInstructions();
       case "B_FINAL_CONFIRM": return Texts_B.getFinalBeforeConfirmation();
       default: return null;
     }
@@ -207,24 +206,20 @@ Object.assign(Texts_Wrapper, {
 
   _getExistingCaseText(stepCode) {
     switch (stepCode) {
-      case "EC_CASE_ID": return Texts_ExistingCases.getCaseIdPrompt();
-      case "EC_SELECT_INDEX": return Texts_ExistingCases.getMenu();
-      case "EC_MAIN_MENU": return Texts_ExistingCases.getMenu();
-      case "EC_UPDATE_START": return Texts_ExistingCases.getUpdateMenu();
-      case "EC_UPDATE_Q": return Texts_ExistingCases.getAreYouDone();
-      case "EC_UPDATE_SUCCESS": return Texts_ExistingCases.getUpdateSuccess();
+      case "EXISTING_CASE_SELECT": return Texts_ExistingCases.getEntry();
+      case "EXISTING_CASE_MENU": return Texts_ExistingCases.getMenu();
       default: return null;
     }
   },
 
   _getCaseUpdateText(stepCode) {
     switch (stepCode) {
-      case "CU_INIT": return Texts_CaseUpdates.getSelectCasePrompt();
-      case "CU_CASE_ID": return Texts_CaseUpdates.getSelectCasePrompt();
-      case "CU_MENU": return Texts_CaseUpdates.getMenu();
-      case "CU_ADD_INFO": return Texts_CaseUpdates.getAddInfoPrompt();
-      case "CU_MEDIA": return Texts_CaseUpdates.getMediaPrompt();
-      case "CU_DONE?": return Texts_CaseUpdates.getAreYouDonePrompt();
+      case "UPDATE_INIT": return Texts_CaseUpdates.getSelectCasePrompt();
+      case "UPDATE_CASE_ID": return Texts_CaseUpdates.getSelectCasePrompt();
+      case "UPDATE_MENU": return Texts_CaseUpdates.getMenu();
+      case "UPDATE_ADD_INFO": return Texts_CaseUpdates.getAddInfoPrompt();
+      case "UPDATE_MEDIA": return Texts_CaseUpdates.getMediaPrompt();
+      case "UPDATE_DONE": return Texts_CaseUpdates.getAreYouDonePrompt();
       default: return null;
     }
   },

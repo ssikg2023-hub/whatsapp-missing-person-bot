@@ -100,11 +100,11 @@ const MediaEngine = {
       const savedUrl = this.saveMedia(session, mediaUrl, mediaMime);
       if (!savedUrl) return "";
 
-      session.Temp_Data = session.Temp_Data || {};
-      if (!Array.isArray(session.Temp_Data.media)) {
-        session.Temp_Data.media = [];
+      session.Temp_Data_Json = session.Temp_Data_Json || {};
+      if (!Array.isArray(session.Temp_Data_Json.media)) {
+        session.Temp_Data_Json.media = [];
       }
-      session.Temp_Data.media.push({ url: savedUrl, mime: mediaMime || "" });
+      session.Temp_Data_Json.media.push({ url: savedUrl, mime: mediaMime || "" });
 
       SessionEngine.save(session);
 

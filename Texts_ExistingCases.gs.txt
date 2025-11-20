@@ -19,27 +19,37 @@ const Texts_ExistingCases = {
     };
   },
 
-  _pick(bundle, lang) {
-    if (!lang || !bundle) return bundle;
+  _normalizeLang(lang) {
+    if (!lang) return null;
 
-    const normalized = (lang || "").toLowerCase();
+    const normalized = (lang || "").toUpperCase().replace(/\s|-/g, "");
     const map = {
-      en: "English",
-      english: "English",
-      ur: "Urdu",
-      urdu: "Urdu",
-      rur: "RomanUrdu",
-      romanurdu: "RomanUrdu",
-      hi: "Hindi",
-      hindi: "Hindi",
-      bn: "Bangla",
-      bangla: "Bangla",
-      ar: "Arabic",
-      arabic: "Arabic",
+      EN: "English",
+      ENGLISH: "English",
+      UR: "Urdu",
+      URDU: "Urdu",
+      RUR: "RomanUrdu",
+      ROMANURDU: "RomanUrdu",
+      ROMAN_URDU: "RomanUrdu",
+      HI: "Hindi",
+      HINDI: "Hindi",
+      BN: "Bangla",
+      BANGLA: "Bangla",
+      AR: "Arabic",
+      ARABIC: "Arabic",
     };
 
-    const key = map[normalized];
-    return bundle[key] || bundle.English || bundle;
+    return map[normalized] || null;
+  },
+
+  _pick(bundle, lang) {
+    if (!bundle) return bundle;
+    if (lang && bundle[lang]) return bundle[lang];
+
+    const normalized = this._normalizeLang(lang);
+    if (normalized && bundle[normalized]) return bundle[normalized];
+
+    return bundle.English || bundle;
   },
 
   /************************************************************
@@ -65,8 +75,7 @@ const Texts_ExistingCases = {
    * SPECIAL: Dynamic Existing Case Menu
    ************************************************************/
   getExistingCaseMenu(lang, caseId) {
-    const t = {
-      ENGLISH:
+    const bundle = Texts_ExistingCases._set(
 `Our system shows that you have already submitted a case from this number.
 Your last case ID is: ${caseId}
 Please choose an option:
@@ -75,7 +84,6 @@ Please choose an option:
 3️⃣ Submit a new case
 4️⃣ I want to update my submitted case`,
 
-      URDU:
 `ہمارے سسٹم کے مطابق آپ اس نمبر سے پہلے ہی ایک کیس جمع کر چکے ہیں۔
 آپ کا آخری کیس نمبر ہے: ${caseId}
 براہِ کرم ایک آپشن منتخب کریں:
@@ -84,7 +92,6 @@ Please choose an option:
 3️⃣ میں نیا کیس جمع کروانا چاہتا/چاہتی ہوں۔
 4️⃣ میں اپنے جمع شدہ کیس میں اپڈیٹ دینا چاہتا/چاہتی ہوں۔`,
 
-      ROMAN_URDU:
 `Hamare nizaam ke mutabiq aap is number se pehle hi ek case submit kar chuke hain.
 Aap ka aakhri case number hai: ${caseId}
 Barah-e-karam ek option ka intikhab karein:
@@ -93,7 +100,6 @@ Barah-e-karam ek option ka intikhab karein:
 3️⃣ Naya case submit karna chahta/chahti hoon.
 4️⃣ Main apne submit kiye gaye case mein update dena chahta/chahti hoon.`,
 
-      HINDI:
 `हमारे सिस्टम के अनुसार आपने इस नंबर से पहले ही एक केस दर्ज किया है।
 आपका आखिरी केस नंबर है: ${caseId}
 कृपया एक विकल्प चुनें:
@@ -102,7 +108,6 @@ Barah-e-karam ek option ka intikhab karein:
 3️⃣ मैं एक नया केस दर्ज करना चाहता/चाहती हूँ।
 4️⃣ मैं अपने सबमिट किए गए केस में अपडेट देना चाहता/चाहती हूँ।`,
 
-      BANGLA:
 `আমাদের সিস্টেম অনুযায়ী, আপনি এই নম্বর থেকে আগে একটি কেস জমা দিয়েছেন।
 আপনার শেষ কেস নম্বর হলো: ${caseId}
 অনুগ্রহ করে একটি অপশন নির্বাচন করুন:
@@ -111,7 +116,6 @@ Barah-e-karam ek option ka intikhab karein:
 3️⃣ আমি একটি নতুন কেস জমা দিতে চাই।
 4️⃣ আমি আমার জমা দেওয়া কেসে নতুন আপডেট দিতে চাই।`,
 
-      ARABIC:
 `يُظهر نظامنا أنك قد قدّمت بلاغًا من هذا الرقم من قبل.
 رقم قضيتك الأخيرة هو: ${caseId}
 يرجى اختيار أحد الخيارات:
@@ -119,8 +123,9 @@ Barah-e-karam ek option ka intikhab karein:
 2️⃣ أريد معرفة حالة قضيتي الحالية.
 3️⃣ أريد تقديم قضية جديدة.
 4️⃣ أريد إضافة تحديث على قضيتك المقدَّمة.`
-    };
-    return t[lang];
+    );
+
+    return lang ? this._pick(bundle, lang) : bundle;
   },
 
   /************************************************************

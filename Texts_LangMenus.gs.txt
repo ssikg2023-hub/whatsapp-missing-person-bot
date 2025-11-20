@@ -259,7 +259,19 @@ Object.assign(Texts_LangMenus, {
   mapChoiceToLanguage(region, choice) {
     const options = this.getLanguageOptions(region);
     const trimmed = String(choice || "").trim();
-    return options[trimmed] || null;
+    const mapped = options[trimmed] || null;
+
+    const normalize = {
+      ENGLISH: "English",
+      URDU: "Urdu",
+      ROMAN_URDU: "RomanUrdu",
+      HINDI: "Hindi",
+      BANGLA: "Bangla",
+      ARABIC: "Arabic",
+    };
+
+    if (!mapped) return null;
+    return normalize[mapped] || normalize[(mapped || "").toUpperCase()] || mapped;
   },
 
   /************************************************************

@@ -266,8 +266,20 @@ Object.assign(Texts_UserTypes, {
         return Texts.pickByLang({ Preferred_Language: lang }, set);
       }
 
+      const map = {
+        ENGLISH: "English",
+        URDU: "Urdu",
+        ROMANURDU: "RomanUrdu",
+        ROMAN_URDU: "RomanUrdu",
+        HINDI: "Hindi",
+        BANGLA: "Bangla",
+        BENGALI: "Bangla",
+        ARABIC: "Arabic",
+      };
+      const normalized = lang ? map[lang] || map[(lang || "").toUpperCase()] || lang : "English";
+
       const fallbackOrder = [
-        lang,
+        normalized,
         "English",
         "Urdu",
         "RomanUrdu",

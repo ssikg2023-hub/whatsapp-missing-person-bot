@@ -476,33 +476,11 @@ Object.assign(CaseEngine, {
   },
 
   /************************************************************
-   * 🧩 TEMP SAVE (Flow B helper)
-   ************************************************************/
-  saveTemp(session, key, value) {
-    const temp = this._getTempData(session);
-    temp[key] = value;
-    session.Temp_Data = temp;
-    if (session.Temp_Data_Json) session.Temp_Data_Json[key] = value;
-    return temp;
-  },
-
-  /************************************************************
    * 🆕 CREATE NEW CASE (Flow A helper)
    ************************************************************/
   createNewCase(session) {
     const answers = this._extractAnswersFromSession(session);
     const caseId = this.createCase(session, answers);
-    return caseId;
-  },
-
-  /************************************************************
-   * 🏁 FINALIZE CASE (Flow B helper)
-   ************************************************************/
-  finalizeCase(session, flowType) {
-    session.Flow_Type = flowType || session.Flow_Type;
-    const answers = this._extractAnswersFromSession(session);
-    const caseId = this.createCase(session, answers);
-    this.markSubmitted(caseId);
     return caseId;
   },
 
@@ -624,10 +602,11 @@ Object.assign(CaseEngine, {
    ************************************************************/
   _getTempData(session) {
     if (!session) return {};
-    if (session.Temp_Data) return session.Temp_Data;
     if (session.Temp_Data_Json) return session.Temp_Data_Json;
+    if (session.Temp_Data) return session.Temp_Data;
     if (session.Temp) return session.Temp;
-    return (session.Temp_Data = {});
+    session.Temp_Data_Json = {};
+    return session.Temp_Data_Json;
   },
 
   _extractAnswersFromSession(session) {
@@ -641,7 +620,7 @@ Object.assign(CaseEngine, {
         const col = `Q${match[1]}`;
         answers[col] = temp[key];
       }
-      if (key === "Extra_Notes" || key === "Notes" || key === "A_NOTES") {
+      if (key === "Extra_Notes" || key === "Notes") {
         answers["Extra_Notes"] = temp[key];
       }
     });

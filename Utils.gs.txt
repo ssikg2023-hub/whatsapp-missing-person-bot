@@ -229,8 +229,8 @@ Object.assign(Utils, {
    * 🧭 LANGUAGE NORMALIZER
    * Converts menu input → language code
    ************************************************************/
-  mapLanguageChoice(input, regionGroup) {
-    return Texts_LangMenus.mapChoiceToLang(input, regionGroup);
+  mapLanguageChoice(regionGroup, input) {
+    return Texts_LangMenus.mapChoiceToLang(regionGroup, input);
   },
 
   /************************************************************
@@ -305,6 +305,8 @@ Object.assign(Utils, {
     switch (session.Flow_Type) {
       case "A":
         return FlowA.handleQuestion(session, null, null, mediaUrl, mediaMime);
+      case "B":
+        return FlowB._handlePhoto(session, null, null, mediaUrl, mediaMime);
       case "C":
         return FlowC.handleQuestion(session, null, null, mediaUrl, mediaMime);
       default:

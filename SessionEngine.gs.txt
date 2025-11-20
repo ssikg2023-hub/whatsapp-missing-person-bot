@@ -131,6 +131,9 @@ Object.assign(SessionEngine, {
     session.Temp_Data_Json = {};
     session.Temp = {};
     session.Temp_Data = {};
+    session._multiStartTime = null;
+    session._askedDone = false;
+    session._lastMediaUrl = null;
     this.save(session);
   },
 
@@ -230,7 +233,24 @@ Object.assign(SessionEngine, {
    * 🔒 HELPER: NORMALIZE TEMP STRUCTURE
    ************************************************************/
   _normalizeTemp(session) {
-    const temp = session.Temp_Data_Json || session.Temp || session.Temp_Data || {};
+    let temp = session.Temp_Data_Json || session.Temp || session.Temp_Data || {};
+
+    if (typeof temp === "string") {
+      temp = Utils.safeParse(temp, {});
+    }
+
+    const meta = temp._session_meta || {};
+
+    session._multiStartTime = session._multiStartTime || meta.multiStartTime || null;
+    session._askedDone = typeof session._askedDone === "boolean" ? session._askedDone : !!meta.askedDone;
+    session._lastMediaUrl = session._lastMediaUrl || meta.lastMediaUrl || null;
+
+    temp._session_meta = {
+      multiStartTime: session._multiStartTime || null,
+      askedDone: !!session._askedDone,
+      lastMediaUrl: session._lastMediaUrl || null,
+    };
+
     session.Temp_Data_Json = temp;
     session.Temp = temp;
     session.Temp_Data = temp;
