@@ -10,32 +10,88 @@
 
 const Texts_Wrapper = {
 
+  _normalizeLangCode(lang) {
+    const normalized = (lang || "English").toString().trim();
+    const lower = normalized.toLowerCase();
+
+    const map = {
+      en: "English",
+      english: "English",
+      ur: "Urdu",
+      urdu: "Urdu",
+      rur: "RomanUrdu",
+      "roman urdu": "RomanUrdu",
+      romanurdu: "RomanUrdu",
+      hi: "Hindi",
+      hindi: "Hindi",
+      bn: "Bangla",
+      bangla: "Bangla",
+      ar: "Arabic",
+      arabic: "Arabic",
+    };
+
+    if (map[lower]) return map[lower];
+    return normalized;
+  },
+
+  _candidateKeys(lang) {
+    const code = this._normalizeLangCode(lang);
+    const base = code.toString().trim();
+    const upper = base.replace(/\s+/g, "_").toUpperCase();
+
+    const pairs = {
+      ENGLISH: "English",
+      URDU: "Urdu",
+      ROMAN_URDU: "RomanUrdu",
+      HINDI: "Hindi",
+      BANGLA: "Bangla",
+      ARABIC: "Arabic",
+    };
+
+    const candidates = [base, upper];
+    if (pairs[upper]) candidates.push(pairs[upper]);
+    return candidates.filter(Boolean);
+  },
+
   /************************************************************
-   * 🌍 GET USER LANGUAGE
+  * 🌍 GET USER LANGUAGE
    ************************************************************/
   getLang(session) {
     try {
-      return session.Preferred_Language || "ENGLISH";
+      return this._normalizeLangCode(session?.Preferred_Language);
     } catch (e) {
-      return "ENGLISH";
+      return "English";
     }
   },
 
   /************************************************************
    * 🎯 RESOLVE MESSAGE TEXT FROM msgSet
    * msgSet = { ENGLISH: "...", URDU: "...", ROMAN_URDU: "...", ... }
-   ************************************************************/
+  ************************************************************/
   resolve(msgSet, lang) {
     if (!msgSet) return "";
-    if (msgSet[lang]) return msgSet[lang];
+    if (typeof msgSet === "string") return msgSet;
 
-    // fallback priority
-    const pri = ["ENGLISH", "URDU", "ROMAN_URDU", "HINDI", "BANGLA", "ARABIC"];
-    for (let p of pri) {
-      if (msgSet[p]) return msgSet[p];
+    const candidates = this._candidateKeys(lang);
+    for (let key of candidates) {
+      if (msgSet[key]) return msgSet[key];
     }
 
-    return "";
+    const fallbackOrder = [
+      "ENGLISH", "English",
+      "URDU", "Urdu",
+      "ROMAN_URDU", "RomanUrdu",
+      "HINDI", "Hindi",
+      "BANGLA", "Bangla",
+      "ARABIC", "Arabic",
+    ];
+
+    for (let f of fallbackOrder) {
+      if (msgSet[f]) return msgSet[f];
+    }
+
+    const values = Object.values(msgSet || {});
+    return values.length ? values[0] : "";
   },
 
   /************************************************************
@@ -43,7 +99,7 @@ const Texts_Wrapper = {
    ************************************************************/
   send(to, msgSet, langOverride) {
     try {
-      const lang = langOverride || this.getLang(SessionEngine.getSession(to));
+      const lang = this._normalizeLangCode(langOverride || this.getLang(SessionEngine.getSession(to)));
       const text = this.resolve(msgSet, lang);
       if (text) {
         Code.sendText(to, text);
@@ -58,7 +114,7 @@ const Texts_Wrapper = {
    ************************************************************/
   sendWithAudio(to, msgSet, stepCode, langOverride) {
     try {
-      const lang = langOverride || this.getLang(SessionEngine.getSession(to));
+      const lang = this._normalizeLangCode(langOverride || this.getLang(SessionEngine.getSession(to)));
       const text = this.resolve(msgSet, lang);
 
       // 1 — send text
@@ -82,6 +138,113 @@ const Texts_Wrapper = {
  ************************************************************/
 
 Object.assign(Texts_Wrapper, {
+
+  _getFlowAText(stepCode) {
+    switch (stepCode) {
+      case "A_ELIGIBILITY": return Texts_A.getEligibilityQuestion();
+      case "A_ELIGIBILITY_REJECT": return Texts_Eligibility.getRejectionPoliceCase();
+      case "A_INTRO": return Texts_A.getIntro();
+      case "A_Q1": return Texts_A.getQ1();
+      case "A_Q2": return Texts_A.getQ2();
+      case "A_Q3": return Texts_A.getQ3();
+      case "A_Q4": return Texts_A.getQ4();
+      case "A_Q5": return Texts_A.getQ5();
+      case "A_Q6": return Texts_A.getQ6();
+      case "A_Q7": return Texts_A.getQ7();
+      case "A_Q8": return Texts_A.getQ8();
+      case "A_Q9": return Texts_A.getQ9();
+      case "A_NOTES": return Texts_A.getAdditionalNotesPrompt();
+      case "A_FINAL_CONFIRM": return Texts_A.getFinalBeforeConfirmation();
+      default: return null;
+    }
+  },
+
+  _getFlowBText(stepCode) {
+    switch (stepCode) {
+      case "B_INTRO": return Texts_B.getIntro();
+      case "B_Q1": return Texts_B.getQ1();
+      case "B_Q2": return Texts_B.getQ2();
+      case "B_Q3": return Texts_B.getQ3();
+      case "B_Q4": return Texts_B.getQ4();
+      case "B_Q5": return Texts_B.getQ5();
+      case "B_Q6": return Texts_B.getQ6();
+      case "B_Q7": return Texts_B.getQ7();
+      case "B_Q8": return Texts_B.getQ8();
+      case "B_Q9": return Texts_B.getQ9();
+      case "B_Q10": return Texts_B.getQ10();
+      case "B_Q11": return Texts_B.getQ11();
+      case "B_NOTES": return Texts_B.getMediaInstructions();
+      case "B_FINAL_CONFIRM": return Texts_B.getFinalBeforeConfirmation();
+      default: return null;
+    }
+  },
+
+  _getFlowCText(stepCode) {
+    switch (stepCode) {
+      case "C_INTRO": return Texts_C.getEmpatheticIntro();
+      case "C_SOURCE": return Texts_C.getSourceOfInformation();
+      case "C_REJECTED": return Texts_C.getRejectionMessage();
+      case "C_Q_INTRO": return Texts_C.getQuestionsIntro();
+      case "C_Q1": return Texts_C.getQ1();
+      case "C_Q2": return Texts_C.getQ2();
+      case "C_Q3": return Texts_C.getQ3();
+      case "C_Q4": return Texts_C.getQ4();
+      case "C_Q5": return Texts_C.getQ5();
+      case "C_Q6": return Texts_C.getQ6();
+      case "C_Q7": return Texts_C.getQ7();
+      case "C_Q8": return Texts_C.getQ8();
+      case "C_Q9": return Texts_C.getQ9();
+      case "C_Q10": return Texts_C.getQ10();
+      case "C_Q11": return Texts_C.getQ11();
+      case "C_Q12": return Texts_C.getQ12();
+      case "C_Q13": return Texts_C.getQ13();
+      case "C_Q14": return Texts_C.getQ14();
+      case "C_Q15": return Texts_C.getQ15();
+      case "C_CONFIRM_START": return Texts_C.getAfterQ15();
+      default: return null;
+    }
+  },
+
+  _getExistingCaseText(stepCode) {
+    switch (stepCode) {
+      case "EC_CASE_ID": return Texts_ExistingCases.getCaseIdPrompt();
+      case "EC_SELECT_INDEX": return Texts_ExistingCases.getMenu();
+      case "EC_MAIN_MENU": return Texts_ExistingCases.getMenu();
+      case "EC_UPDATE_START": return Texts_ExistingCases.getUpdateMenu();
+      case "EC_UPDATE_Q": return Texts_ExistingCases.getAreYouDone();
+      case "EC_UPDATE_SUCCESS": return Texts_ExistingCases.getUpdateSuccess();
+      default: return null;
+    }
+  },
+
+  _getCaseUpdateText(stepCode) {
+    switch (stepCode) {
+      case "CU_INIT": return Texts_CaseUpdates.getSelectCasePrompt();
+      case "CU_CASE_ID": return Texts_CaseUpdates.getSelectCasePrompt();
+      case "CU_MENU": return Texts_CaseUpdates.getMenu();
+      case "CU_ADD_INFO": return Texts_CaseUpdates.getAddInfoPrompt();
+      case "CU_MEDIA": return Texts_CaseUpdates.getMediaPrompt();
+      case "CU_DONE?": return Texts_CaseUpdates.getAreYouDonePrompt();
+      default: return null;
+    }
+  },
+
+  getText(stepCode, langOverride) {
+    const flow = FlowStorage.getFlowFromStep(stepCode);
+    const lang = this._normalizeLangCode(langOverride);
+
+    let msgSet = null;
+    switch (flow) {
+      case "A": msgSet = this._getFlowAText(stepCode); break;
+      case "B": msgSet = this._getFlowBText(stepCode); break;
+      case "C": msgSet = this._getFlowCText(stepCode); break;
+      case "EXISTING_CASE": msgSet = this._getExistingCaseText(stepCode); break;
+      case "CASE_UPDATE": msgSet = this._getCaseUpdateText(stepCode); break;
+      default: msgSet = null;
+    }
+
+    return this.resolve(msgSet, lang);
+  },
 
   /************************************************************
    * ❌ INVALID OPTION
@@ -166,6 +329,37 @@ Object.assign(Texts_Wrapper, {
     } catch (e) {
       Logging.logError("Texts_Wrapper.sendSessionExpiredReminder", e);
     }
+  },
+
+  /************************************************************
+   * 🕒 "ARE YOU DONE?" PROMPT (multi-reply timeout)
+   ************************************************************/
+  getAreYouDone(langOrSession) {
+    const lang = this._normalizeLangCode(
+      typeof langOrSession === "object" ? langOrSession?.Preferred_Language : langOrSession
+    );
+
+    const step = typeof langOrSession === "object" ? langOrSession?.Current_Step_Code : null;
+    const flow = step ? FlowStorage.getFlowFromStep(step) : null;
+
+    let msgSet = null;
+    if (flow === "CASE_UPDATE") {
+      msgSet = Texts_CaseUpdates.getAreYouDonePrompt(lang);
+    } else if (flow === "EXISTING_CASE") {
+      msgSet = Texts_ExistingCases.getAreYouDone(lang);
+    } else {
+      msgSet = Texts_Eligibility.getAreYouDonePrompt(lang) || Texts_Validation.getTimeoutRepeat(lang);
+    }
+
+    return this.resolve(msgSet, lang);
+  },
+
+  /************************************************************
+   * 📝 Reminder when text is mandatory but media received
+   ************************************************************/
+  getMandatoryTextReminder(lang) {
+    const normalized = this._normalizeLangCode(lang);
+    return Texts_Validation.getTextRequiredReminder(normalized);
   },
 
 });

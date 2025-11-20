@@ -8,6 +8,35 @@
 
 const Texts_Eligibility = {
 
+  _pick(lang, msgSet) {
+    if (!msgSet) return "";
+
+    // Direct hit
+    if (lang && msgSet[lang]) return msgSet[lang];
+
+    // Normalize common language codes used across modules
+    const map = {
+      ENGLISH: "English",
+      English: "English",
+      URDU: "Urdu",
+      Urdu: "Urdu",
+      ROMAN_URDU: "RomanUrdu",
+      RomanUrdu: "RomanUrdu",
+      HINDI: "Hindi",
+      Hindi: "Hindi",
+      BANGLA: "Bangla",
+      Bangla: "Bangla",
+      ARABIC: "Arabic",
+      Arabic: "Arabic",
+    };
+
+    const normalized = lang ? map[lang] || map[lang.toUpperCase()] : null;
+    if (normalized && msgSet[normalized]) return msgSet[normalized];
+
+    // Last resort: English fallback (supports both styles)
+    return msgSet["English"] || msgSet["ENGLISH"] || "";
+  },
+
   /************************************************************
    * 🌍 Utility: Build multi-language message set
    ************************************************************/
@@ -25,43 +54,50 @@ const Texts_Eligibility = {
   /************************************************************
    * 🔹 Invalid option (menu selection)
    ************************************************************/
-  getInvalidOption() {
-    return this._INVALID_OPTION;
+  getInvalidOption(lang) {
+    return this._pick(lang, this._INVALID_OPTION);
   },
 
   /************************************************************
    * 🔹 Please type a number (digits only)
    ************************************************************/
-  getInvalidNumber() {
-    return this._INVALID_NUMBER;
+  getInvalidNumber(lang) {
+    return this._pick(lang, this._INVALID_NUMBER);
   },
 
   /************************************************************
    * 🔹 Unexpected keywords (HELP, MENU, START etc.)
    ************************************************************/
-  getUnexpectedKeyword() {
-    return this._UNEXPECTED_KEYWORD;
+  getUnexpectedKeyword(lang) {
+    return this._pick(lang, this._UNEXPECTED_KEYWORD);
   },
 
   /************************************************************
    * 🔹 Please answer YES/NO type questions
    ************************************************************/
-  getYesNoValidation() {
-    return this._YES_NO_VALIDATION;
+  getYesNoValidation(lang) {
+    return this._pick(lang, this._YES_NO_VALIDATION);
   },
 
   /************************************************************
    * 🔹 Session Expired / Long Delay handling
    ************************************************************/
-  getSessionExpired() {
-    return this._SESSION_EXPIRED;
+  getSessionExpired(lang) {
+    return this._pick(lang, this._SESSION_EXPIRED);
   },
 
   /************************************************************
    * 🔹 "Are you done?" multi-reply timeout logic
    ************************************************************/
-  getAreYouDonePrompt() {
-    return this._ARE_YOU_DONE;
+  getAreYouDonePrompt(lang) {
+    return this._pick(lang, this._ARE_YOU_DONE);
+  },
+
+  /************************************************************
+   * 🔹 Flow A — Rejection (Police/Agency case)
+   ************************************************************/
+  getRejectionPoliceCase(lang) {
+    return Texts_Closing.getEligibilityRejection(lang);
   },
 
   /************************************************************
@@ -75,6 +111,22 @@ const Texts_Eligibility = {
   _ARE_YOU_DONE: null,
 
 };
+
+/************************************************************
+ * Texts_Eligibility.gs — BLOCK 2/3
+ * Shared validation/timeout content (no new text strings)
+ ************************************************************/
+
+Object.assign(Texts_Eligibility, {
+
+  _INVALID_OPTION: Texts_Validation.getInvalidOption(),
+  _INVALID_NUMBER: Texts_Validation.getInvalidNumber(),
+  _UNEXPECTED_KEYWORD: Texts_Validation.getUnexpectedKeyword(),
+  _YES_NO_VALIDATION: Texts_Validation.getInvalidOption(),
+  _SESSION_EXPIRED: Texts_Validation.getTimeoutRepeat(),
+  _ARE_YOU_DONE: Texts_Validation.getTimeoutRepeat(),
+
+});
 /************************************************************
  * Texts_Eligibility.gs — BLOCK 3/3
  * Keyword detection groups & regex patterns

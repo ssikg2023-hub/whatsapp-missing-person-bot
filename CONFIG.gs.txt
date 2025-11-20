@@ -258,6 +258,7 @@ Object.assign(CONFIG, {
   /********************************************
    * 🛑 ERROR LOGGING (WhatsApp API)
    ********************************************/
+  DEBUG_MODE: false,
   LOGGING: {
     ENABLE_ERROR_LOGGING: true,
     RETRY_FAILED_REQUESTS: true,

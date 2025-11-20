@@ -60,6 +60,14 @@ const Utils = {
   },
 
   /************************************************************
+   * ⚠️ UNEXPECTED KEYWORD DETECTOR
+   * Delegates to Texts_Eligibility keyword list
+   ************************************************************/
+  isUnexpectedKeyword(text) {
+    return Texts_Eligibility.isUnexpectedKeyword(text);
+  },
+
+  /************************************************************
    * 🆔 GENERATE CASE ID
    * Format: <REG>-<DATETIME>-<RANDOM5>
    ************************************************************/
@@ -271,6 +279,37 @@ Object.assign(Utils, {
       if (b.includes(a[i])) matches++;
     }
     return matches / Math.max(a.length, b.length);
+  },
+
+  /************************************************************
+   * 🖼 FLOW MEDIA GUARD
+   * Checks if current step allows media
+   ************************************************************/
+  questionAllowsMedia(session) {
+    const stepCode = session?.Current_Step_Code;
+    if (!stepCode) return false;
+    return FlowStorage.stepAllowsMedia(stepCode);
+  },
+
+  /************************************************************
+   * 💾 FLOW MEDIA SAVER
+   * Delegates media handling to active flow handler
+   ************************************************************/
+  saveFlowMedia(session, mediaUrl, mediaMime) {
+    if (!session || !mediaUrl) return "";
+
+    // Preserve last media on session for replay/recovery
+    session._lastMediaUrl = mediaUrl;
+    SessionEngine.save(session);
+
+    switch (session.Flow_Type) {
+      case "A":
+        return FlowA.handleQuestion(session, null, null, mediaUrl, mediaMime);
+      case "C":
+        return FlowC.handleQuestion(session, null, null, mediaUrl, mediaMime);
+      default:
+        return "";
+    }
   },
 
 });

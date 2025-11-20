@@ -3,6 +3,9 @@
  *  MAIN WHATSAPP ROUTER — ENTRYPOINTS & VERIFICATION
  ************************************************************/
 
+const WhatsApp = {};
+const Code = {};
+
 /************************************************************
  * 1️⃣ VERIFY WEBHOOK (GET)
  * Meta sends a GET request when you add webhook URL
@@ -245,6 +248,18 @@ function handleTextMessage_(session, msg) {
  * HANDLE MEDIA MESSAGE (audio, image, video, document)
  ************************************************************/
 function handleMediaMessage_(session, msg) {
+  const requiresText = FlowStorage.stepRequiresText(session.Current_Step_Code);
+  const allowsMedia = Utils.questionAllowsMedia(session);
+
+  if (requiresText || !allowsMedia) {
+    const reminder = Texts_Wrapper.getMandatoryTextReminder(
+      session.Preferred_Language
+    );
+
+    Utils.sendText(session.from, reminder);
+    return;
+  }
+
   // Download & upload to Drive
   const driveUrl = MediaEngine.saveMedia(msg.mediaId, msg.mediaMime);
 
@@ -253,16 +268,6 @@ function handleMediaMessage_(session, msg) {
   session._multiStartTime = new Date().getTime();
   session._askedDone = false;
   SessionEngine.save(session);
-
-  // If step requires TEXT only
-  if (FlowStorage.stepRequiresText(session.Current_Step_Code)) {
-    const reminder = Texts_Wrapper.getMandatoryTextReminder(
-      session.Preferred_Language
-    );
-
-    Utils.sendText(session.from, reminder);
-    return;
-  }
 
   // Pass media link forward (flow engine will record it)
   Flows.routeMessage(
@@ -299,7 +304,7 @@ function markAsRead_(messageId) {
 /************************************************************
  * 💬 SEND TEXT MESSAGE
  ************************************************************/
-Utils.sendText = function (to, text) {
+function sendText(to, text) {
   const payload = {
     messaging_product: "whatsapp",
     to: to,
@@ -308,7 +313,11 @@ Utils.sendText = function (to, text) {
   };
 
   callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
-};
+}
+
+Utils.sendText = sendText;
+WhatsApp.sendText = sendText;
+Code.sendText = sendText;
 
 
 /************************************************************
@@ -317,7 +326,7 @@ Utils.sendText = function (to, text) {
  *  - Urdu / Roman Urdu / Hindi → Your uploaded audio file
  *  - Other languages → TTS
  ************************************************************/
-Utils.sendAudio = function (to, audioUrl) {
+function sendAudio(to, audioUrl) {
   const payload = {
     messaging_product: "whatsapp",
     to: to,
@@ -326,13 +335,17 @@ Utils.sendAudio = function (to, audioUrl) {
   };
 
   callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
-};
+}
+
+Utils.sendAudio = sendAudio;
+WhatsApp.sendAudio = sendAudio;
+Code.sendAudio = sendAudio;
 
 
 /************************************************************
  * 🖼 SEND IMAGE
  ************************************************************/
-Utils.sendImage = function (to, imageUrl) {
+function sendImage(to, imageUrl) {
   const payload = {
     messaging_product: "whatsapp",
     to: to,
@@ -341,13 +354,17 @@ Utils.sendImage = function (to, imageUrl) {
   };
 
   callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
-};
+}
+
+Utils.sendImage = sendImage;
+WhatsApp.sendImage = sendImage;
+Code.sendImage = sendImage;
 
 
 /************************************************************
  * 🎥 SEND VIDEO
  ************************************************************/
-Utils.sendVideo = function (to, videoUrl) {
+function sendVideo(to, videoUrl) {
   const payload = {
     messaging_product: "whatsapp",
     to: to,
@@ -356,7 +373,11 @@ Utils.sendVideo = function (to, videoUrl) {
   };
 
   callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
-};
+}
+
+Utils.sendVideo = sendVideo;
+WhatsApp.sendVideo = sendVideo;
+Code.sendVideo = sendVideo;
 
 
 /************************************************************

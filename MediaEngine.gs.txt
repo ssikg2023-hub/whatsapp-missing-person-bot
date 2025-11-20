@@ -61,6 +61,61 @@ const MediaEngine = {
     }
   },
 
+  /************************************************************
+   * 💾 SAVE MEDIA (MULTI-SIGNATURE)
+   * Supports:
+   *   • saveMedia(mediaId, mediaMime)                → download + upload
+   *   • saveMedia(sessionObj, mediaUrl, mediaMime)   → trust existing URL
+   ************************************************************/
+  saveMedia(targetOrSession, mediaUrlOrMime, mediaMime) {
+    try {
+      // Signature 1: (mediaId, mediaMime)
+      if (typeof targetOrSession === "string" && mediaUrlOrMime) {
+        return this._saveById(targetOrSession, mediaUrlOrMime);
+      }
+
+      // Signature 2: (sessionObj, mediaUrl, mediaMime)
+      const session = targetOrSession;
+      const mediaUrl = mediaUrlOrMime;
+      if (!session || !mediaUrl) return "";
+
+      // Persist last media reference on the session
+      this.saveLastMediaToSession(session, mediaUrl);
+
+      return mediaUrl;
+
+    } catch (err) {
+      Logging.logError("MediaEngine.saveMedia", err);
+      return "";
+    }
+  },
+
+  /************************************************************
+   * 💾 SAVE MEDIA TO TEMP (Flow B helper)
+   ************************************************************/
+  saveMediaToTemp(session, mediaUrl, mediaMime) {
+    try {
+      if (!session || !mediaUrl) return "";
+
+      const savedUrl = this.saveMedia(session, mediaUrl, mediaMime);
+      if (!savedUrl) return "";
+
+      session.Temp_Data = session.Temp_Data || {};
+      if (!Array.isArray(session.Temp_Data.media)) {
+        session.Temp_Data.media = [];
+      }
+      session.Temp_Data.media.push({ url: savedUrl, mime: mediaMime || "" });
+
+      SessionEngine.save(session);
+
+      return savedUrl;
+
+    } catch (err) {
+      Logging.logError("MediaEngine.saveMediaToTemp", err);
+      return "";
+    }
+  },
+
 };
 /************************************************************
  *  MediaEngine.gs — /storage (BLOCK 2/3)
@@ -111,14 +166,14 @@ Object.assign(MediaEngine, {
   _getFolderForMime(mime) {
     if (!mime) return null;
 
-    const map = CONFIG.FOLDERS;
+    const map = CONFIG.FOLDERS || {};
 
-    if (mime.startsWith("image/")) return map.MEDIA_IMAGES;
-    if (mime.startsWith("audio/")) return map.MEDIA_AUDIO;
-    if (mime.startsWith("video/")) return map.MEDIA_VIDEO;
+    if (mime.startsWith("image/") && map.MEDIA_IMAGES) return map.MEDIA_IMAGES;
+    if (mime.startsWith("audio/") && map.MEDIA_AUDIO) return map.MEDIA_AUDIO;
+    if (mime.startsWith("video/") && map.MEDIA_VIDEO) return map.MEDIA_VIDEO;
 
-    // documents and others
-    return map.MEDIA_DOCS;
+    // Fallback to generic media folder
+    return map.MEDIA || map.TEMP_FILES || null;
   },
 
   /************************************************************
@@ -286,6 +341,25 @@ Object.assign(MediaEngine, {
       rawJson,
       caseId
     );
+  },
+
+  /************************************************************
+   * 🔄 DOWNLOAD + UPLOAD BY MEDIA ID (internal)
+   ************************************************************/
+  _saveById(mediaId, mediaMime) {
+    try {
+      const blob = this.downloadMedia(mediaId);
+      if (!blob) return "";
+
+      // Validate type/size using actual blob values
+      if (!this.validateMime(blob)) return "";
+      if (!this.validateSize(blob)) return "";
+
+      return this.uploadToDrive(blob, mediaId) || "";
+    } catch (err) {
+      Logging.logError("MediaEngine._saveById", err);
+      return "";
+    }
   },
 
 });

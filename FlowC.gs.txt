@@ -1,17 +1,73 @@
 /************************************************************
  *  FlowC.gs — STEP 3C (Helping Flow — Q1–Q15)
- *  STRICT MODE — EXACT TEXT FROM “Full n Final Flow Updated”
+ *  STRICT MODE — EXACT TEXT + STEP RANGE ONLY
  ************************************************************/
 
 const FlowC = {
 
   /************************************************************
-   * ENTRY: Empathetic Intro
+   * ROUTER — Entry point for Flow C messages
    ************************************************************/
-  startIntro(session) {
+  process(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+    const step = session.Current_Step_Code || "FLOW_C_START";
+
+    switch (step) {
+
+      case "FLOW_C_START":
+        return this.start(session);
+
+      case "C_INTRO":
+        return this.startSourceQuestion(session);
+
+      case "C_SOURCE":
+        return this.handleSourceOfInfo(session, msg);
+
+      case "C_REJECTED":
+        return this.handleRejectionFollowUp(session, msg);
+
+      case "C_Q_INTRO":
+        return this.startQuestions(session);
+
+      case "C_Q1":
+      case "C_Q2":
+      case "C_Q3":
+      case "C_Q4":
+      case "C_Q5":
+      case "C_Q6":
+      case "C_Q7":
+      case "C_Q8":
+      case "C_Q9":
+      case "C_Q10":
+      case "C_Q11":
+      case "C_Q12":
+      case "C_Q13":
+      case "C_Q14":
+      case "C_Q15":
+        return this.handleQuestion(session, msg, raw, mediaUrl, mediaMime);
+
+      case "C_FINAL_BEFORE_CONFIRM":
+        session.Current_Step_Code = "C_CONFIRM_START";
+        Session.save(session);
+        return Texts_C.getAfterQ15()[lang];
+
+      case "C_CONFIRM_START":
+        return this.handleFinalConfirmation(session, msg);
+
+      default:
+        return Texts_Validation.getGenericError(lang);
+    }
+  },
+
+  /************************************************************
+   * START FLOW C
+   ************************************************************/
+  start(session) {
 
     const lang = session.Preferred_Language;
 
+    session.Flow_Type = "C";
     session.Current_Step_Code = "C_INTRO";
     Session.save(session);
 
@@ -19,7 +75,7 @@ const FlowC = {
   },
 
   /************************************************************
-   * HANDLE INTRO → ASK SOURCE OF INFORMATION
+   * ASK SOURCE OF INFORMATION
    ************************************************************/
   startSourceQuestion(session) {
 
@@ -39,10 +95,12 @@ const FlowC = {
     const lang = session.Preferred_Language;
     const choice = (msg || "").trim();
 
-    if (!["1","2","3"].includes(choice))
-      return Texts_Validation.getInvalidOption(lang);
+    if (!["1", "2", "3"].includes(choice)) {
+      const invalid = Texts_Validation.getInvalidOption(lang);
+      return invalid + "\n\n" + Texts_C.getSourceOfInformation()[lang];
+    }
 
-    // IF NO ACCESS → REJECTION FLOW
+    // OPTION 2 → REJECTION FLOW
     if (choice === "2") {
 
       session.Current_Step_Code = "C_REJECTED";
@@ -53,47 +111,53 @@ const FlowC = {
         + Texts_C.getPostRejectionPrompt()[lang];
     }
 
-    // IF 1 or 3 → Continue to questions
-    session.Current_Step_Code = "C_Q_INTRO";
+    // OPTIONS 1 or 3 → CONTINUE
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json["C_SOURCE"] = choice;
     Session.save(session);
 
-    return Texts_C.getQuestionsIntro()[lang];
+    return this.startQuestions(session, true);
   },
 
   /************************************************************
-   * HANDLE POST-REJECTION (Submit new case?)
+   * HANDLE POST-REJECTION (Restart or End)
    ************************************************************/
   handleRejectionFollowUp(session, msg) {
 
     const lang = session.Preferred_Language;
     const choice = (msg || "").trim();
 
-    if (!["1","2"].includes(choice))
+    if (!["1", "2"].includes(choice)) {
       return Texts_Validation.getInvalidOption(lang);
+    }
 
     if (choice === "1") {
-      // Restart to User Type
       Session.resetPartial(session);
       session.Current_Step_Code = "USER_TYPE";
       Session.save(session);
       return Texts_C.getRestartAfterRejection()[lang];
     }
 
-    // End chat
     Session.reset(session);
     return Texts_C.getClosingMessage()[lang];
   },
 
   /************************************************************
-   * EMPATHETIC INTRO RECEIVED → proceed to Q1
+   * START Q1 (optionally prepend questions intro)
    ************************************************************/
-  startQuestions(session) {
+  startQuestions(session, includeIntro) {
 
     session.Current_Step_Code = "C_Q1";
     Session.save(session);
 
     const lang = session.Preferred_Language;
-    return Texts_C.getQ1()[lang];
+    const q1 = Texts_C.getQ1()[lang];
+
+    if (includeIntro) {
+      return Texts_C.getQuestionsIntro()[lang] + "\n\n" + q1;
+    }
+
+    return q1;
   },
 
   /************************************************************
@@ -104,36 +168,38 @@ const FlowC = {
     const lang = session.Preferred_Language;
     const step = session.Current_Step_Code;
 
-    /************** MEDIA HANDLING FOR Q15 ONLY **************/
+    // MEDIA HANDLING FOR Q15 ONLY
     if (step === "C_Q15") {
 
       if (mediaUrl) {
         const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
-        session.Temp_Data_Json.Q15 = saved;
+        session.Temp_Data_Json = session.Temp_Data_Json || {};
+        session.Temp_Data_Json[step] = saved;
         Session.save(session);
         return this._finish(session);
       }
 
       const incoming = (msg || "").trim();
-      if (!incoming)
-        return Texts_Validation.getMissingRequired()[lang];
+      if (!incoming) {
+        return Texts_Validation.getMissingRequired(lang);
+      }
 
-      session.Temp_Data_Json.Q15 = incoming;
+      session.Temp_Data_Json = session.Temp_Data_Json || {};
+      session.Temp_Data_Json[step] = incoming;
       Session.save(session);
       return this._finish(session);
     }
 
-    /************** Q1–Q14 TEXT INPUT **************/
+    // TEXT INPUT FOR Q1–Q14
     const incoming = (msg || "").trim();
-    if (!incoming)
-      return Texts_Validation.getMissingRequired(lang);
+    if (!incoming) {
+      return Texts_Validation.getEmptyInput(lang);
+    }
 
-    /************** SAVE ANSWER **************/
     session.Temp_Data_Json = session.Temp_Data_Json || {};
     session.Temp_Data_Json[step] = incoming;
     Session.save(session);
 
-    /************** NEXT STEP **************/
     return this._nextQuestion(session);
   },
 
@@ -163,17 +229,18 @@ const FlowC = {
     const lang = session.Preferred_Language;
     const next = map[session.Current_Step_Code];
 
-    if (!next)
+    if (!next) {
       return Texts_Validation.getGenericError(lang);
+    }
 
     session.Current_Step_Code = next;
     Session.save(session);
 
-    return Texts_C[`get${next.replace("C_","")}`]()[lang];
+    return Texts_C[`get${next.replace("C_", "")}`]()[lang];
   },
 
   /************************************************************
-   * AFTER Q15 → FINISH COLLECTION → STEP 4 (Confirmation)
+   * AFTER Q15 → FINAL CONFIRM PROMPT
    ************************************************************/
   _finish(session) {
 
@@ -185,4 +252,81 @@ const FlowC = {
     return Texts_C.getAfterQ15()[lang];
   },
 
+  /************************************************************
+   * FINAL CONFIRMATION (expecting "confirm")
+   ************************************************************/
+  handleFinalConfirmation(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim().toLowerCase();
+
+    if (choice === "confirm") {
+      return this._finalizeCase(session);
+    }
+
+    return Texts_C.getAfterQ15()[lang];
+  },
+
+  /************************************************************
+   * CREATE CASE RECORD + END
+   ************************************************************/
+  _finalizeCase(session) {
+
+    const lang = session.Preferred_Language;
+
+    const caseId = CaseEngine.finalizeCase(session, "C");
+
+    session.Current_Step_Code = "C_END";
+    Session.save(session);
+
+    return Texts_CaseUpdates.getCaseCreated(lang)
+      .replace("{CASE_ID}", caseId);
+  },
+
+  /************************************************************
+   * 🔁 REPLAY CURRENT QUESTION (for timeout / media rejection)
+   ************************************************************/
+  replay(session) {
+
+    const lang = session.Preferred_Language;
+
+    switch (session.Current_Step_Code) {
+      case "FLOW_C_START":
+      case "C_INTRO":
+        return Texts_C.getEmpatheticIntro()[lang];
+
+      case "C_SOURCE":
+        return Texts_C.getSourceOfInformation()[lang];
+
+      case "C_REJECTED":
+        return Texts_C.getPostRejectionPrompt()[lang];
+
+      case "C_Q_INTRO":
+        return Texts_C.getQuestionsIntro()[lang];
+
+      case "C_Q1": return Texts_C.getQ1()[lang];
+      case "C_Q2": return Texts_C.getQ2()[lang];
+      case "C_Q3": return Texts_C.getQ3()[lang];
+      case "C_Q4": return Texts_C.getQ4()[lang];
+      case "C_Q5": return Texts_C.getQ5()[lang];
+      case "C_Q6": return Texts_C.getQ6()[lang];
+      case "C_Q7": return Texts_C.getQ7()[lang];
+      case "C_Q8": return Texts_C.getQ8()[lang];
+      case "C_Q9": return Texts_C.getQ9()[lang];
+      case "C_Q10": return Texts_C.getQ10()[lang];
+      case "C_Q11": return Texts_C.getQ11()[lang];
+      case "C_Q12": return Texts_C.getQ12()[lang];
+      case "C_Q13": return Texts_C.getQ13()[lang];
+      case "C_Q14": return Texts_C.getQ14()[lang];
+      case "C_Q15": return Texts_C.getQ15()[lang];
+
+      case "C_CONFIRM_START":
+        return Texts_C.getAfterQ15()[lang];
+
+      default:
+        return Texts_Validation.getGenericError(lang);
+    }
+  },
+
 };
+

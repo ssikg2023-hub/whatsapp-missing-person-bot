@@ -110,8 +110,9 @@ Object.assign(CaseConfirmation, {
       const region = caseObj["Region"] || "OTHER";
       const lang = caseObj["Language"] || "EN";
 
-      // Find group ID for this region
-      const groupNumber = CONFIG.GROUPS.REGIONAL_ALERTS[region];
+      // Find group ID for this region with fallback
+      const alertGroups = CONFIG.ALERT_GROUPS || {};
+      const groupNumber = alertGroups[region] || alertGroups.OTHER;
       if (!groupNumber) return;
 
       const message = this._buildTeamAlertText(caseId, lang);

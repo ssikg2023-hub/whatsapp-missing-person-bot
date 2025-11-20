@@ -5,6 +5,12 @@
 
 const Texts_Closing = {
 
+  _pick(lang, msgSet) {
+    if (!msgSet) return "";
+    if (lang && msgSet[lang]) return msgSet[lang];
+    return msgSet["English"] || "";
+  },
+
   /************************************************************
    * Utility: Multi-language wrapper
    ************************************************************/
@@ -22,20 +28,44 @@ const Texts_Closing = {
   /************************************************************
    * PUBLIC GETTERS
    ************************************************************/
-  getFinalMessage() {
+  getFinalMessage(lang) {
+    if (!lang) return this._CLOSING_MESSAGE;
+    return this._pick(lang, this._CLOSING_MESSAGE);
+  },
+
+  getEligibilityRejection(lang) {
+    if (!lang) return this._ELIGIBILITY_REJECT;
+    return this._pick(lang, this._ELIGIBILITY_REJECT);
+  },
+
+  getUpdateResolvedClosing(lang) {
+    if (!lang) return this._UPDATE_RESOLVED;
+    return this._pick(lang, this._UPDATE_RESOLVED);
+  },
+
+  getGenericThanks(lang) {
+    if (!lang) return this._THANK_YOU;
+    return this._pick(lang, this._THANK_YOU);
+  },
+
+  getCancelled(lang) {
+    return this._pick(lang, this._CLOSING_MESSAGE);
+  },
+
+  getConfirmationMessage(caseId, lang) {
+    return this._pick(lang, this._CLOSING_MESSAGE);
+  },
+
+  getTeamAlertMessage(caseId, lang) {
+    return this._pick(lang, this._THANK_YOU);
+  },
+
+  getCaseConfirmation(caseId, lang) {
     return this._CLOSING_MESSAGE;
   },
 
-  getEligibilityRejection() {
-    return this._ELIGIBILITY_REJECT;
-  },
-
-  getUpdateResolvedClosing() {
-    return this._UPDATE_RESOLVED;
-  },
-
-  getGenericThanks() {
-    return this._THANK_YOU;
+  getFinalClosing(caseId, lang) {
+    return this._CLOSING_MESSAGE;
   },
 
   /************************************************************
@@ -156,10 +186,10 @@ Object.assign(Texts_Closing, {
    ************************************************************/
   get(type, lang) {
     switch (type) {
-      case "FINAL": return this._CLOSING_MESSAGE[lang];
-      case "REJECT": return this._ELIGIBILITY_REJECT[lang];
-      case "RESOLVED": return this._UPDATE_RESOLVED[lang];
-      case "THANKS": return this._THANK_YOU[lang];
+      case "FINAL": return this._pick(lang, this._CLOSING_MESSAGE);
+      case "REJECT": return this._pick(lang, this._ELIGIBILITY_REJECT);
+      case "RESOLVED": return this._pick(lang, this._UPDATE_RESOLVED);
+      case "THANKS": return this._pick(lang, this._THANK_YOU);
       default: return "";
     }
   },

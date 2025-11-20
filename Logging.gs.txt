@@ -5,11 +5,20 @@
 
 const Logging = {
 
+  _isLoggingEnabled(type) {
+    const settings = CONFIG.LOGGING || {};
+    if (type === "DEBUG") {
+      return Boolean(CONFIG.DEBUG_MODE);
+    }
+    return settings.ENABLE_ERROR_LOGGING !== false;
+  },
+
   /************************************************************
    * 🟥 GENERIC SYSTEM ERROR LOGGER
    ************************************************************/
   logError(context, errorObj) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -31,6 +40,7 @@ const Logging = {
    ************************************************************/
   logWhatsAppError(url, payload, response) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       const status = response ? response.getResponseCode() : "NO_RESPONSE";
@@ -55,6 +65,7 @@ const Logging = {
    ************************************************************/
   warn(context, details) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -81,7 +92,7 @@ Object.assign(Logging, {
    ************************************************************/
   debug(context, details) {
     try {
-      if (!CONFIG.DEBUG_MODE) return;
+      if (!this._isLoggingEnabled("DEBUG")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -101,6 +112,7 @@ Object.assign(Logging, {
    ************************************************************/
   logCaseMergeAlert(newCaseId, existingCaseId, similarityScore) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -119,6 +131,7 @@ Object.assign(Logging, {
    ************************************************************/
   logNewCase(caseId, userNumber) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -137,6 +150,7 @@ Object.assign(Logging, {
    ************************************************************/
   logCaseUpdate(caseId, updateType, userNumber) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -155,6 +169,7 @@ Object.assign(Logging, {
    ************************************************************/
   logEmergency(caseId, userNumber) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -174,6 +189,7 @@ Object.assign(Logging, {
    ************************************************************/
   logTeamAlert(region, message) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
@@ -192,6 +208,7 @@ Object.assign(Logging, {
    ************************************************************/
   logFlowStep(userNumber, stepCode) {
     try {
+      if (!this._isLoggingEnabled("ERROR")) return;
       const sheet = CONFIG.getErrorsSheet();
 
       sheet.appendRow([
