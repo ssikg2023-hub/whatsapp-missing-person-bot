@@ -1,0 +1,177 @@
+/************************************************************
+ *  SessionEngine.gs — /storage (BLOCK 1/2)
+ *  User Session Load / Save / Create
+ ************************************************************/
+
+const SessionEngine = {
+
+  /************************************************************
+   * 📥 LOAD SESSION BY WHATSAPP NUMBER
+   ************************************************************/
+  load(whatsAppNumber) {
+    const sheet = CONFIG.getUserSessionsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    // Header row
+    const header = data[0];
+    const idx = {
+      number: header.indexOf("WhatsApp_Number"),
+      step: header.indexOf("Current_Step_Code"),
+      flow: header.indexOf("Flow_Type"),
+      region: header.indexOf("Region_Group"),
+      lang: header.indexOf("Preferred_Language"),
+      temp: header.indexOf("Temp_Data_Json"),
+      updated: header.indexOf("Updated_At"),
+    };
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      if (String(row[idx.number]) === String(whatsAppNumber)) {
+        // Found → convert row into session object
+        return {
+          RowIndex: i + 1, // actual row number in sheet
+          WhatsApp_Number: row[idx.number],
+          Current_Step_Code: row[idx.step],
+          Flow_Type: row[idx.flow],
+          Region_Group: row[idx.region],
+          Preferred_Language: row[idx.lang],
+          Temp_Data: Utils.safeParse(row[idx.temp], {}),
+          Updated_At: row[idx.updated],
+
+          // Multi-reply & media-temporary runtime values
+          _multiStartTime: row._multiStartTime || null,
+          _askedDone: row._askedDone || false,
+          _lastMediaUrl: row._lastMediaUrl || null,
+        };
+      }
+    }
+
+    // Not found → create a new session
+    return this.create(whatsAppNumber);
+  },
+
+  /************************************************************
+   * 🆕 CREATE NEW SESSION
+   ************************************************************/
+  create(whatsAppNumber) {
+    const sheet = CONFIG.getUserSessionsSheet();
+    sheet.appendRow([
+      whatsAppNumber,     // WhatsApp_Number
+      "",                 // Current_Step_Code
+      "",                 // Flow_Type
+      "",                 // Region_Group
+      "",                 // Preferred_Language
+      "{}",               // Temp_Data_Json
+      Utils.formatDate(new Date()), // Updated_At
+    ]);
+
+    const lastRow = sheet.getLastRow();
+
+    return {
+      RowIndex: lastRow,
+      WhatsApp_Number: whatsAppNumber,
+      Current_Step_Code: "",
+      Flow_Type: "",
+      Region_Group: "",
+      Preferred_Language: "",
+      Temp_Data: {},
+      Updated_At: new Date(),
+      _multiStartTime: null,
+      _askedDone: false,
+      _lastMediaUrl: null,
+    };
+  },
+};
+/************************************************************
+ *  SessionEngine.gs — /storage (BLOCK 2/2)
+ *  Save, Update, Purge Expired, Helpers
+ ************************************************************/
+
+Object.assign(SessionEngine, {
+
+  /************************************************************
+   * 💾 SAVE SESSION BACK TO SHEET
+   ************************************************************/
+  save(session) {
+    const sheet = CONFIG.getUserSessionsSheet();
+
+    if (!session.RowIndex) {
+      return; // Should never happen
+    }
+
+    const row = session.RowIndex;
+
+    sheet.getRange(row, 1, 1, 7).setValues([[
+      session.WhatsApp_Number,
+      session.Current_Step_Code,
+      session.Flow_Type,
+      session.Region_Group,
+      session.Preferred_Language,
+      Utils.safeStringify(session.Temp_Data),
+      Utils.formatDate(new Date())
+    ]]);
+  },
+
+  /************************************************************
+   * 🔄 UPDATE CURRENT STEP
+   ************************************************************/
+  updateStep(session, stepCode) {
+    session.Current_Step_Code = stepCode;
+    session.Updated_At = new Date();
+    this.save(session);
+  },
+
+  /************************************************************
+   * 🔁 CLEAR TEMP DATA
+   ************************************************************/
+  clearTemp(session) {
+    session.Temp_Data = {};
+    this.save(session);
+  },
+
+  /************************************************************
+   * ♻ RESET MULTI-REPLY CONTEXT
+   ************************************************************/
+  resetMultiReply(session) {
+    session._multiStartTime = null;
+    session._askedDone = false;
+    this.save(session);
+  },
+
+  /************************************************************
+   * ⚠ PURGE EXPIRED SESSIONS
+   * Delete sessions older than X days (CONFIG.SESSION_EXPIRY_DAYS)
+   ************************************************************/
+  purgeExpiredSessions() {
+    const sheet = CONFIG.getUserSessionsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) return; // no sessions
+
+    const header = data[0];
+    const idxUpdated = header.indexOf("Updated_At");
+    const expiryMs = CONFIG.SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+
+    const now = new Date().getTime();
+
+    // We collect rows to delete AFTER loop (safe indexing)
+    const rowsToDelete = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const updatedAt = new Date(row[idxUpdated]).getTime();
+      const age = now - updatedAt;
+
+      if (age >= expiryMs) {
+        rowsToDelete.push(i + 1); // actual row index
+      }
+    }
+
+    // Delete in reverse order
+    for (let r = rowsToDelete.length - 1; r >= 0; r--) {
+      sheet.deleteRow(rowsToDelete[r]);
+    }
+  },
+
+});

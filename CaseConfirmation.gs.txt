@@ -1,0 +1,180 @@
+/************************************************************
+ *  CaseConfirmation.gs — /storage (BLOCK 1/2)
+ *  Build confirmation summary + finalize case
+ *  (NO TEXT — only calling /texts modules)
+ ************************************************************/
+
+const CaseConfirmation = {
+
+  /************************************************************
+   * 📝 BUILD CASE SUMMARY OBJECT
+   * Used by flows for confirmation screens
+   ************************************************************/
+  buildSummary(caseId) {
+    const caseObj = CaseEngine.getCase(caseId);
+    if (!caseObj) return null;
+
+    const summary = {
+      caseId: caseObj["Case_ID"],
+      createdAt: caseObj["Created_At"],
+      region: caseObj["Region"],
+      language: caseObj["Language"],
+      flowType: caseObj["Flow_Type"],
+      answers: {},
+    };
+
+    // Pull Q1–Q16 into summary
+    for (let q = 1; q <= 16; q++) {
+      const field = `Q${q}`;
+      if (caseObj[field] !== undefined) {
+        summary.answers[field] = caseObj[field];
+      }
+    }
+
+    summary.extraNotes = caseObj["Extra_Notes"] || "";
+    summary.mediaLinks = caseObj["Media_Links"] || "";
+
+    return summary;
+  },
+
+  /************************************************************
+   * 📄 BUILD CONFIRMATION TEXT (LANG-SPECIFIC)
+   * Calls the Texts_Closing or Texts_Wrapper modules
+   ************************************************************/
+  getConfirmationText(caseId, lang) {
+    // No text stored here — fully delegated
+    try {
+      return Texts_Closing.getConfirmationMessage(caseId, lang);
+    } catch (err) {
+      Logging.logError("CaseConfirmation.getConfirmationText", err);
+      return "";
+    }
+  },
+
+  /************************************************************
+   * 🆗 FINALIZE CASE
+   *   - Mark Status as Submitted
+   *   - Trigger merge detection
+   *   - Trigger team alerts
+   ************************************************************/
+  finalizeCase(caseId, session) {
+    try {
+      // Mark case as submitted
+      CaseEngine.markSubmitted(caseId);
+
+      // Trigger smart merge detection
+      CaseEngine.detectPossibleMatch(caseId);
+
+      // Log finalization
+      Logging.logCaseUpdate(caseId, "Finalized", session.WhatsApp_Number);
+
+      // Send alerts to team
+      this._sendTeamAlert(caseId);
+
+      return true;
+
+    } catch (err) {
+      Logging.logError("CaseConfirmation.finalizeCase", err);
+      return false;
+    }
+  },
+};
+/************************************************************
+ *  CaseConfirmation.gs — /storage (BLOCK 2/2)
+ *  Team Alerts + Final Response Logic
+ ************************************************************/
+
+Object.assign(CaseConfirmation, {
+
+  /************************************************************
+   * 📣 BUILD TEAM ALERT TEXT (NO TEXT HERE)
+   * Delegates to a text module
+   ************************************************************/
+  _buildTeamAlertText(caseId, lang) {
+    try {
+      return Texts_Closing.getTeamAlertMessage(caseId, lang);
+    } catch (err) {
+      Logging.logError("CaseConfirmation._buildTeamAlertText", err);
+      return "";
+    }
+  },
+
+  /************************************************************
+   * 📤 SEND TEAM ALERT TO REGIONAL WHATSAPP GROUP
+   ************************************************************/
+  _sendTeamAlert(caseId) {
+    try {
+      const caseObj = CaseEngine.getCase(caseId);
+      if (!caseObj) return;
+
+      const region = caseObj["Region"] || "OTHER";
+      const lang = caseObj["Language"] || "EN";
+
+      // Find group ID for this region
+      const groupNumber = CONFIG.GROUPS.REGIONAL_ALERTS[region];
+      if (!groupNumber) return;
+
+      const message = this._buildTeamAlertText(caseId, lang);
+      if (!message) return;
+
+      // Send via central sender in Code.gs
+      Utils.sendText(groupNumber, message);
+
+      Logging.logTeamAlert(region, `Alert sent for case ${caseId}`);
+
+    } catch (err) {
+      Logging.logError("CaseConfirmation._sendTeamAlert", err);
+    }
+  },
+
+  /************************************************************
+   * 🎧 GET CLOSING AUDIO (Optional)
+   * If user uploaded localized audio → use that
+   * Else → TTS fallback (controlled by Utils)
+   ************************************************************/
+  _getClosingAudio(stepCode, lang) {
+    try {
+      return Utils.resolveAudioPrompt(stepCode, lang);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 🟦 SEND FINAL CONFIRMATION MESSAGE TO USER
+   * Used by flows after full submission
+   ************************************************************/
+  confirmAndRespond(session, caseId) {
+    try {
+      const lang = session.Preferred_Language || "EN";
+
+      // 1️⃣ Build the confirmation text using Texts modules
+      const textMsg = this.getConfirmationText(caseId, lang);
+
+      // 2️⃣ Optional audio (closing message)
+      const audioUrl = this._getClosingAudio("CLOSING", lang);
+
+      // 3️⃣ Send text first
+      Utils.sendText(session.WhatsApp_Number, textMsg);
+
+      // 4️⃣ If audio exists → send audio after text
+      if (audioUrl) {
+        Code.sendAudio(session.WhatsApp_Number, audioUrl);
+      }
+
+      return true;
+
+    } catch (err) {
+      Logging.logError("CaseConfirmation.confirmAndRespond", err);
+      return false;
+    }
+  },
+
+  /************************************************************
+   * 🧩 RESERVED: Future confirmation override logic
+   ************************************************************/
+  _futureHook() {
+    // Intentionally empty for later expansion
+  },
+
+});

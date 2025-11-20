@@ -1,0 +1,291 @@
+/************************************************************
+ *  MediaEngine.gs — /storage (BLOCK 1/3)
+ *  Fetch, Validate, Upload media
+ ************************************************************/
+
+const MediaEngine = {
+
+  /************************************************************
+   * 🔽 DOWNLOAD MEDIA FROM WHATSAPP
+   * Returns a BLOB or null
+   ************************************************************/
+  downloadMedia(mediaId) {
+    try {
+      const url = CONFIG.ENDPOINTS.MEDIA_URL(mediaId);
+
+      const options = {
+        method: "get",
+        headers: {
+          Authorization: "Bearer " + CONFIG.WHATSAPP_ACCESS_TOKEN,
+        },
+        muteHttpExceptions: true,
+      };
+
+      const response = UrlFetchApp.fetch(url, options);
+
+      if (response.getResponseCode() !== 200) {
+        Logging.logWhatsAppError(url, { mediaId }, response);
+        return null;
+      }
+
+      const blob = response.getBlob();
+      return blob;
+
+    } catch (err) {
+      Logging.logError("downloadMedia", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * ✔ VALIDATE MIME TYPE
+   ************************************************************/
+  validateMime(blob) {
+    try {
+      const mime = blob.getContentType();
+      return CONFIG.MEDIA.ALLOWED_MIME_TYPES.includes(mime);
+    } catch (e) {
+      return false;
+    }
+  },
+
+  /************************************************************
+   * ✔ VALIDATE SIZE (MB)
+   ************************************************************/
+  validateSize(blob) {
+    try {
+      const sizeMB = blob.getBytes().length / (1024 * 1024);
+      return sizeMB <= CONFIG.MEDIA.MAX_FILE_SIZE_MB;
+    } catch (e) {
+      return false;
+    }
+  },
+
+};
+/************************************************************
+ *  MediaEngine.gs — /storage (BLOCK 2/3)
+ *  Upload to Drive + URL generation + session linking
+ ************************************************************/
+
+Object.assign(MediaEngine, {
+
+  /************************************************************
+   * 📤 UPLOAD MEDIA BLOB TO DRIVE
+   ************************************************************/
+  uploadToDrive(blob, caseId) {
+    try {
+      if (!blob) return null;
+
+      const mime = blob.getContentType();
+      const folderId = this._getFolderForMime(mime);
+      if (!folderId) return null;
+
+      const folder = DriveApp.getFolderById(folderId);
+
+      const timestamp = Utilities.formatDate(
+        new Date(),
+        "UTC",
+        "yyyyMMdd_HHmmss"
+      );
+
+      // create filename
+      const filename = `${caseId}_${timestamp}.${this._getExtForMime(mime)}`;
+
+      // Create file in folder
+      const file = folder.createFile(blob).setName(filename);
+
+      // Make public viewable
+      const publicUrl = Utils.makePublic(file);
+
+      return publicUrl;
+
+    } catch (err) {
+      Logging.logError("uploadToDrive", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 📌 DETERMINE DRIVE FOLDER BASED ON MIME TYPE
+   ************************************************************/
+  _getFolderForMime(mime) {
+    if (!mime) return null;
+
+    const map = CONFIG.FOLDERS;
+
+    if (mime.startsWith("image/")) return map.MEDIA_IMAGES;
+    if (mime.startsWith("audio/")) return map.MEDIA_AUDIO;
+    if (mime.startsWith("video/")) return map.MEDIA_VIDEO;
+
+    // documents and others
+    return map.MEDIA_DOCS;
+  },
+
+  /************************************************************
+   * 📌 GET FILE EXTENSION FROM MIME TYPE
+   ************************************************************/
+  _getExtForMime(mime) {
+    if (!mime) return "bin";
+
+    const parts = mime.split("/");
+    const ext = parts[1] || "bin";
+
+    // Special cases
+    if (ext === "mpeg") return "mp3";
+    if (ext === "x-m4a") return "m4a";
+    if (ext === "quicktime") return "mov";
+
+    return ext;
+  },
+
+  /************************************************************
+   * 📝 SAVE LAST MEDIA URL INSIDE SESSION (TEMP)
+   ************************************************************/
+  saveLastMediaToSession(session, url) {
+    if (!session || !url) return;
+
+    session._lastMediaUrl = url;
+    SessionEngine.save(session);
+  },
+
+});
+/************************************************************
+ *  MediaEngine.gs — /storage (BLOCK 3/3)
+ *  Full Media Processing Pipeline (Download → Validate → Upload)
+ ************************************************************/
+
+Object.assign(MediaEngine, {
+
+  /************************************************************
+   * 🎯 MAIN ENTRY: PROCESS INCOMING MEDIA
+   * Input:
+   *   - session
+   *   - mediaId (from WhatsApp)
+   *   - rawJson (for Case_Updates logging)
+   *   - caseId (optional – flows will pass it)
+   *
+   * Output:
+   *   - public URL OR null
+   ************************************************************/
+  processIncomingMedia(session, mediaId, rawJson, caseId) {
+    try {
+      if (!mediaId) return null;
+
+      // STEP 1 — download blob from WhatsApp
+      const blob = this.downloadMedia(mediaId);
+      if (!blob) {
+        Logging.logError("MediaEngine.processIncomingMedia: download failed", mediaId);
+        return null;
+      }
+
+      // STEP 2 — validate MIME
+      if (!this.validateMime(blob)) {
+        Logging.logError("MediaEngine: invalid MIME", blob.getContentType());
+        return null;
+      }
+
+      // STEP 3 — validate file size
+      if (!this.validateSize(blob)) {
+        Logging.logError("MediaEngine: file too large", blob.getBytes().length);
+        return null;
+      }
+
+      // STEP 4 — upload to Drive
+      const finalUrl = this.uploadToDrive(blob, caseId || "NOCASE");
+      if (!finalUrl) {
+        Logging.logError("MediaEngine: uploadToDrive failed", mediaId);
+        return null;
+      }
+
+      // STEP 5 — save in session (temp)
+      this.saveLastMediaToSession(session, finalUrl);
+
+      // STEP 6 — if this media is linked to a case → attach
+      if (caseId) {
+        CaseEngine.addMedia(caseId, finalUrl);
+        CaseEngine.addCaseUpdate(caseId, "MEDIA", "Media received", finalUrl, rawJson);
+      }
+
+      return finalUrl;
+
+    } catch (err) {
+      Logging.logError("processIncomingMedia", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 🙋 CHECK IF INBOUND MESSAGE CONTAINS MEDIA
+   * Returns:
+   *   {
+   *      type: "image" | "audio" | "video" | "document",
+   *      mediaId: "...",
+   *      mime: "..."
+   *   }
+   * OR null
+   ************************************************************/
+  extractMediaObject(messageObj) {
+    try {
+      if (!messageObj) return null;
+
+      // IMAGE
+      if (messageObj.image) {
+        return {
+          type: "image",
+          mediaId: messageObj.image.id,
+          mime: messageObj.image.mime_type,
+        };
+      }
+
+      // AUDIO
+      if (messageObj.audio) {
+        return {
+          type: "audio",
+          mediaId: messageObj.audio.id,
+          mime: messageObj.audio.mime_type,
+        };
+      }
+
+      // VIDEO
+      if (messageObj.video) {
+        return {
+          type: "video",
+          mediaId: messageObj.video.id,
+          mime: messageObj.video.mime_type,
+        };
+      }
+
+      // DOCUMENT (PDF / DOCX / etc.)
+      if (messageObj.document) {
+        return {
+          type: "document",
+          mediaId: messageObj.document.id,
+          mime: messageObj.document.mime_type,
+        };
+      }
+
+      return null;
+
+    } catch (err) {
+      Logging.logError("extractMediaObject", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 📦 HANDLE COMPLETE MEDIA FLOW:
+   * Called from Code.gs when media is received
+   ************************************************************/
+  handleIncomingMedia(session, messageObj, rawJson, caseId) {
+    const mediaObj = this.extractMediaObject(messageObj);
+    if (!mediaObj) return null;
+
+    return this.processIncomingMedia(
+      session,
+      mediaObj.mediaId,
+      rawJson,
+      caseId
+    );
+  },
+
+});

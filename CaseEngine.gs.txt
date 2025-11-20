@@ -1,0 +1,486 @@
+/************************************************************
+ *  CaseEngine.gs — /storage (BLOCK 1/4)
+ *  Case Creation + Sheet Mapping
+ ************************************************************/
+
+const CaseEngine = {
+
+  /************************************************************
+   *  📌 MAP COLUMN INDEXES FOR CASE SHEET
+   ************************************************************/
+  getCasesIndexMap() {
+    const sheet = CONFIG.getCasesSheet();
+    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    const indexMap = {};
+
+    header.forEach((col, idx) => {
+      indexMap[col] = idx + 1; // 1-based index
+    });
+
+    return indexMap;
+  },
+
+  /************************************************************
+   * 📥 CREATE NEW CASE
+   * Creates row with:
+   *   - Case_ID
+   *   - Created_At
+   *   - WhatsApp_Number
+   *   - Region
+   *   - Language
+   *   - Flow_Type
+   *   - Q1…Q16 = blank
+   *   - Extra_Notes = blank
+   *   - Media_Links = blank
+   *   - Case_Status = Submitted
+   ************************************************************/
+  createCase(session) {
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    const region = session.Region_Group || "OTHER";
+    const lang = session.Preferred_Language || "EN";
+
+    const caseId = Utils.generateCaseId(region);
+
+    // Log new case
+    Logging.logNewCase(caseId, session.WhatsApp_Number);
+
+    // Build row data
+    const rowData = [];
+    rowData[idx["Case_ID"] - 1] = caseId;
+    rowData[idx["Created_At"] - 1] = Utils.formatDate(new Date());
+    rowData[idx["WhatsApp_Number"] - 1] = session.WhatsApp_Number;
+    rowData[idx["Region"] - 1] = region;
+    rowData[idx["Language"] - 1] = lang;
+    rowData[idx["Flow_Type"] - 1] = session.Flow_Type;
+
+    // Q1…Q16 → empty
+    for (let q = 1; q <= 16; q++) {
+      const col = `Q${q}`;
+      if (idx[col]) rowData[idx[col] - 1] = "";
+    }
+
+    // Extra sections
+    if (idx["Extra_Notes"]) rowData[idx["Extra_Notes"] - 1] = "";
+    if (idx["Media_Links"]) rowData[idx["Media_Links"] - 1] = "";
+    if (idx["Case_Status"]) rowData[idx["Case_Status"] - 1] = "Submitted";
+
+    // Insert into sheet
+    sheet.appendRow(rowData);
+
+    return caseId;
+  },
+
+  /************************************************************
+   * 🔍 FIND CASE ROW BY ID
+   ************************************************************/
+  findCaseRow(caseId) {
+    const sheet = CONFIG.getCasesSheet();
+    const data = sheet.getDataRange().getValues();
+    const header = data[0];
+
+    const idx = header.indexOf("Case_ID");
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idx]) === String(caseId)) {
+        return i + 1;
+      }
+    }
+
+    return null;
+  },
+
+};
+/************************************************************
+ *  CaseEngine.gs — /storage (BLOCK 2/4)
+ *  Writing Answers, Notes, Media, Status Handling
+ ************************************************************/
+
+Object.assign(CaseEngine, {
+
+  /************************************************************
+   * ✏️ WRITE Q1–Q16 ANSWER
+   ************************************************************/
+  writeAnswer(caseId, questionNumber, answer) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return false;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    const colName = `Q${questionNumber}`;
+    const colIndex = idx[colName];
+
+    if (!colIndex) return false; // safety
+
+    sheet.getRange(row, colIndex).setValue(answer);
+
+    // Log flow
+    Logging.logCaseUpdate(caseId, `Q${questionNumber} Saved`, "");
+    return true;
+  },
+
+  /************************************************************
+   * 📝 WRITE EXTRA NOTES
+   ************************************************************/
+  writeExtraNotes(caseId, notes) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return false;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx["Extra_Notes"]) return false;
+
+    sheet.getRange(row, idx["Extra_Notes"]).setValue(notes);
+
+    Logging.logCaseUpdate(caseId, "Extra Notes Updated", "");
+    return true;
+  },
+
+  /************************************************************
+   * 🖼 ADD MEDIA LINK (append-safe)
+   ************************************************************/
+  addMedia(caseId, mediaUrl) {
+    if (!mediaUrl) return;
+
+    const row = this.findCaseRow(caseId);
+    if (!row) return;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx["Media_Links"]) return;
+
+    const cell = sheet.getRange(row, idx["Media_Links"]);
+    const existing = cell.getValue();
+
+    let updated;
+    if (existing && existing.trim() !== "") {
+      updated = `${existing}\n${mediaUrl}`;
+    } else {
+      updated = mediaUrl;
+    }
+
+    cell.setValue(updated);
+
+    Logging.logCaseUpdate(caseId, "Media Added", "");
+  },
+
+  /************************************************************
+   * 🟡 MARK AS IN-PROGRESS
+   ************************************************************/
+  markInProgress(caseId) {
+    this.updateStatus(caseId, "In Progress");
+  },
+
+  /************************************************************
+   * 🔴 MARK AS EMERGENCY
+   ************************************************************/
+  markEmergency(caseId) {
+    this.updateStatus(caseId, "Emergency");
+    Logging.logEmergency(caseId, "");
+  },
+
+  /************************************************************
+   * 🟢 MARK AS CLOSED
+   ************************************************************/
+  markClosed(caseId) {
+    this.updateStatus(caseId, "Closed");
+  },
+
+  /************************************************************
+   * ⚪ MARK AS REJECTED
+   ************************************************************/
+  markRejected(caseId) {
+    this.updateStatus(caseId, "Rejected");
+  },
+
+  /************************************************************
+   * 🔵 MARK AS SUBMITTED (initial)
+   ************************************************************/
+  markSubmitted(caseId) {
+    this.updateStatus(caseId, "Submitted");
+  },
+
+  /************************************************************
+   * 🧭 UPDATE STATUS (centralized)
+   ************************************************************/
+  updateStatus(caseId, status) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx["Case_Status"]) return;
+
+    sheet.getRange(row, idx["Case_Status"]).setValue(status);
+
+    Logging.logCaseUpdate(caseId, `Status → ${status}`, "");
+  },
+
+});
+/************************************************************
+ *  CaseEngine.gs — /storage (BLOCK 3/4)
+ *  Case Updates + Smart Matching + Case Retrieval
+ ************************************************************/
+
+Object.assign(CaseEngine, {
+
+  /************************************************************
+   * 📝 ADD CASE UPDATE (writes to Case_Updates sheet)
+   ************************************************************/
+  addCaseUpdate(caseId, updateType, content, mediaUrl, rawJson) {
+    const sheet = CONFIG.getCaseUpdatesSheet();
+
+    sheet.appendRow([
+      Utils.generateCaseId("UPD"),             // Update_ID (unique)
+      Utils.formatDate(new Date()),            // Created_At
+      caseId,                                  // Case_ID
+      updateType,                              // Update_Type
+      content || "",                           // Content
+      mediaUrl || "",                           // Media_Links
+      Utils.safeStringify(rawJson || {})       // Raw_JSON
+    ]);
+
+    Logging.logCaseUpdate(caseId, updateType, "");
+  },
+
+  /************************************************************
+   * 🔍 GET FULL CASE RECORD AS OBJECT
+   ************************************************************/
+  getCase(caseId) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return null;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+    const data = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    const result = {};
+
+    for (const colName in idx) {
+      result[colName] = data[idx[colName] - 1];
+    }
+
+    return result;
+  },
+
+  /************************************************************
+   * 🔍 GET SPECIFIC FIELD (Q1–Q16 or metadata)
+   ************************************************************/
+  getCaseField(caseId, fieldName) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return null;
+
+    const idx = this.getCasesIndexMap();
+    if (!idx[fieldName]) return null;
+
+    const sheet = CONFIG.getCasesSheet();
+    return sheet.getRange(row, idx[fieldName]).getValue();
+  },
+
+  /************************************************************
+   * 🔎 SMART CASE MERGE DETECTION
+   * Compare new case with all previous cases
+   ************************************************************/
+  detectPossibleMatch(newCaseId) {
+    if (!CONFIG.MERGE_LOGIC.ENABLE_SMART_MATCHING) return;
+
+    const newCase = this.getCase(newCaseId);
+    if (!newCase) return;
+
+    const sheet = CONFIG.getCasesSheet();
+    const data = sheet.getDataRange().getValues();
+    const idx = this.getCasesIndexMap();
+
+    const nameNew = (newCase["Q1"] || "").toString();
+    const regionNew = newCase["Region"];
+    const genderNew = newCase["Q4"] || "";
+    const cityNew = newCase["Q3"] || "";
+    const ageNew = parseInt(newCase["Q2"] || 0, 10);
+
+    for (let i = 1; i < data.length; i++) {
+      const rowCaseId = data[i][idx["Case_ID"] - 1];
+      if (rowCaseId === newCaseId) continue; // skip same case
+
+      const nameOld = (data[i][idx["Q1"] - 1] || "").toString();
+      const regionOld = data[i][idx["Region"] - 1] || "";
+      const genderOld = data[i][idx["Q4"] - 1] || "";
+      const cityOld = data[i][idx["Q3"] - 1] || "";
+      const ageOld = parseInt(data[i][idx["Q2"] - 1] || 0, 10);
+
+      // REGION MUST MATCH for a meaningful alert
+      if (regionOld !== regionNew) continue;
+
+      // NAME SIMILARITY
+      const sim = Utils.similarity(nameOld, nameNew);
+      if (sim < CONFIG.MERGE_LOGIC.MIN_NAME_SIMILARITY) continue;
+
+      // OPTIONAL MATCHING SIGNALS
+      let matchScore = sim;
+
+      // City match
+      if (cityOld && cityNew && cityOld.toLowerCase() === cityNew.toLowerCase()) {
+        matchScore += 0.1;
+      }
+
+      // Gender match
+      if (genderOld && genderNew && genderOld === genderNew) {
+        matchScore += 0.05;
+      }
+
+      // Age closeness (within ±3)
+      if (ageOld && ageNew && Math.abs(ageOld - ageNew) <= 3) {
+        matchScore += 0.05;
+      }
+
+      // FINAL CHECK
+      if (matchScore >= CONFIG.MERGE_LOGIC.MIN_NAME_SIMILARITY) {
+        Logging.logCaseMergeAlert(newCaseId, rowCaseId, matchScore.toFixed(2));
+      }
+    }
+  },
+
+});
+/************************************************************
+ *  CaseEngine.gs — /storage (BLOCK 4/4)
+ *  Metadata helpers, media linking, utility functions
+ ************************************************************/
+
+Object.assign(CaseEngine, {
+
+  /************************************************************
+   * 🔗 LINK MEDIA TO CASE (Safe wrapper)
+   ************************************************************/
+  linkMediaToCase(caseId, mediaUrl) {
+    if (!caseId || !mediaUrl) return false;
+    this.addMedia(caseId, mediaUrl);
+    return true;
+  },
+
+  /************************************************************
+   * 🌍 SAVE REGION
+   ************************************************************/
+  saveCaseRegion(caseId, region) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return false;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx["Region"]) return false;
+
+    sheet.getRange(row, idx["Region"]).setValue(region);
+    Logging.logCaseUpdate(caseId, "Region Updated", "");
+    return true;
+  },
+
+  /************************************************************
+   * 🗣 SAVE LANGUAGE
+   ************************************************************/
+  saveCaseLanguage(caseId, lang) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return false;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx["Language"]) return false;
+
+    sheet.getRange(row, idx["Language"]).setValue(lang);
+    Logging.logCaseUpdate(caseId, "Language Updated", "");
+    return true;
+  },
+
+  /************************************************************
+   * 🔄 SAVE FLOW TYPE (A / B / C)
+   ************************************************************/
+  saveCaseFlowType(caseId, flowType) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return false;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx["Flow_Type"]) return false;
+
+    sheet.getRange(row, idx["Flow_Type"]).setValue(flowType);
+    Logging.logCaseUpdate(caseId, "Flow Type Updated", "");
+    return true;
+  },
+
+  /************************************************************
+   * 🧩 UPDATE GENERIC META FIELDS (fallback helper)
+   ************************************************************/
+  updateCaseMeta(caseId, fieldName, value) {
+    const row = this.findCaseRow(caseId);
+    if (!row) return false;
+
+    const sheet = CONFIG.getCasesSheet();
+    const idx = this.getCasesIndexMap();
+
+    if (!idx[fieldName]) return false;
+
+    sheet.getRange(row, idx[fieldName]).setValue(value);
+    Logging.logCaseUpdate(caseId, `Meta Updated: ${fieldName}`, "");
+    return true;
+  },
+
+  /************************************************************
+   * ✔ CHECK IF CASE EXISTS
+   ************************************************************/
+  caseExists(caseId) {
+    return this.findCaseRow(caseId) !== null;
+  },
+
+  /************************************************************
+   * 📂 GET ALL CASE IDs (utility)
+   ************************************************************/
+  listAllCaseIds() {
+    const sheet = CONFIG.getCasesSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) return [];
+
+    const header = data[0];
+    const idx = header.indexOf("Case_ID");
+
+    const ids = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const id = data[i][idx];
+      if (id) ids.push(id);
+    }
+
+    return ids;
+  },
+
+  /************************************************************
+   * 🧪 MATCH HELPER (compares two fields safely)
+   * Not used directly by flows — internal matching logic
+   ************************************************************/
+  matchField(a, b) {
+    if (!a || !b) return false;
+    return a.toString().trim().toLowerCase() === b.toString().trim().toLowerCase();
+  },
+
+  /************************************************************
+   * 🧮 MATCH SCORE MERGE HELPER (returns similarity)
+   ************************************************************/
+  getSimilarityScore(nameA, nameB) {
+    return Utils.similarity(nameA, nameB);
+  },
+
+  /************************************************************
+   * 🔧 INTERNAL HOOK FOR FUTURE MERGE EXPANSION
+   * (kept empty intentionally for future upgrade)
+   ************************************************************/
+  _futureHook(caseId) {
+    // Reserved for advanced merging logic
+  },
+
+});

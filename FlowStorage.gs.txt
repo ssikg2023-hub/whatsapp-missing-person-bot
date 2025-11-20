@@ -1,0 +1,156 @@
+/************************************************************
+ *  FlowStorage.gs — /storage (BLOCK 1/2)
+ *  Step metadata (NO TEXT HERE)
+ ************************************************************/
+
+const FlowStorage = {
+
+  /************************************************************
+   * MAP: Step → Flow
+   * (Filled by you later when we import the Flow Document)
+   ************************************************************/
+  STEP_MAP: {
+    // EXAMPLES — will be filled exactly according to Flow Document step codes
+    // "A_Q1": "A",
+    // "A_Q2": "A",
+    // "C_ELIG1": "C",
+    // "C_Q5": "C",
+    // "B_Q7": "B",
+    // "EX_Q3": "EXISTING",
+    // "UPD_Q1": "CASE_UPDATE",
+  },
+
+  /************************************************************
+   * SET: Steps that REQUIRE text-only input
+   * (audio/video allowed but user must ALSO type)
+   * Will be fully populated from Flow Document rules
+   ************************************************************/
+  TEXT_REQUIRED_SET: new Set([
+    // Example entries:
+    // "A_Q1", "A_Q2", "C_Q3", "UPD_Q1"
+  ]),
+
+  /************************************************************
+   * SET: Steps that ALLOW media (image/audio/video)
+   ************************************************************/
+  MEDIA_ALLOWED_SET: new Set([
+    // Example entries:
+    // "A_Q9", "C_Q12", "EX_Q5"
+  ]),
+
+  /************************************************************
+   * SET: Steps that ENABLE multi-reply ("Are you done?")
+   ************************************************************/
+  MULTI_REPLY_ENABLED_SET: new Set([
+    // Example:
+    // "A_Q8", "C_Q14"
+  ]),
+
+  /************************************************************
+   * ✔ Get flow name from step code
+   ************************************************************/
+  getFlowFromStep(stepCode) {
+    return this.STEP_MAP[stepCode] || "";
+  },
+
+  /************************************************************
+   * ✔ Check if step requires typed text
+   ************************************************************/
+  stepRequiresText(stepCode) {
+    return this.TEXT_REQUIRED_SET.has(stepCode);
+  },
+
+  /************************************************************
+   * ✔ Check if media allowed
+   ************************************************************/
+  stepAllowsMedia(stepCode) {
+    return this.MEDIA_ALLOWED_SET.has(stepCode);
+  },
+
+  /************************************************************
+   * ✔ Check if multi-reply allowed
+   ************************************************************/
+  stepAllowsMultiReply(stepCode) {
+    return this.MULTI_REPLY_ENABLED_SET.has(stepCode);
+  },
+
+};
+/************************************************************
+ *  FlowStorage.gs — /storage (BLOCK 2/2)
+ *  Eligibility flags, routing helpers, type-check helpers
+ ************************************************************/
+
+Object.assign(FlowStorage, {
+
+  /************************************************************
+   * SET: Eligibility Steps (Flow A)
+   * (Police/Agency related eligibility from Flow Document)
+   ************************************************************/
+  ELIGIBILITY_STEPS_A: new Set([
+    // e.g. "A_ELIG1", "A_ELIG2"
+  ]),
+
+  /************************************************************
+   * SET: Eligibility Steps (Flow C)
+   * ("Do you have direct access?" eligibility from Flow Document)
+   ************************************************************/
+  ELIGIBILITY_STEPS_C: new Set([
+    // e.g. "C_ELIG1", "C_ELIG2"
+  ]),
+
+  /************************************************************
+   * SET: Existing Case Flow Steps
+   ************************************************************/
+  EXISTING_CASE_STEPS: new Set([
+    // e.g. "EX_Q1", "EX_Q2"
+  ]),
+
+  /************************************************************
+   * SET: Case Update Flow Steps
+   ************************************************************/
+  CASE_UPDATE_STEPS: new Set([
+    // e.g. "UPD_Q1", "UPD_Q2"
+  ]),
+
+  /************************************************************
+   * ✔ Check if step is Flow A eligibility
+   ************************************************************/
+  isFlowAEligibilityStep(stepCode) {
+    return this.ELIGIBILITY_STEPS_A.has(stepCode);
+  },
+
+  /************************************************************
+   * ✔ Check if step is Flow C eligibility
+   ************************************************************/
+  isFlowCEligibilityStep(stepCode) {
+    return this.ELIGIBILITY_STEPS_C.has(stepCode);
+  },
+
+  /************************************************************
+   * ✔ Check if step belongs to Existing Case flow
+   ************************************************************/
+  isExistingCaseStep(stepCode) {
+    return this.EXISTING_CASE_STEPS.has(stepCode);
+  },
+
+  /************************************************************
+   * ✔ Check if step belongs to Case Update flow
+   ************************************************************/
+  isCaseUpdateStep(stepCode) {
+    return this.CASE_UPDATE_STEPS.has(stepCode);
+  },
+
+  /************************************************************
+   * 🔁 NEXT STEP LOOKUP (SKELETON)
+   * NOTE:
+   *   Actual sequence comes from Flows (A/B/C/Existing/Update).
+   *   Here we just provide a hook so flows can centralize logic
+   *   if needed later.
+   ************************************************************/
+  getNextStep(currentStepCode, flowType) {
+    // By default, flows will manage their own next-step logic.
+    // This function is a placeholder for future centralization.
+    return null;
+  },
+
+});
