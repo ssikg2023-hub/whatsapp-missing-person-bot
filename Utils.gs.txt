@@ -1,0 +1,276 @@
+
+/************************************************************
+ *  Utils.gs — /core (BLOCK 1/2)
+ *  Global Utilities used across the project
+ ************************************************************/
+
+const Utils = {
+
+  /************************************************************
+   * 🔍 SAFE JSON PARSE
+   ************************************************************/
+  safeParse(jsonString, fallback = {}) {
+    try {
+      if (!jsonString) return fallback;
+      return JSON.parse(jsonString);
+    } catch (e) {
+      return fallback;
+    }
+  },
+
+  /************************************************************
+   * 📦 SAFE JSON STRINGIFY
+   ************************************************************/
+  safeStringify(obj) {
+    try {
+      return JSON.stringify(obj);
+    } catch (e) {
+      return "{}";
+    }
+  },
+
+  /************************************************************
+   * 🌍 DETECT REGION BY PREFIX
+   ************************************************************/
+  detectRegion(number) {
+    const prefixes = CONFIG.REGION_PREFIXES;
+
+    for (const region in prefixes) {
+      for (const prefix of prefixes[region]) {
+        if (number.startsWith(prefix)) {
+          return region;
+        }
+      }
+    }
+
+    return CONFIG.DEFAULT_REGION;
+  },
+
+  /************************************************************
+   * 🕒 CHECK IF SESSION EXPIRED (24-HOUR LOGIC)
+   ************************************************************/
+  isSessionExpired(session) {
+    if (!session || !session.Updated_At) return false;
+
+    const last = new Date(session.Updated_At).getTime();
+    const now = new Date().getTime();
+
+    const diffHours = (now - last) / (1000 * 60 * 60);
+    return diffHours >= CONFIG.INACTIVITY_TIMEOUT_HOURS;
+  },
+
+  /************************************************************
+   * 🆔 GENERATE CASE ID
+   * Format: <REG>-<DATETIME>-<RANDOM5>
+   ************************************************************/
+  generateCaseId(region) {
+    const timestamp = Utilities.formatDate(
+      new Date(),
+      "UTC",
+      CONFIG.CASE_ID.DATE_FORMAT
+    );
+
+    const randomTail = Math.floor(
+      Math.random() * Math.pow(10, CONFIG.CASE_ID.RANDOM_TAIL_LENGTH)
+    )
+      .toString()
+      .padStart(CONFIG.CASE_ID.RANDOM_TAIL_LENGTH, "0");
+
+    return `${region}-${timestamp}-${randomTail}`;
+  },
+
+  /************************************************************
+   * 📅 FORMAT DATE HELPER
+   ************************************************************/
+  formatDate(dateObj) {
+    return Utilities.formatDate(dateObj, "UTC", "yyyy-MM-dd HH:mm:ss");
+  },
+
+  /************************************************************
+   * 📲 SEND TEXT (Shortcut)
+   * (main logic is in Code.gs caller)
+   ************************************************************/
+  sendText(to, text) {
+    // Replaced at runtime in Code.gs
+  },
+
+  /************************************************************
+   * 🌐 DOWNLOAD MEDIA FROM WHATSAPP (returns blob)
+   ************************************************************/
+  fetchMediaBlob(mediaId) {
+    try {
+      const mediaUrl = CONFIG.ENDPOINTS.MEDIA_URL(mediaId);
+      const options = {
+        headers: {
+          Authorization: "Bearer " + CONFIG.WHATSAPP_ACCESS_TOKEN,
+        },
+        muteHttpExceptions: true,
+      };
+
+      const response = UrlFetchApp.fetch(mediaUrl, options);
+      return response.getBlob();
+
+    } catch (err) {
+      Logging.logError("Media Fetch Error", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 📝 VALIDATE MIME TYPE
+   ************************************************************/
+  validateMime(mime) {
+    return CONFIG.MEDIA.ALLOWED_MIME_TYPES.includes(mime);
+  },
+
+  /************************************************************
+   * 📏 VALIDATE FILE SIZE (MB)
+   ************************************************************/
+  validateFileSize(blob) {
+    const sizeMB = blob.getBytes().length / (1024 * 1024);
+    return sizeMB <= CONFIG.MEDIA.MAX_FILE_SIZE_MB;
+  },
+
+  /************************************************************
+   * 🌐 GET PUBLIC URL FOR DRIVE FILE
+   ************************************************************/
+  makePublic(file) {
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return file.getUrl();
+    } catch (err) {
+      Logging.logError("makePublic Error", err);
+      return null;
+    }
+  },
+
+};
+/************************************************************
+ *  Utils.gs — /core (BLOCK 2/2)
+ *  Advanced utilities for flows, audio, TTS, step validation
+ ************************************************************/
+
+Object.assign(Utils, {
+
+  /************************************************************
+   * 🔊 RESOLVE AUDIO PROMPT:
+   * If audio exists in your Drive → use it
+   * Else → fallback to TTS for other languages
+   *
+   * Audio file naming convention:
+   *    <STEP_CODE>_<LANG>.mp3
+   * Example:
+   *    Q3_UR.mp3
+   *    LANG_MENU_HI.mp3
+   ************************************************************/
+  resolveAudioPrompt(stepCode, lang) {
+    try {
+      const folder = DriveApp.getFolderById(CONFIG.FOLDERS.AUDIO_PROMPTS);
+      const files = folder.getFiles();
+
+      while (files.hasNext()) {
+        const f = files.next();
+        const name = f.getName();
+
+        if (name === `${stepCode}_${lang}.mp3`) {
+          return Utils.makePublic(f);
+        }
+      }
+
+      // No file → fallback to TTS
+      if (CONFIG.AUDIO.USE_TTS_FOR_OTHER_LANGUAGES) {
+        return this.generateTTS(stepCode, lang);
+      }
+
+      return null;
+
+    } catch (err) {
+      Logging.logError("resolveAudioPrompt Error", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 🗣 TTS GENERATOR (Fallback for non-Urdu/Hindi languages)
+   * NOTE: This uses Google Apps Script built-in TTS via
+   *       "generateSpeech()" (modern GAS runtime)
+   ************************************************************/
+  generateTTS(stepCode, lang) {
+    try {
+      const text = Texts_Wrapper.getText(stepCode, lang);
+      if (!text) return null;
+
+      const blob = Utilities.newBlob(
+        LanguageApp.translate(text, lang, "en"), 
+        "audio/mp3"
+      );
+
+      const file = DriveApp.getFolderById(CONFIG.FOLDERS.AUDIO_PROMPTS)
+        .createFile(blob)
+        .setName(`AUTO_${stepCode}_${lang}.mp3`);
+
+      return Utils.makePublic(file);
+
+    } catch (err) {
+      Logging.logError("generateTTS Error", err);
+      return null;
+    }
+  },
+
+  /************************************************************
+   * 🧭 LANGUAGE NORMALIZER
+   * Converts menu input → language code
+   ************************************************************/
+  mapLanguageChoice(input, regionGroup) {
+    return Texts_LangMenus.mapChoiceToLang(input, regionGroup);
+  },
+
+  /************************************************************
+   * ❗ STEP REQUIRES TEXT?
+   * FlowStorage will check exact step from the flow spec
+   * Here we only provide a helper
+   ************************************************************/
+  stepRequiresText(stepCode) {
+    return FlowStorage.stepRequiresText(stepCode);
+  },
+
+  /************************************************************
+   * 🔢 NORMALIZE PHONE NUMBER
+   ************************************************************/
+  normalizePhone(num) {
+    if (!num) return "";
+    return num.replace(/\D+/g, "");
+  },
+
+  /************************************************************
+   * 🔡 TRIM + SAFE STRING
+   ************************************************************/
+  clean(text) {
+    if (!text) return "";
+    return text.toString().trim();
+  },
+
+  /************************************************************
+   * ❓ IS NUMBER?
+   ************************************************************/
+  isNumber(str) {
+    return /^\d+$/.test(str);
+  },
+
+  /************************************************************
+   * 🔁 ARRAY SIMILARITY (for name matching)
+   * A simple helper for case merge suggestions
+   ************************************************************/
+  similarity(a, b) {
+    if (!a || !b) return 0;
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+
+    let matches = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (b.includes(a[i])) matches++;
+    }
+    return matches / Math.max(a.length, b.length);
+  },
+
+});

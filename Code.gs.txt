@@ -1,0 +1,406 @@
+/************************************************************
+ *  Code.gs — /core (BLOCK 1/3)
+ *  MAIN WHATSAPP ROUTER — ENTRYPOINTS & VERIFICATION
+ ************************************************************/
+
+/************************************************************
+ * 1️⃣ VERIFY WEBHOOK (GET)
+ * Meta sends a GET request when you add webhook URL
+ ************************************************************/
+function doGet(e) {
+  try {
+    const mode = e.parameter["hub.mode"];
+    const token = e.parameter["hub.verify_token"];
+    const challenge = e.parameter["hub.challenge"];
+
+    if (mode === "subscribe" && token === CONFIG.VERIFY_TOKEN) {
+      return ContentService.createTextOutput(challenge);
+    }
+
+    return ContentService.createTextOutput("INVALID TOKEN");
+  } catch (err) {
+    Logging.logError("Webhook Verification Failed", err);
+    return ContentService.createTextOutput("ERROR");
+  }
+}
+
+
+/************************************************************
+ * 2️⃣ WEBHOOK RECEIVER (POST)
+ * WhatsApp sends ALL inbound messages here
+ ************************************************************/
+function doPost(e) {
+  try {
+    const rawBody = JSON.parse(e.postData.contents);
+
+    // Normalize message into a standard object
+    const msg = extractMessage_(rawBody);
+
+    if (!msg) {
+      Logging.logError("Invalid Message Payload", rawBody);
+      return ContentService.createTextOutput("OK");
+    }
+
+    // Pass to dispatcher
+    handleIncomingMessage_(msg);
+
+  } catch (err) {
+    Logging.logError("doPost Failure", err);
+  }
+
+  return ContentService.createTextOutput("OK");
+}
+
+
+/************************************************************
+ * 3️⃣ EXTRACT MESSAGE OBJECT
+ * Normalizes WhatsApp webhook payload → our internal structure
+ ************************************************************/
+function extractMessage_(data) {
+  try {
+    if (!data.entry || !data.entry[0].changes) return null;
+    const changes = data.entry[0].changes[0];
+
+    if (!changes.value || !changes.value.messages) return null;
+    const msg = changes.value.messages[0];
+
+    let normalized = {
+      number: changes.value.metadata.phone_number_id,
+      from: msg.from,
+      id: msg.id,
+      timestamp: msg.timestamp,
+      type: msg.type,
+      text: null,
+      mediaId: null,
+      mediaMime: null,
+    };
+
+    // ──────────────────────────────────────────────────────────
+    // TEXT MESSAGE
+    // ──────────────────────────────────────────────────────────
+    if (msg.type === "text") {
+      normalized.text = msg.text.body.trim();
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // IMAGE
+    // ──────────────────────────────────────────────────────────
+    if (msg.type === "image") {
+      normalized.mediaId = msg.image.id;
+      normalized.mediaMime = msg.image.mime_type;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // AUDIO
+    // ──────────────────────────────────────────────────────────
+    if (msg.type === "audio") {
+      normalized.mediaId = msg.audio.id;
+      normalized.mediaMime = msg.audio.mime_type;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // VIDEO
+    // ──────────────────────────────────────────────────────────
+    if (msg.type === "video") {
+      normalized.mediaId = msg.video.id;
+      normalized.mediaMime = msg.video.mime_type;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // DOCUMENT (users may send PDF/JPG)
+    // ──────────────────────────────────────────────────────────
+    if (msg.type === "document") {
+      normalized.mediaId = msg.document.id;
+      normalized.mediaMime = msg.document.mime_type;
+    }
+
+    return normalized;
+
+  } catch (err) {
+    Logging.logError("extractMessage_ Error", err);
+    return null;
+  }
+}
+/************************************************************
+ *  Code.gs — BLOCK 2/3
+ *  Dispatcher, Session Loader, Timeout Logic, Flow Routing
+ ************************************************************/
+
+/************************************************************
+ * MAIN DISPATCHER
+ * Handles all inbound messages after extraction
+ ************************************************************/
+function handleIncomingMessage_(msg) {
+  try {
+    // Load or create user session
+    let session = SessionEngine.load(msg.from);
+
+    // Auto-set region if empty
+    if (!session.Region_Group) {
+      session.Region_Group = Utils.detectRegion(msg.from);
+      SessionEngine.save(session);
+    }
+
+    // Update session timestamp
+    session.Updated_At = new Date();
+    SessionEngine.save(session);
+
+    // Handle multi-reply silence logic
+    if (multiReplyIncomplete_(session)) {
+      return askAreYouDone_(session);
+    }
+
+    // Check for timeout inactivity (24-hour logic)
+    if (Utils.isSessionExpired(session)) {
+      return resendSameStepAfterTimeout_(session);
+    }
+
+    // Route by content type
+    if (msg.type === "text") {
+      return handleTextMessage_(session, msg);
+    } else {
+      return handleMediaMessage_(session, msg);
+    }
+
+  } catch (err) {
+    Logging.logError("Dispatcher Error", err);
+  }
+}
+
+
+/************************************************************
+ * MULTI-REPLY LOGIC
+ * User can send 2–3 messages before finalizing an answer
+ ************************************************************/
+function multiReplyIncomplete_(session) {
+  if (!CONFIG.ASK_ARE_YOU_DONE_ONLY_ONCE) return false;
+
+  // If already asked → skip
+  if (session._askedDone) return false;
+
+  // If user already typed something for this step → allow more replies
+  if (!session._multiStartTime) {
+    session._multiStartTime = new Date().getTime();
+    SessionEngine.save(session);
+    return false;
+  }
+
+  const elapsed = (new Date().getTime() - session._multiStartTime) / 1000;
+  return elapsed >= CONFIG.MULTI_REPLY_TIMEOUT_SECONDS;
+}
+
+
+/************************************************************
+ * SEND "Are you done?" PROMPT ONCE
+ ************************************************************/
+function askAreYouDone_(session) {
+  session._askedDone = true;
+  SessionEngine.save(session);
+
+  const lang = session.Preferred_Language || "EN";
+  const text = Texts_Wrapper.getAreYouDone(lang);
+
+  Utils.sendText(session.from, text);
+}
+
+
+/************************************************************
+ * HANDLE INACTIVITY TIMEOUT (24 hours)
+ * Resend the current step AS-IS (flow text from document)
+ ************************************************************/
+function resendSameStepAfterTimeout_(session) {
+  const step = session.Current_Step_Code;
+
+  // Send exact text based on flow + step code
+  const resendText = FlowStorage.getStepText(step, session);
+  Utils.sendText(session.from, resendText);
+
+  // Do NOT move forward; user must answer same step
+}
+
+
+/************************************************************
+ * HANDLE TEXT MESSAGE
+ ************************************************************/
+function handleTextMessage_(session, msg) {
+  const incoming = msg.text;
+
+  // Mark session active for multi-reply
+  session._multiStartTime = new Date().getTime();
+  session._askedDone = false;
+  SessionEngine.save(session);
+
+  // Forward to flow engine
+  Flows.routeMessage(
+    session,
+    incoming,
+    msg,         // raw msg obj
+    null,        // no media URL
+    null         // no media MIME
+  );
+}
+
+
+/************************************************************
+ * HANDLE MEDIA MESSAGE (audio, image, video, document)
+ ************************************************************/
+function handleMediaMessage_(session, msg) {
+  // Download & upload to Drive
+  const driveUrl = MediaEngine.saveMedia(msg.mediaId, msg.mediaMime);
+
+  // Attach as latest response
+  session._lastMediaUrl = driveUrl;
+  session._multiStartTime = new Date().getTime();
+  session._askedDone = false;
+  SessionEngine.save(session);
+
+  // If step requires TEXT only
+  if (FlowStorage.stepRequiresText(session.Current_Step_Code)) {
+    const reminder = Texts_Wrapper.getMandatoryTextReminder(
+      session.Preferred_Language
+    );
+
+    Utils.sendText(session.from, reminder);
+    return;
+  }
+
+  // Pass media link forward (flow engine will record it)
+  Flows.routeMessage(
+    session,
+    null,
+    msg,
+    driveUrl,
+    msg.mediaMime
+  );
+}
+/************************************************************
+ *  Code.gs — BLOCK 3/3
+ *  WHATSAPP OUTBOUND MESSAGE ENGINE
+ ************************************************************/
+
+/************************************************************
+ * 🔄 MARK MESSAGE AS READ
+ ************************************************************/
+function markAsRead_(messageId) {
+  try {
+    const payload = {
+      messaging_product: "whatsapp",
+      status: "read",
+      message_id: messageId,
+    };
+
+    callWhatsAppAPI_(CONFIG.ENDPOINTS.MARK_READ, payload);
+  } catch (err) {
+    Logging.logError("markAsRead_ Error", err);
+  }
+}
+
+
+/************************************************************
+ * 💬 SEND TEXT MESSAGE
+ ************************************************************/
+Utils.sendText = function (to, text) {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "text",
+    text: { body: text },
+  };
+
+  callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
+};
+
+
+/************************************************************
+ * 🔊 SEND AUDIO MESSAGE
+ * Auto-select:
+ *  - Urdu / Roman Urdu / Hindi → Your uploaded audio file
+ *  - Other languages → TTS
+ ************************************************************/
+Utils.sendAudio = function (to, audioUrl) {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "audio",
+    audio: { link: audioUrl },
+  };
+
+  callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
+};
+
+
+/************************************************************
+ * 🖼 SEND IMAGE
+ ************************************************************/
+Utils.sendImage = function (to, imageUrl) {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "image",
+    image: { link: imageUrl },
+  };
+
+  callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
+};
+
+
+/************************************************************
+ * 🎥 SEND VIDEO
+ ************************************************************/
+Utils.sendVideo = function (to, videoUrl) {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: to,
+    type: "video",
+    video: { link: videoUrl },
+  };
+
+  callWhatsAppAPI_(CONFIG.ENDPOINTS.SEND_MESSAGE, payload);
+};
+
+
+/************************************************************
+ * ☎ UNIVERSAL CALLER FOR ALL WHATSAPP API REQUESTS
+ * Handles:
+ *   - Error logging
+ *   - Re-tries
+ *   - Payload storage
+ ************************************************************/
+function callWhatsAppAPI_(endpointPath, payload) {
+  const url = CONFIG.makeUrl(endpointPath);
+
+  const options = {
+    method: "post",
+    muteHttpExceptions: true,
+    payload: JSON.stringify(payload),
+    headers: CONFIG.DEFAULT_HEADERS,
+  };
+
+  let response, status;
+  let attempts = 0;
+
+  while (attempts <= CONFIG.LOGGING.MAX_RETRY_ATTEMPTS) {
+    try {
+      response = UrlFetchApp.fetch(url, options);
+      status = response.getResponseCode();
+
+      if (status >= 200 && status < 300) {
+        return JSON.parse(response.getContentText());
+      }
+
+      // Non-success → log error
+      Logging.logWhatsAppError(url, payload, response);
+
+      if (!CONFIG.LOGGING.RETRY_FAILED_REQUESTS) break;
+
+    } catch (err) {
+      Logging.logError("callWhatsAppAPI_ Exception", err);
+      if (!CONFIG.LOGGING.RETRY_FAILED_REQUESTS) break;
+    }
+
+    attempts++;
+    Utilities.sleep(CONFIG.LOGGING.RETRY_DELAY_SECONDS * 1000);
+  }
+
+  return null;
+}

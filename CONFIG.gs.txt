@@ -1,0 +1,291 @@
+/************************************************************
+ *  CONFIG.gs — BLOCK 1/4
+ *  WhatsApp / Meta API Configuration
+ *  (All placeholder values — replace with real ones later)
+ ************************************************************/
+
+const CONFIG = {
+
+  /***********************
+   * 🔐 META / WHATSAPP API
+   ***********************/
+  VERIFY_TOKEN: "Test1",
+  WHATSAPP_ACCESS_TOKEN: "EAFcOIcPToZA4BPwscXTygWnzD1jYC4qLIXZBCeknA7IJWrpKPCCmv8XvbaKi9arlRt5fuWvSZCRx18RhKnRemWPR73mAOlSjVQ87828DBSZCbwNnpV6LxqzAxzcG5FIChXMETkNnBnfp3JXVik3jpJ8PDyHkaaTqI8Hs3JncKZA7HfKyI7TREZCNUY9hSsdJJzuO39vsmGEReQpYQYEyquGxalmiHcmfzjOGSpiVciGZBLHwuMgYjxtkjGBgl8lTnOXYG1cpeTxxsDpd7bAZAX7ZA7jMZD",
+  WHATSAPP_PHONE_NUMBER_ID: "890108940845609",
+  WHATSAPP_BUSINESS_ID: "2321676964964238",
+  API_VERSION: "v21.0",
+
+  /***********************
+   * 🌐 API BASE URLS
+   ***********************/
+  META_BASE_URL: "https://graph.facebook.com/",
+  
+  get WHATSAPP_URL() {
+    // Example: https://graph.facebook.com/v21.0/123456789/messages
+    return `${this.META_BASE_URL}${this.API_VERSION}/${this.WHATSAPP_PHONE_NUMBER_ID}`;
+  },
+
+  /***********************
+   * 🔧 COMMON HEADERS
+   ***********************/
+  get DEFAULT_HEADERS() {
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${this.WHATSAPP_ACCESS_TOKEN}`,
+    };
+  },
+
+  /***********************
+   * 🎯 META ENDPOINTS
+   ***********************/
+  ENDPOINTS: {
+    SEND_MESSAGE: "/messages",
+    MARK_READ: "/messages",
+    MEDIA_URL: (mediaId) =>
+      `${CONFIG.META_BASE_URL}${CONFIG.API_VERSION}/${mediaId}`,
+  },
+
+  /***********************
+   * 📌 META HELPER
+   ***********************/
+  makeUrl(path) {
+    return `${this.WHATSAPP_URL}${path}`;
+  },
+};
+/************************************************************
+ *  CONFIG.gs — BLOCK 2/4
+ *  Google Sheets + Drive Folder IDs
+ *  (All placeholder values — replace later)
+ ************************************************************/
+
+Object.assign(CONFIG, {
+
+  /***********************************
+   * 📄 MASTER GOOGLE SHEET (MAIN FILE)
+   ***********************************/
+  MASTER_SHEET_ID: "1aaS_cVe9CgqxjDkEH4bfqjoIDSUTjY0ZSgUqNyTawYM",
+
+  /***********************************
+   * 📑 SHEET TAB NAMES (DO NOT RENAME)
+   ***********************************/
+  SHEETS: {
+    USER_SESSIONS: "User_Sessions",
+    CASES: "Cases",
+    CASE_UPDATES: "Case_Updates",
+    ERRORS: "WhatsApp_Errors",
+    DASHBOARD: "Dashboard",
+  },
+
+  /***********************************
+   * 📁 GOOGLE DRIVE FOLDER IDs
+   ***********************************/
+  FOLDERS: {
+    MEDIA: "1lQSLZdUBEKvVkKqkASBPC6WIHaUBF2Nr",                // Photos, audio, video from users
+    AUDIO_PROMPTS: "1xMMcAAFNGxVCPUfSX0Ua_oCYn4HOGROs",         // Bot audio prompts (Urdu/Roman/Hindi)
+    CSV_BACKUP: "1lf1-icN_BOUc7H2L22Qt_41b0jHftH0O",              // Auto backups (daily snapshots)
+  },
+
+  /***********************************
+   * 📦 STORAGE SUB-FOLDERS (OPTIONAL)
+   ***********************************/
+  STORAGE: {
+    FLOW_STORAGE: "1Bnb-eJlEEXr-Vs-4CFT7uh5Wy9DZPm9v",              // JSON state if needed
+    TEMP_FILES: "1cji4nNK1s64gFYM_Pl6LyZi8ojjjagXL",             // Temporary processing
+  },
+
+  /***********************************
+   * 📌 COMMON SHEET RANGE HELPERS
+   ***********************************/
+  getSheet: function (sheetName) {
+    return SpreadsheetApp.openById(this.MASTER_SHEET_ID)
+      .getSheetByName(sheetName);
+  },
+
+  getUserSessionsSheet() {
+    return this.getSheet(this.SHEETS.USER_SESSIONS);
+  },
+
+  getCasesSheet() {
+    return this.getSheet(this.SHEETS.CASES);
+  },
+
+  getCaseUpdatesSheet() {
+    return this.getSheet(this.SHEETS.CASE_UPDATES);
+  },
+
+  getErrorsSheet() {
+    return this.getSheet(this.SHEETS.ERRORS);
+  },
+
+});
+/************************************************************
+ *  CONFIG.gs — BLOCK 3/4
+ *  Bot Behavior Settings (Region, Timeouts, Audio, Media)
+ ************************************************************/
+
+Object.assign(CONFIG, {
+
+  /********************************************
+   * 🌍 REGION DETECTION LOGIC (DO NOT MODIFY)
+   ********************************************/
+  REGION_PREFIXES: {
+    PK: ["+92"],
+    IN: ["+91"],
+    BD: ["+880"],
+    AE: ["+971"],
+    SA: ["+966"],
+  },
+
+  DEFAULT_REGION: "OTHER",
+
+  /********************************************
+   * 🕒 SESSION EXPIRY
+   * Auto-delete inactive sessions after 30 days
+   ********************************************/
+  SESSION_EXPIRY_DAYS: 30,
+
+  /********************************************
+   * ⏳ MULTI-REPLY TIMEOUT ("Are you done?")
+   ********************************************/
+  MULTI_REPLY_TIMEOUT_SECONDS: 45,   // You can change to 30/60 later
+  ASK_ARE_YOU_DONE_ONLY_ONCE: true,
+
+  /********************************************
+   * ⏳ GLOBAL SESSION TIMEOUT (USER INACTIVE)
+   ********************************************/
+  INACTIVITY_TIMEOUT_HOURS: 24,     // After this → resend current step
+
+  /********************************************
+   * 🔊 AUDIO PROMPT LOGIC
+   ********************************************/
+  AUDIO: {
+    ENABLE_AUDIO_PROMPTS: true,
+
+    // User replies:
+    ACCEPT_USER_AUDIO: true,
+    ACCEPT_USER_VIDEO: true,
+
+    // Bot prompts:
+    // Urdu / Roman Urdu / Hindi → your uploaded audio files
+    // Other languages → auto-generated TTS
+    USE_TTS_FOR_OTHER_LANGUAGES: true,
+
+    // If step requires text, but user sends audio/video:
+    MANDATORY_TEXT_REMINDER: {
+      ENABLE: true,
+      // Exact wording will come from flow files — NOT here
+    },
+  },
+
+  /********************************************
+   * 🖼 MEDIA VALIDATION
+   ********************************************/
+  MEDIA: {
+    MAX_FILE_SIZE_MB: 25, // WhatsApp API max ~25 MB
+    ALLOWED_MIME_TYPES: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "video/mp4",
+      "audio/ogg",
+      "audio/mpeg",
+      "audio/amr",
+      "audio/mp4",
+    ],
+  },
+
+  /********************************************
+   * 📝 DATA COLLECTION LOGIC
+   ********************************************/
+  REQUIRE_TEXT_WHEN_SPECIFIED: true,   // If flow demands text, enforce it
+
+  /********************************************
+   * 🔄 RETRIES / RESENDS
+   ********************************************/
+  RESEND_CURRENT_QUESTION_ON_TIMEOUT: true,
+  MAX_RETRY_ATTEMPTS: 3,
+
+});
+/************************************************************
+ *  CONFIG.gs — BLOCK 4/4
+ *  Enterprise Enhancements (Backup, Merge, Status Colors, Logging)
+ ************************************************************/
+
+Object.assign(CONFIG, {
+
+  /********************************************
+   * 📦 DAILY AUTO-BACKUP (2:00 AM)
+   ********************************************/
+  BACKUP: {
+    ENABLE_DAILY_BACKUP: true,
+    BACKUP_HOUR: 2,        // 02:00 AM
+    BACKUP_MINUTE: 0,
+    FILE_PREFIX_CASES: "Cases_",
+    FILE_PREFIX_UPDATES: "CaseUpdates_",
+    FILE_PREFIX_SESSIONS: "Sessions_",
+  },
+
+  /********************************************
+   * 🆔 CASE ID GENERATION
+   * Format: <REG>-<YYYYMMDDHHMMSS>-<RANDOM5>
+   ********************************************/
+  CASE_ID: {
+    RANDOM_TAIL_LENGTH: 5,
+    DATE_FORMAT: "yyyyMMddHHmmss",  // Apps Script compatible
+  },
+
+  /********************************************
+   * 🎨 STATUS COLORS (Cases Sheet)
+   ********************************************/
+  STATUS_COLORS: {
+    SUBMITTED: "#4A90E2",     // Blue
+    IN_PROGRESS: "#F5A623",   // Yellow
+    CLOSED: "#7ED321",        // Green
+    REJECTED: "#9B9B9B",      // Grey
+    EMERGENCY: "#D0021B",     // Red
+  },
+
+  /********************************************
+   * 🔎 SMART CASE MERGE DETECTION
+   ********************************************/
+  MERGE_LOGIC: {
+    ENABLE_SMART_MATCHING: true,
+    MIN_NAME_SIMILARITY: 0.80,    // 80% similarity
+    MATCH_FIELDS: ["Name", "City", "Age", "Gender", "Region"],
+    ALERT_WHEN_MATCH_FOUND: true,
+  },
+
+  /********************************************
+   * 🛑 ERROR LOGGING (WhatsApp API)
+   ********************************************/
+  LOGGING: {
+    ENABLE_ERROR_LOGGING: true,
+    RETRY_FAILED_REQUESTS: true,
+    MAX_RETRY_ATTEMPTS: 3,
+    RETRY_DELAY_SECONDS: 3,
+  },
+
+  /********************************************
+   * 🚨 TEAM ALERTS (WhatsApp Groups)
+   * Placeholder group IDs — replace later.
+   ********************************************/
+  ALERT_GROUPS: {
+    PK: "WHATSAPP_GROUP_ID_PK",
+    IN: "WHATSAPP_GROUP_ID_IN",
+    BD: "WHATSAPP_GROUP_ID_BD",
+    ME: "WHATSAPP_GROUP_ID_ME",
+    OTHER: "WHATSAPP_GROUP_ID_OTHER",
+  },
+
+  /********************************************
+   * 📣 ALERT TRIGGERS (When to notify teams)
+   ********************************************/
+  ALERTS: {
+    ON_NEW_SUBMISSION: true,
+    ON_EMERGENCY: true,
+    ON_POSSIBLE_MATCH: true,
+    ON_CASE_UPDATE: true,
+    ON_CASE_CLOSED: true,
+  },
+
+});

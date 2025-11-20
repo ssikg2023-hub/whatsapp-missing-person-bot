@@ -1,0 +1,208 @@
+/************************************************************
+ *  Logging.gs — /core (BLOCK 1/2)
+ *  System Error Logging + WhatsApp API Error Logging
+ ************************************************************/
+
+const Logging = {
+
+  /************************************************************
+   * 🟥 GENERIC SYSTEM ERROR LOGGER
+   ************************************************************/
+  logError(context, errorObj) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        "SYSTEM",
+        context,
+        errorObj && errorObj.message ? errorObj.message : String(errorObj),
+        "",
+        "",
+      ]);
+
+    } catch (e) {
+      // If even logging fails → do nothing (avoid loops)
+    }
+  },
+
+  /************************************************************
+   * 🟧 LOG WHATSAPP API FAILURE
+   ************************************************************/
+  logWhatsAppError(url, payload, response) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      const status = response ? response.getResponseCode() : "NO_RESPONSE";
+      const body = response ? response.getContentText() : "";
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        payload.to || "UNKNOWN_USER",
+        status,
+        body,
+        Utils.safeStringify(payload),
+        "RETRY_SCHEDULED",
+      ]);
+
+    } catch (e) {
+      // Silent catch to prevent recursion
+    }
+  },
+
+  /************************************************************
+   * 🟨 LOG WARNING (non-critical issues)
+   ************************************************************/
+  warn(context, details) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        "WARNING",
+        context,
+        details || "",
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+};
+/************************************************************
+ *  Logging.gs — /core (BLOCK 2/2)
+ *  Case Merge Alerts, Debug Logs, Event Logs
+ ************************************************************/
+
+Object.assign(Logging, {
+
+  /************************************************************
+   * 🟦 DEBUG LOG (Toggle using CONFIG)
+   ************************************************************/
+  debug(context, details) {
+    try {
+      if (!CONFIG.DEBUG_MODE) return;
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        "DEBUG",
+        context,
+        Utils.safeStringify(details || ""),
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+  /************************************************************
+   * 🔥 CASE MERGE DETECTION ALERT
+   * Logs when a new case appears similar to an old one
+   ************************************************************/
+  logCaseMergeAlert(newCaseId, existingCaseId, similarityScore) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        "CASE_MERGE",
+        `Possible match: ${newCaseId} ↔ ${existingCaseId}`,
+        `Similarity: ${similarityScore}`,
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+  /************************************************************
+   * 🟧 NEW CASE CREATED
+   ************************************************************/
+  logNewCase(caseId, userNumber) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        userNumber,
+        "NEW_CASE",
+        caseId,
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+  /************************************************************
+   * 🟨 CASE UPDATE LOG
+   ************************************************************/
+  logCaseUpdate(caseId, updateType, userNumber) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        userNumber,
+        "CASE_UPDATE",
+        `${caseId} — ${updateType}`,
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+  /************************************************************
+   * 🟥 EMERGENCY CASE LOG
+   ************************************************************/
+  logEmergency(caseId, userNumber) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        userNumber,
+        "EMERGENCY",
+        caseId,
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+  /************************************************************
+   * 📣 TEAM ALERT LOG
+   * Logs when messages are sent to regional WhatsApp groups
+   ************************************************************/
+  logTeamAlert(region, message) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        region,
+        "TEAM_ALERT",
+        message,
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+  /************************************************************
+   * 🔄 FLOW LOG (Track user flow progress)
+   ************************************************************/
+  logFlowStep(userNumber, stepCode) {
+    try {
+      const sheet = CONFIG.getErrorsSheet();
+
+      sheet.appendRow([
+        Utils.formatDate(new Date()),
+        userNumber,
+        "FLOW_STEP",
+        stepCode,
+        "",
+        "",
+      ]);
+    } catch (e) {}
+  },
+
+});
