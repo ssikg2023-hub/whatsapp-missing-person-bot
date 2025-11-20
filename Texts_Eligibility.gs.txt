@@ -42,12 +42,12 @@ const Texts_Eligibility = {
    ************************************************************/
   _set(en, ur, rur, hi, bn, ar) {
     return {
-      ENGLISH: en,
-      URDU: ur,
-      ROMAN_URDU: rur,
-      HINDI: hi,
-      BANGLA: bn,
-      ARABIC: ar,
+      English: en,
+      Urdu: ur,
+      RomanUrdu: rur,
+      Hindi: hi,
+      Bangla: bn,
+      Arabic: ar,
     };
   },
 

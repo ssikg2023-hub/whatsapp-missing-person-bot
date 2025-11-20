@@ -11,7 +11,7 @@ const ExistingCaseFlow = {
 
   _setStep(session, stepCode) {
     session.Current_Step_Code = stepCode;
-    Session.save(session);
+    SessionEngine.save(session);
   },
 
   /************************************************************
@@ -129,9 +129,9 @@ const ExistingCaseFlow = {
 
     // 3 = New Case
     if (choice === "3") {
-      Session.resetPartial(session);
+      SessionEngine.resetPartial(session);
       session.Current_Step_Code = "USER_TYPE";
-      Session.save(session);
+      SessionEngine.save(session);
 
       return Texts_ExistingCases.getSubmitNewCaseOption(lang);
     }

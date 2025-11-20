@@ -11,30 +11,7 @@ const CaseConfirmation = {
    * Used by flows for confirmation screens
    ************************************************************/
   buildSummary(caseId) {
-    const caseObj = CaseEngine.getCase(caseId);
-    if (!caseObj) return null;
-
-    const summary = {
-      caseId: caseObj["Case_ID"],
-      createdAt: caseObj["Created_At"],
-      region: caseObj["Region"],
-      language: caseObj["Language"],
-      flowType: caseObj["Flow_Type"],
-      answers: {},
-    };
-
-    // Pull Q1–Q16 into summary
-    for (let q = 1; q <= 16; q++) {
-      const field = `Q${q}`;
-      if (caseObj[field] !== undefined) {
-        summary.answers[field] = caseObj[field];
-      }
-    }
-
-    summary.extraNotes = caseObj["Extra_Notes"] || "";
-    summary.mediaLinks = caseObj["Media_Links"] || "";
-
-    return summary;
+    return CaseEngine.buildSummary(caseId);
   },
 
   /************************************************************
@@ -108,7 +85,7 @@ Object.assign(CaseConfirmation, {
       if (!caseObj) return;
 
       const region = caseObj["Region"] || "OTHER";
-      const lang = caseObj["Language"] || "EN";
+      const lang = caseObj["Language"] || "English";
 
       // Find group ID for this region with fallback
       const alertGroups = CONFIG.ALERT_GROUPS || {};
@@ -147,10 +124,12 @@ Object.assign(CaseConfirmation, {
    ************************************************************/
   confirmAndRespond(session, caseId) {
     try {
-      const lang = session.Preferred_Language || "EN";
+      const lang = session.Preferred_Language || "English";
 
       // 1️⃣ Build the confirmation text using Texts modules
       const textMsg = this.getConfirmationText(caseId, lang);
+
+      if (!textMsg) return false;
 
       // 2️⃣ Optional audio (closing message)
       const audioUrl = this._getClosingAudio("CLOSING", lang);

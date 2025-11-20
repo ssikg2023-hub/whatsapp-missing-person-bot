@@ -106,12 +106,17 @@ const FlowB = {
   _handleFinalConfirmation(session, msg) {
 
     const lang = session.Preferred_Language;
-    const choice = (msg || "").trim().toLowerCase();
+    const incoming = (msg || "").trim();
+
+    if (!incoming) return Texts_Validation.getEmptyInput(lang);
+
+    const choice = incoming.toLowerCase();
 
     if (choice === "confirm") {
       return this._finalizeCase(session);
     }
 
+    this._appendAnswer(session, "B_Q11", incoming);
     return Texts_B.getFinalBeforeConfirmation()[lang];
   },
 
@@ -120,12 +125,19 @@ const FlowB = {
    ************************************************************/
   _finalizeCase(session) {
 
-    const caseId = CaseEngine.finalizeCase(session, "B");
+    const lang = session.Preferred_Language;
+
+    session.Flow_Type = "B";
+
+    const caseId = CaseEngine.createNewCase(session);
+
+    CaseConfirmation.finalizeCase(caseId, session);
+    CaseConfirmation.confirmAndRespond(session, caseId);
 
     session.Current_Step_Code = "B_END";
     Session.save(session);
 
-    return "✅ Case submitted successfully.\nYour Case ID: " + caseId;
+    return "";
   },
 
   /************************************************************
@@ -134,6 +146,21 @@ const FlowB = {
   _saveAnswer(session, field, value) {
     session.Temp_Data_Json = session.Temp_Data_Json || {};
     session.Temp_Data_Json[field] = value;
+    Session.save(session);
+  },
+
+  _appendAnswer(session, field, value) {
+    if (!value) return;
+
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    const existing = session.Temp_Data_Json[field];
+
+    if (existing) {
+      session.Temp_Data_Json[field] = `${existing}\n${value}`;
+    } else {
+      session.Temp_Data_Json[field] = value;
+    }
+
     Session.save(session);
   },
 

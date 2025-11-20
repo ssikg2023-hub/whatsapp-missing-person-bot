@@ -88,22 +88,17 @@ Object.assign(Texts_Closing, {
    * 1️⃣ FINAL CLOSING MESSAGE (STEP 5)
    ************************************************************/
   _CLOSING_MESSAGE: Texts_Closing._set(
-`May Allah reunite every family with their loved ones. Ameen.
+    `May Allah reunite every family with their loved ones. Ameen.
 Thank you for trusting us.`,
-
-`اللہ ہر خاندان کو ان کے پیاروں سے ملائے۔ آمین۔
+    `اللہ ہر خاندان کو ان کے پیاروں سے ملائے۔ آمین۔
 ہم پر بھروسہ کرنے کا شکریہ۔`,
-
-`Allah har khandaan ko unke pyaron se milaye. Ameen.
+    `Allah har khandaan ko unke pyaron se milaye. Ameen.
 Hum par bharosa karne ka shukriya.`,
-
-`अल्लाह हर परिवार को उनके प्रियजनों से मिलाए। आमीन।
+    `अल्लाह हर परिवार को उनके प्रियजनों से मिलाए। आमीन।
 हम पर भरोसा करने के लिए धन्यवाद।`,
-
-`আল্লাহ যেন প্রতিটি পরিবারকে তাদের প্রিয়জনের সাথে পুনর্মিলিত করেন। আমিন।
+    `আল্লাহ যেন প্রতিটি পরিবারকে তাদের প্রিয়জনের সাথে পুনর্মিলিত করেন। আমিন।
 আমাদের প্রতি ভরসা করার জন্য ধন্যবাদ।`,
-
-`نسأل الله أن يجمع كل أسرة بأحبّتهم. آمين.
+    `نسأل الله أن يجمع كل أسرة بأحبّتهم. آمين.
 شكرًا لثقتكم بنا.`
   ),
 
@@ -112,22 +107,17 @@ Hum par bharosa karne ka shukriya.`,
    * 2️⃣ ELIGIBILITY REJECTION (STRICT TEXT)
    ************************************************************/
   _ELIGIBILITY_REJECT: Texts_Closing._set(
-`Since you don’t have direct access, we cannot proceed further.
+    `Since you don’t have direct access, we cannot proceed further.
 If you ever meet the missing person, please share details then.`,
-
-`چونکہ آپ کے پاس براہِ راست رسائی نہیں ہے، ہم مزید کارروائی نہیں کر سکتے۔
+    `چونکہ آپ کے پاس براہِ راست رسائی نہیں ہے، ہم مزید کارروائی نہیں کر سکتے۔
 اگر کبھی آپ کی ان سے ملاقات ہو تو براہِ کرم تفصیل بتائیے گا۔`,
-
-`Chunke aap ke paas direct rasai nahi hai, hum mazeed madad nahi kar sakte.
+    `Chunke aap ke paas direct rasai nahi hai, hum mazeed madad nahi kar sakte.
 Agar kabhi mulaqat ho to tafseel batayein.`,
-
-`क्योंकि आपके पास सीधी पहुँच नहीं है, हम आगे मदद नहीं कर सकते।
+    `क्योंकि आपके पास सीधी पहुँच नहीं है, हम आगे मदद नहीं कर सकते।
 अगर कभी आप उनसे मिलें तो कृपया जानकारी दें।`,
-
-`যেহেতু আপনার সরাসরি যোগাযোগ নেই, আমরা আর এগোতে পারছি না।
+    `যেহেতু আপনার সরাসরি যোগাযোগ নেই, আমরা আর এগোতে পারছি না।
 যদি কখনও তার সাথে দেখা হয়, তাহলে দয়া করে আমাদের জানান।`,
-
-`لأنك لا تملك وصولًا مباشرًا، لا يمكننا المتابعة أكثر.
+    `لأنك لا تملك وصولًا مباشرًا، لا يمكننا المتابعة أكثر.
 إذا التقيت بالشخص المفقود يومًا ما، فالرجاء إبلاغنا حينها.`
   ),
 
@@ -136,22 +126,17 @@ Agar kabhi mulaqat ho to tafseel batayein.`,
    * 3️⃣ UPDATE → CASE RESOLVED (STRICT TEXT)
    ************************************************************/
   _UPDATE_RESOLVED: Texts_Closing._set(
-`Alhamdulillah! We are very happy to hear that the missing person has been found.
+    `Alhamdulillah! We are very happy to hear that the missing person has been found.
 Your case has now been marked as resolved.`,
-
-`الحمد للہ! یہ سن کر ہمیں بہت خوشی ہوئی کہ گمشدہ شخص مل گیا ہے۔
+    `الحمد للہ! یہ سن کر ہمیں بہت خوشی ہوئی کہ گمشدہ شخص مل گیا ہے۔
 آپ کا کیس اب حل شدہ کے طور پر بند کر دیا گیا ہے۔`,
-
-`Alhamdulillah! Yeh jaan kar bohat khushi hui ke gumshuda shakhs mil gaya hai.
+    `Alhamdulillah! Yeh jaan kar bohat khushi hui ke gumshuda shakhs mil gaya hai.
 Aap ka case hal shuda mark kar diya gaya hai.`,
-
-`अल्हम्दुलिल्लाह! यह जानकर हमें बहुत खुशी हुई कि लापता व्यक्ति मिल गया है।
+    `अल्हम्दुलिल्लाह! यह जानकर हमें बहुत खुशी हुई कि लापता व्यक्ति मिल गया है।
 आपका केस अब हल हो चुका मार्क कर दिया गया है।`,
-
-`আলহামদুলिल्लাহ! নিখোঁজ ব্যক্তি পাওয়া গেছে, এটি শুনে আমরা অত্যন্ত আনন্দিত।
+    `আলহামদুলिल्लাহ! নিখোঁজ ব্যক্তি পাওয়া গেছে, এটি শুনে আমরা অত্যন্ত আনন্দিত।
 আপনার কেসটি সমাধান হয়েছে হিসেবে চিহ্নিত করা হয়েছে।`,
-
-`الحمد لله! سعدنا جدًا لسماع أنه تم العثور على الشخص المفقود.
+    `الحمد لله! سعدنا جدًا لسماع أنه تم العثور على الشخص المفقود.
 تم وضع علامة "تم حلّه" على قضيتك الآن.`
   ),
 
@@ -160,17 +145,12 @@ Aap ka case hal shuda mark kar diya gaya hai.`,
    * 4️⃣ GENERIC THANK YOU (Used in updates, misc)
    ************************************************************/
   _THANK_YOU: Texts_Closing._set(
-`Thank you for your message. We have recorded it.`,
-
-`آپ کے پیغام کا شکریہ۔ ہم نے اسے محفوظ کر لیا ہے۔`,
-
-`Shukriya, hum ne aap ka paigham record kar liya hai.`,
-
-`धन्यवाद, आपका संदेश दर्ज कर लिया गया है।`,
-
-`ধন্যবাদ, আপনার বার্তা সংরক্ষণ করা হয়েছে।`,
-
-`شكرًا لرسالتك. تم تسجيلها لدينا.`
+    `Thank you for your message. We have recorded it.`,
+    `آپ کے پیغام کا شکریہ۔ ہم نے اسے محفوظ کر لیا ہے۔`,
+    `Shukriya, hum ne aap ka paigham record kar liya hai.`,
+    `धन्यवाद, आपका संदेश दर्ज कर लिया गया है।`,
+    `ধন্যবাদ, আপনার বার্তা সংরক্ষণ করা হয়েছে।`,
+    `شكرًا لرسالتك. تم تسجيلها لدينا.`
   ),
 
 });

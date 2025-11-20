@@ -243,11 +243,13 @@ const FlowA = {
 
     const caseId = CaseEngine.createNewCase(session);
 
+    CaseConfirmation.finalizeCase(caseId, session);
+    CaseConfirmation.confirmAndRespond(session, caseId);
+
     session.Current_Step_Code = "A_END";
     Session.save(session);
 
-    return Texts_CaseUpdates.getCaseCreated(lang)
-      .replace("{CASE_ID}", caseId);
+    return "";
   },
 
   /************************************************************

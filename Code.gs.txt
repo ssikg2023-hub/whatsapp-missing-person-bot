@@ -200,10 +200,9 @@ function askAreYouDone_(session) {
   session._askedDone = true;
   SessionEngine.save(session);
 
-  const lang = session.Preferred_Language || "EN";
-  const text = Texts_Wrapper.getAreYouDone(lang);
+  const text = Texts_Wrapper.getAreYouDone(session);
 
-  Utils.sendText(session.from, text);
+  Utils.sendText(session.WhatsApp_Number, text);
 }
 
 
@@ -215,8 +214,8 @@ function resendSameStepAfterTimeout_(session) {
   const step = session.Current_Step_Code;
 
   // Send exact text based on flow + step code
-  const resendText = FlowStorage.getStepText(step, session);
-  Utils.sendText(session.from, resendText);
+  const resendText = Flows._replayFlowQuestion(session);
+  Utils.sendText(session.WhatsApp_Number, resendText);
 
   // Do NOT move forward; user must answer same step
 }
@@ -255,8 +254,9 @@ function handleMediaMessage_(session, msg) {
     const reminder = Texts_Wrapper.getMandatoryTextReminder(
       session.Preferred_Language
     );
+    const replay = Flows._replayFlowQuestion(session);
 
-    Utils.sendText(session.from, reminder);
+    Utils.sendText(session.WhatsApp_Number, `${reminder}\n\n${replay}`);
     return;
   }
 

@@ -10,8 +10,30 @@ const Texts_Validation = {
 
   _pick(lang, msgSet) {
     if (!msgSet) return "";
+
+    // Direct hit
     if (lang && msgSet[lang]) return msgSet[lang];
-    return msgSet["English"] || "";
+
+    // Normalize common language codes used across modules
+    const map = {
+      ENGLISH: "English",
+      English: "English",
+      URDU: "Urdu",
+      Urdu: "Urdu",
+      ROMAN_URDU: "RomanUrdu",
+      RomanUrdu: "RomanUrdu",
+      HINDI: "Hindi",
+      Hindi: "Hindi",
+      BANGLA: "Bangla",
+      Bangla: "Bangla",
+      ARABIC: "Arabic",
+      Arabic: "Arabic",
+    };
+
+    const normalized = lang ? map[lang] || map[(lang || "").toUpperCase()] : null;
+    if (normalized && msgSet[normalized]) return msgSet[normalized];
+
+    return msgSet["English"] || msgSet["ENGLISH"] || "";
   },
 
   /************************************************************

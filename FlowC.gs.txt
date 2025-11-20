@@ -258,12 +258,19 @@ const FlowC = {
   handleFinalConfirmation(session, msg) {
 
     const lang = session.Preferred_Language;
-    const choice = (msg || "").trim().toLowerCase();
+    const incoming = (msg || "").trim();
+
+    if (!incoming) {
+      return Texts_Validation.getEmptyInput(lang);
+    }
+
+    const choice = incoming.toLowerCase();
 
     if (choice === "confirm") {
       return this._finalizeCase(session);
     }
 
+    this._appendAnswer(session, "C_Q15", incoming);
     return Texts_C.getAfterQ15()[lang];
   },
 
@@ -274,13 +281,32 @@ const FlowC = {
 
     const lang = session.Preferred_Language;
 
-    const caseId = CaseEngine.finalizeCase(session, "C");
+    session.Flow_Type = "C";
+
+    const caseId = CaseEngine.createNewCase(session);
+
+    CaseConfirmation.finalizeCase(caseId, session);
+    CaseConfirmation.confirmAndRespond(session, caseId);
 
     session.Current_Step_Code = "C_END";
     Session.save(session);
 
-    return Texts_CaseUpdates.getCaseCreated(lang)
-      .replace("{CASE_ID}", caseId);
+    return "";
+  },
+
+  _appendAnswer(session, field, value) {
+    if (!value) return;
+
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    const existing = session.Temp_Data_Json[field];
+
+    if (existing) {
+      session.Temp_Data_Json[field] = `${existing}\n${value}`;
+    } else {
+      session.Temp_Data_Json[field] = value;
+    }
+
+    Session.save(session);
   },
 
   /************************************************************

@@ -44,8 +44,8 @@ const FlowStorage = {
     "B_Q9": "B",
     "B_Q10": "B",
     "B_Q11": "B",
-    "B_NOTES": "B",
     "B_FINAL_CONFIRM": "B",
+    "B_END": "B",
 
     /*****************
      * FLOW C (C_Q1–C_Q15)
@@ -70,16 +70,13 @@ const FlowStorage = {
     "C_Q14": "C",
     "C_Q15": "C",
     "C_CONFIRM_START": "C",
+    "C_END": "C",
 
     /*****************
      * EXISTING CASE FLOW
      *****************/
     "EXISTING_CASE_SELECT": "EXISTING_CASE",
     "EXISTING_CASE_MENU": "EXISTING_CASE",
-    // Legacy aliases
-    "EC_CASE_ID": "EXISTING_CASE",
-    "EC_SELECT_INDEX": "EXISTING_CASE",
-    "EC_MAIN_MENU": "EXISTING_CASE",
 
     /*****************
      * CASE UPDATE FLOW
@@ -90,13 +87,6 @@ const FlowStorage = {
     "UPDATE_ADD_INFO": "CASE_UPDATE",
     "UPDATE_MEDIA": "CASE_UPDATE",
     "UPDATE_DONE": "CASE_UPDATE",
-    // Legacy aliases
-    "CU_INIT": "CASE_UPDATE",
-    "CU_CASE_ID": "CASE_UPDATE",
-    "CU_MENU": "CASE_UPDATE",
-    "CU_ADD_INFO": "CASE_UPDATE",
-    "CU_MEDIA": "CASE_UPDATE",
-    "CU_DONE?": "CASE_UPDATE",
   },
 
   /************************************************************
@@ -109,18 +99,17 @@ const FlowStorage = {
     "A_ELIGIBILITY", "A_Q1", "A_Q2", "A_Q3", "A_Q4", "A_Q5", "A_Q6", "A_Q7", "A_Q8", "A_FINAL_CONFIRM",
 
     // Flow B
-    "B_Q1", "B_Q2", "B_Q3", "B_Q4", "B_Q5", "B_Q6", "B_Q7", "B_Q8", "B_Q9", "B_Q10", "B_Q11", "B_FINAL_CONFIRM",
+    "B_Q1", "B_Q2", "B_Q3", "B_Q4", "B_Q5", "B_Q6", "B_Q7", "B_Q8", "B_Q9", "B_Q10", "B_FINAL_CONFIRM",
 
     // Flow C
     "C_SOURCE", "C_REJECTED", "C_Q_INTRO", "C_Q1", "C_Q2", "C_Q3", "C_Q4", "C_Q5", "C_Q6", "C_Q7", "C_Q8", "C_Q9", "C_Q10", "C_Q11", "C_Q12", "C_Q13", "C_Q14",
+    "C_CONFIRM_START",
 
     // Existing Case
     "EXISTING_CASE_SELECT", "EXISTING_CASE_MENU",
-    "EC_CASE_ID", "EC_SELECT_INDEX", "EC_MAIN_MENU",
 
     // Case Update Flow
     "UPDATE_CASE_ID", "UPDATE_MENU", "UPDATE_ADD_INFO", "UPDATE_DONE",
-    "CU_CASE_ID", "CU_MENU", "CU_ADD_INFO", "CU_DONE?",
   ]),
 
   /************************************************************
@@ -130,11 +119,14 @@ const FlowStorage = {
     // Flow A
     "A_Q9", "A_NOTES",
 
+    // Flow B
+    "B_Q11",
+
     // Flow C
     "C_Q15",
 
     // Case Update media option
-    "UPDATE_MEDIA", "CU_MEDIA",
+    "UPDATE_MEDIA",
   ]),
 
   /************************************************************
@@ -142,8 +134,7 @@ const FlowStorage = {
   ************************************************************/
   MULTI_REPLY_ENABLED_SET: new Set([
     "A_NOTES",
-    "B_NOTES",
-    "UPDATE_DONE", "CU_DONE?",
+    "UPDATE_DONE",
   ]),
 
   /************************************************************
@@ -206,9 +197,6 @@ Object.assign(FlowStorage, {
   EXISTING_CASE_STEPS: new Set([
     "EXISTING_CASE_SELECT",
     "EXISTING_CASE_MENU",
-    "EC_CASE_ID",
-    "EC_SELECT_INDEX",
-    "EC_MAIN_MENU",
   ]),
 
   /************************************************************
@@ -221,12 +209,6 @@ Object.assign(FlowStorage, {
     "UPDATE_ADD_INFO",
     "UPDATE_MEDIA",
     "UPDATE_DONE",
-    "CU_INIT",
-    "CU_CASE_ID",
-    "CU_MENU",
-    "CU_ADD_INFO",
-    "CU_MEDIA",
-    "CU_DONE?",
   ]),
 
   /************************************************************
