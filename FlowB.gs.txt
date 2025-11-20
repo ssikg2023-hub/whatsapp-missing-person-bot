@@ -46,7 +46,7 @@ const FlowB = {
 
     session.Flow_Type = "B";
     session.Current_Step_Code = "B_Q1";
-    Session.save(session);
+    SessionEngine.save(session);
 
     const intro = Texts_B.getIntro()[lang];
     const q1 = Texts_B.getQ1()[lang];
@@ -67,7 +67,7 @@ const FlowB = {
     this._saveAnswer(session, cur, incoming);
 
     session.Current_Step_Code = next;
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_B[nextGetter]()[lang];
   },
@@ -84,7 +84,7 @@ const FlowB = {
       this._saveAnswer(session, "B_Q11", saved);
 
       session.Current_Step_Code = "B_FINAL_CONFIRM";
-      Session.save(session);
+      SessionEngine.save(session);
 
       return Texts_B.getFinalBeforeConfirmation()[lang];
     }
@@ -95,7 +95,7 @@ const FlowB = {
     this._saveAnswer(session, "B_Q11", incoming);
 
     session.Current_Step_Code = "B_FINAL_CONFIRM";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_B.getFinalBeforeConfirmation()[lang];
   },
@@ -135,7 +135,7 @@ const FlowB = {
     CaseConfirmation.confirmAndRespond(session, caseId);
 
     session.Current_Step_Code = "B_END";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return "";
   },
@@ -146,7 +146,7 @@ const FlowB = {
   _saveAnswer(session, field, value) {
     session.Temp_Data_Json = session.Temp_Data_Json || {};
     session.Temp_Data_Json[field] = value;
-    Session.save(session);
+    SessionEngine.save(session);
   },
 
   _appendAnswer(session, field, value) {
@@ -161,7 +161,7 @@ const FlowB = {
       session.Temp_Data_Json[field] = value;
     }
 
-    Session.save(session);
+    SessionEngine.save(session);
   },
 
   /************************************************************

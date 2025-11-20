@@ -161,7 +161,6 @@ Object.assign(Texts_Wrapper, {
 
   _getFlowBText(stepCode) {
     switch (stepCode) {
-      case "B_INTRO": return Texts_B.getIntro();
       case "B_Q1": return Texts_B.getQ1();
       case "B_Q2": return Texts_B.getQ2();
       case "B_Q3": return Texts_B.getQ3();
@@ -180,10 +179,8 @@ Object.assign(Texts_Wrapper, {
 
   _getFlowCText(stepCode) {
     switch (stepCode) {
-      case "C_INTRO": return Texts_C.getEmpatheticIntro();
       case "C_SOURCE": return Texts_C.getSourceOfInformation();
       case "C_REJECTED": return Texts_C.getRejectionMessage();
-      case "C_Q_INTRO": return Texts_C.getQuestionsIntro();
       case "C_Q1": return Texts_C.getQ1();
       case "C_Q2": return Texts_C.getQ2();
       case "C_Q3": return Texts_C.getQ3();
