@@ -1,0 +1,275 @@
+/************************************************************
+ *  Texts_Validation.gs — BLOCK 1/3
+ *  STRICT MODE — No deviation from provided flow structure
+ *  Purpose:
+ *    All validation-related error messages (invalid input,
+ *    invalid option, missing media, unexpected text, etc.)
+ ************************************************************/
+
+const Texts_Validation = {
+
+  /************************************************************
+   * Utility: Multi-language wrapper
+   ************************************************************/
+  _set(en, ur, rur, hi, bn, ar) {
+    return {
+      English: en,
+      Urdu: ur,
+      RomanUrdu: rur,
+      Hindi: hi,
+      Bangla: bn,
+      Arabic: ar,
+    };
+  },
+
+  /************************************************************
+   * PUBLIC GETTERS (Router-safe)
+   ************************************************************/
+  getInvalidOption() {
+    return this._INVALID_OPTION;
+  },
+
+  getInvalidNumber() {
+    return this._INVALID_NUMBER;
+  },
+
+  getInvalidMedia() {
+    return this._INVALID_MEDIA;
+  },
+
+  getUnexpectedKeyword() {
+    return this._UNEXPECTED_KEYWORD;
+  },
+
+  getTimeoutRepeat() {
+    return this._TIMEOUT_REPEAT;
+  },
+
+  getMissingRequired() {
+    return this._MISSING_REQUIRED;
+  },
+
+  getGenericError() {
+    return this._GENERIC_ERROR;
+  },
+
+  /************************************************************
+   * INTERNAL STORAGE (populated in BLOCK 2/3)
+   ************************************************************/
+  _INVALID_OPTION: null,
+  _INVALID_NUMBER: null,
+  _INVALID_MEDIA: null,
+  _UNEXPECTED_KEYWORD: null,
+  _TIMEOUT_REPEAT: null,
+  _MISSING_REQUIRED: null,
+  _GENERIC_ERROR: null,
+};
+/************************************************************
+ *  Texts_Validation.gs — BLOCK 2/3
+ *  STRICT MULTI-LANGUAGE CONTENT
+ ************************************************************/
+
+Object.assign(Texts_Validation, {
+
+  /************************************************************
+   * 1️⃣ INVALID OPTION (User enters a non-listed menu number)
+   ************************************************************/
+  _INVALID_OPTION: Texts_Validation._set(
+
+`Invalid option. Please choose a valid number from the menu.`,
+
+`غلط انتخاب۔ براہِ کرم مینو میں موجود درست نمبر کا انتخاب کریں۔`,
+
+`Ghalat intikhab. Barah-e-karam menu mein se sahi number ka intekhab karein.`,
+
+`गलत विकल्प। कृपया मेनू में से एक सही नंबर चुनें।`,
+
+`ভুল অপশন। অনুগ্রহ করে মেনু থেকে সঠিক নম্বরটি নির্বাচন করুন।`,
+
+`خيار غير صالح. يرجى اختيار رقم صحيح من القائمة.`
+  ),
+
+
+  /************************************************************
+   * 2️⃣ INVALID NUMBER (User enters text when number required)
+   ************************************************************/
+  _INVALID_NUMBER: Texts_Validation._set(
+
+`Please enter a valid number.`,
+
+`براہِ کرم ایک درست نمبر درج کریں۔`,
+
+`Barah-e-karam ek sahi number darj karein.`,
+
+`कृपया एक सही नंबर दर्ज करें।`,
+
+`অনুগ্রহ করে একটি বৈধ নম্বর লিখুন।`,
+
+`يرجى إدخال رقم صالح.`
+  ),
+
+
+  /************************************************************
+   * 3️⃣ INVALID MEDIA (User sends text when media required)
+   ************************************************************/
+  _INVALID_MEDIA: Texts_Validation._set(
+
+`Please send a valid photo or video.`,
+
+`براہِ کرم کوئی درست تصویر یا ویڈیو بھیجیں۔`,
+
+`Barah-e-karam koi sahi tasveer ya video bhej dein.`,
+
+`कृपया एक सही फोटो या वीडियो भेजें।`,
+
+`একটি সঠিক ছবি বা ভিডিও পাঠান দয়া করে।`,
+
+`يرجى إرسال صورة أو فيديو صالح.`
+  ),
+
+
+  /************************************************************
+   * 4️⃣ UNEXPECTED KEYWORD (HELP / MENU / HI etc.)
+   ************************************************************/
+  _UNEXPECTED_KEYWORD: Texts_Validation._set(
+
+`You are currently in the middle of a step.
+I will repeat the last question.`,
+
+`آپ ابھی ایک مرحلے کے درمیان ہیں۔
+میں آخری سوال دوبارہ بھیج رہا ہوں۔`,
+
+`Aap abhi aik step ke darmiyan hain.
+Main aakhri sawal dobara bhej raha hoon.`,
+
+`आप अभी एक चरण के बीच में हैं।
+मैं पिछला सवाल दोबारा भेज रहा हूँ।`,
+
+`আপনি এখন একটি ধাপের মধ্যে আছেন।
+আমি আগের প্রশ্নটি আবার পাঠাচ্ছি।`,
+
+`أنت حاليًا في منتصف خطوة.
+سأعيد إرسال السؤال الأخير.`
+  ),
+
+
+  /************************************************************
+   * 5️⃣ TIMEOUT REPEAT (24h inactivity → repeat same question)
+   ************************************************************/
+  _TIMEOUT_REPEAT: Texts_Validation._set(
+
+`⏳ Your session was inactive for a long time.
+I will repeat the last question.`,
+
+`⏳ آپ کافی دیر غیر فعال رہے تھے۔
+میں آخری سوال دوبارہ بھیج رہا ہوں۔`,
+
+`⏳ Aap kaafi dair inactive rahe.
+Main aakhri sawal repeat kar raha hoon.`,
+
+`⏳ आप काफी देर तक निष्क्रिय थे।
+मैं पिछला सवाल दोबारा भेज रहा हूँ।`,
+
+`⏳ আপনি অনেকক্ষণ নিষ্ক্রিয় ছিলেন।
+আমি আগের প্রশ্নটি আবার পাঠাচ্ছি।`,
+
+`⏳ لقد كنت غير نشط لفترة طويلة.
+سأعيد إرسال السؤال الأخير.`
+  ),
+
+
+  /************************************************************
+   * 6️⃣ MISSING REQUIRED FIELD (User sends empty / irrelevant)
+   ************************************************************/
+  _MISSING_REQUIRED: Texts_Validation._set(
+
+`This information is required. Please enter a valid response.`,
+
+`یہ معلومات ضروری ہے۔ براہِ کرم درست جواب درج کریں۔`,
+
+`Yeh maloomat zaroori hai. Barah-e-karam sahi jawab bhej dein.`,
+
+`यह जानकारी आवश्यक है। कृपया सही उत्तर दर्ज करें।`,
+
+`এই তথ্যটি অবশ্যই প্রয়োজন। অনুগ্রহ করে সঠিক উত্তর দিন।`,
+
+`هذه المعلومة مطلوبة. يرجى إدخال رد صالح.`
+  ),
+
+
+  /************************************************************
+   * 7️⃣ GENERIC ERROR (fallback)
+   ************************************************************/
+  _GENERIC_ERROR: Texts_Validation._set(
+
+`Sorry, something went wrong. Please try again.`,
+
+`معذرت، کوئی غلطی ہوگئی۔ براہِ کرم دوبارہ کوشش کریں۔`,
+
+`Maazrat, koi ghalti ho gayi. Barah-e-karam dobara koshish karein.`,
+
+`क्षमा कीजिए, कुछ गलत हो गया। कृपया फिर से प्रयास करें।`,
+
+`দুঃখিত, কিছু ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।`,
+
+`عذرًا، حدث خطأ ما. يرجى المحاولة مرة أخرى.`
+  ),
+
+});
+/************************************************************
+ *  Texts_Validation.gs — BLOCK 3/3
+ *  Routing helpers + safe exports (STRICT)
+ ************************************************************/
+
+Object.assign(Texts_Validation, {
+
+  /************************************************************
+   * 🔹 Unified accessor
+   * type = ("OPTION" | "NUMBER" | "MEDIA" | "KEYWORD" | "TIMEOUT" |
+   *         "REQUIRED" | "ERROR")
+   ************************************************************/
+  get(type, lang) {
+    switch (type) {
+
+      case "OPTION":
+        return this._INVALID_OPTION[lang];
+
+      case "NUMBER":
+        return this._INVALID_NUMBER[lang];
+
+      case "MEDIA":
+        return this._INVALID_MEDIA[lang];
+
+      case "KEYWORD":
+        return this._UNEXPECTED_KEYWORD[lang];
+
+      case "TIMEOUT":
+        return this._TIMEOUT_REPEAT[lang];
+
+      case "REQUIRED":
+        return this._MISSING_REQUIRED[lang];
+
+      case "ERROR":
+        return this._GENERIC_ERROR[lang];
+
+      default:
+        return "";
+    }
+  },
+
+  /************************************************************
+   * 🔹 Export full dictionary for router / debug needs
+   ************************************************************/
+  export() {
+    return {
+      INVALID_OPTION: this._INVALID_OPTION,
+      INVALID_NUMBER: this._INVALID_NUMBER,
+      INVALID_MEDIA: this._INVALID_MEDIA,
+      UNEXPECTED_KEYWORD: this._UNEXPECTED_KEYWORD,
+      TIMEOUT_REPEAT: this._TIMEOUT_REPEAT,
+      MISSING_REQUIRED: this._MISSING_REQUIRED,
+      GENERIC_ERROR: this._GENERIC_ERROR,
+    };
+  },
+
+});

@@ -1,0 +1,237 @@
+/************************************************************
+ *  Texts_UserTypes.gs — BLOCK 1/3
+ *  STEP 2 — IDENTIFY USER TYPE (A / B / C)
+ *
+ *  Structure only — actual text filled in Block 2/3.
+ *  DO NOT MODIFY function signatures.
+ ************************************************************/
+
+const Texts_UserTypes = {
+
+  /************************************************************
+   * 🌍 Utility: Multi-language msgSet
+   ************************************************************/
+  _set(en, ur, rur, hi, bn, ar) {
+    return {
+      English: en,
+      Urdu: ur,
+      RomanUrdu: rur,
+      Hindi: hi,
+      Bangla: bn,
+      Arabic: ar,
+    };
+  },
+
+  /************************************************************
+   * 🔹 UT0 — Entry message (after language is selected)
+   ************************************************************/
+  getIntro() {
+    return this._UT_INTRO;
+  },
+
+  /************************************************************
+   * 🔹 UT1 — Choose User Type
+   *     1 → Flow A (Someone is missing)
+   *     2 → Flow B (I am the missing person)
+   *     3 → Flow C (I know someone who is missing)
+   ************************************************************/
+  getUserTypeQuestion() {
+    return this._UT_QUESTION;
+  },
+
+  /************************************************************
+   * 🔹 UT2 — Invalid choice (Wrong number)
+   ************************************************************/
+  getInvalidChoice() {
+    return this._UT_INVALID;
+  },
+
+  /************************************************************
+   * 🔹 UT3 — Descriptions shown when selecting A/B/C
+   ************************************************************/
+  getTypeDescription(flowType) {
+    switch (flowType) {
+      case "A":
+        return this._UT_DESC_A;
+      case "B":
+        return this._UT_DESC_B;
+      case "C":
+        return this._UT_DESC_C;
+      default:
+        return null;
+    }
+  },
+
+  /************************************************************
+   * INTERNAL STORAGE (filled in Block 2/3)
+   ************************************************************/
+  _UT_INTRO: null,
+  _UT_QUESTION: null,
+  _UT_INVALID: null,
+
+  _UT_DESC_A: null,
+  _UT_DESC_B: null,
+  _UT_DESC_C: null,
+};
+/************************************************************
+ *  Texts_UserTypes.gs — BLOCK 2/3
+ *  Filled with EXACT text from STEP 2 (Identify User Type)
+ ************************************************************/
+
+Object.assign(Texts_UserTypes, {
+
+  /************************************************************
+   * UT_INTRO — Bot message before showing options
+   ************************************************************/
+  _UT_INTRO: {
+    English: "Please tell us who you are so we can help better.",
+    Urdu: "براہ کرم بتائیں آپ کس صورت میں مدد چاہتے ہیں؟",
+    RomanUrdu: "Barah-e-karam batayein aap kis surat mein madad chahte hain?",
+    Hindi: "कृपया हमें बताइए कि आप कौन हैं ताकि हम बेहतर मदद कर सकें।",
+    Bangla: "অনুগ্রহ করে আমাদের বলুন আপনি কে, যাতে আমরা আরও ভালোভাবে সাহায্য করতে পারি।",
+    Arabic: "من فضلك أخبرنا من أنت حتى نتمكن من مساعدتك بشكل أفضل.",
+  },
+
+  /************************************************************
+   * UT_QUESTION — Full menu (intro + all 3 options)
+   ************************************************************/
+  _UT_QUESTION: {
+    English:
+"Please tell us who you are so we can help better.\n\n" +
+"1️⃣ I’m searching for a missing loved one.\n" +
+"2️⃣ I’m lost and looking for my family.\n" +
+"3️⃣ I know someone who is missing and I want to help.",
+
+    Urdu:
+"براہ کرم بتائیں آپ کس صورت میں مدد چاہتے ہیں؟\n\n" +
+"1️⃣ میں کسی کھوئے ہوئے شخص کو ڈھونڈ رہا/رہی ہوں۔\n" +
+"2️⃣ میں خود کھو گیا/گئی ہوں اور اپنے گھر والوں سے رابطہ کرنا چاہتا/چاہتی ہوں۔\n" +
+"3️⃣ میں کسی گمشدہ شخص کو جانتا/جانتی ہوں اور اس کی مدد کرنا چاہتا/چاہتی ہوں۔",
+
+    RomanUrdu:
+"Barah-e-karam batayein aap kis surat mein madad chahte hain?\n\n" +
+"1️⃣ Main kisi khoe hue shakhs ko dhoond raha/rahi hoon.\n" +
+"2️⃣ Main khud kho gaya/kho gayi hoon aur apne ghar walon se raabta karna chahta/chahti hoon.\n" +
+"3️⃣ Main kisi gumshuda shakhs ko jaanta/jaanti hoon aur uski madad karna chahta/chahti hoon.",
+
+    Hindi:
+"कृपया हमें बताइए कि आप कौन हैं ताकि हम बेहतर मदद कर सकें।\n\n" +
+"1️⃣ मैं किसी खोए हुए व्यक्ति को ढूंढ रहा/रही हूँ।\n" +
+"2️⃣ मैं खुद खो गया/गई हूँ और अपने परिवार से संपर्क करना चाहता/चाहती हूँ।\n" +
+"3️⃣ मैं किसी गुमशुदा व्यक्ति को जानता/जानती हूँ और उसकी मदद करना चाहता/चाहती हूँ।",
+
+    Bangla:
+"অনুগ্রহ করে আমাদের বলুন আপনি কে, যাতে আমরা আরও ভালোভাবে সাহায্য করতে পারি।\n\n" +
+"1️⃣ আমি একজন নিখোঁজ প্রিয়জনকে খুঁজছি।\n" +
+"2️⃣ আমি নিজেই হারিয়ে গেছি এবং আমার পরিবারের সাথে যোগাযোগ করতে চাই।\n" +
+"3️⃣ আমি একজন নিখোঁজ ব্যক্তিকে চিনি এবং আমি সাহায্য করতে চাই।",
+
+    Arabic:
+"من فضلك أخبرنا من أنت حتى نتمكن من مساعدتك بشكل أفضل.\n\n" +
+"1️⃣ أنا أبحث عن شخص مفقود من أحبائي.\n" +
+"2️⃣ أنا ضائع وأبحث عن عائلتي.\n" +
+"3️⃣ أنا أعرف شخصًا مفقودًا وأريد أن أساعده.",
+  },
+
+  /************************************************************
+   * UT_INVALID — No explicit text in flow; keep null here.
+   * (Actual invalid message will be handled via Texts_Validation)
+   ************************************************************/
+  _UT_INVALID: null,
+
+  /************************************************************
+   * UT_DESC_A — Option 1 text only (per language)
+   * “I’m searching for a missing loved one.”
+   ************************************************************/
+  _UT_DESC_A: {
+    English: "I’m searching for a missing loved one.",
+    Urdu: "میں کسی کھوئے ہوئے شخص کو ڈھونڈ رہا/رہی ہوں۔",
+    RomanUrdu: "Main kisi khoe hue shakhs ko dhoond raha/rahi hoon.",
+    Hindi: "मैं किसी खोए हुए व्यक्ति को ढूंढ रहा/रही हूँ।",
+    Bangla: "আমি একজন নিখোঁজ প্রিয়জনকে খুঁজছি।",
+    Arabic: "أنا أبحث عن شخص مفقود من أحبائي.",
+  },
+
+  /************************************************************
+   * UT_DESC_B — Option 2 text only (per language)
+   * “I’m lost and looking for my family.”
+   ************************************************************/
+  _UT_DESC_B: {
+    English: "I’m lost and looking for my family.",
+    Urdu: "میں خود کھو گیا/گئی ہوں اور اپنے گھر والوں سے رابطہ کرنا چاہتا/چاہتی ہوں۔",
+    RomanUrdu: "Main khud kho gaya/kho gayi hoon aur apne ghar walon se raabta karna chahta/chahti hoon.",
+    Hindi: "मैं खुद खो गया/गई हूँ और अपने परिवार से संपर्क करना चाहता/चाहती हूँ।",
+    Bangla: "আমি নিজেই হারিয়ে গেছি এবং আমার পরিবারের সাথে যোগাযোগ করতে চাই।",
+    Arabic: "أنا ضائع وأبحث عن عائلتي.",
+  },
+
+  /************************************************************
+   * UT_DESC_C — Option 3 text only (per language)
+   * “I know someone who is missing and I want to help.”
+   ************************************************************/
+  _UT_DESC_C: {
+    English: "I know someone who is missing and I want to help.",
+    Urdu: "میں کسی گمشدہ شخص کو جانتا/جانتی ہوں اور اس کی مدد کرنا چاہتا/چاہتی ہوں۔",
+    RomanUrdu: "Main kisi gumshuda shakhs ko jaanta/jaanti hoon aur uski madad karna chahta/chahti hoon.",
+    Hindi: "मैं किसी गुमशुदा व्यक्ति को जानता/जानती हूँ और उसकी मदद करना चाहता/चाहती हूँ।",
+    Bangla: "আমি একজন নিখোঁজ ব্যক্তিকে চিনি এবং আমি সাহায্য করতে চাই।",
+    Arabic: "أنا أعرف شخصًا مفقودًا وأريد أن أساعده.",
+  },
+
+});
+/************************************************************
+ *  Texts_UserTypes.gs — BLOCK 3/3 (HELPER FUNCTIONS)
+ *  Purpose:
+ *    - Provide clean accessors for Intro + Menu
+ *    - Auto-select correct language block
+ *    - Remain fully compatible with Flow Router
+ ************************************************************/
+
+Object.assign(Texts_UserTypes, {
+
+  /************************************************************
+   * getIntroFor(session)
+   * → Returns intro line based on user language
+   ************************************************************/
+  getIntroFor(session) {
+    const lang = session.Preferred_Language || "English";
+    return this._UT_INTRO[lang];
+  },
+
+  /************************************************************
+   * getMenuFor(session)
+   * → Returns the FULL User Type menu:
+   *     Intro + 3 options
+   ************************************************************/
+  getMenuFor(session) {
+    const lang = session.Preferred_Language || "English";
+    return this._UT_QUESTION[lang];
+  },
+
+  /************************************************************
+   * getOptionDescription(option, session)
+   * → Returns text for option 1 / 2 / 3
+   *     Example: getOptionDescription("1", session)
+   ************************************************************/
+  getOptionDescription(option, session) {
+    const lang = session.Preferred_Language || "English";
+
+    if (option === "1") return this._UT_DESC_A[lang];
+    if (option === "2") return this._UT_DESC_B[lang];
+    if (option === "3") return this._UT_DESC_C[lang];
+
+    return null; // invalid option — handled by router
+  },
+
+  /************************************************************
+   * getInvalidMessageFor(session)
+   * → User enters something other than 1/2/3
+   * → We return null here because invalid handling is part of
+   *   Texts_Validation.gs (global invalid messages)
+   ************************************************************/
+  getInvalidMessageFor(session) {
+    const lang = session.Preferred_Language || "English";
+    return this._UT_INVALID ? this._UT_INVALID[lang] : null;
+  },
+
+});

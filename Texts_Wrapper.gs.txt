@@ -1,0 +1,229 @@
+/************************************************************
+ *  Texts_Wrapper.gs — BLOCK 1/3
+ *  MASTER TEXT DISPATCHER (NO TEXT IN THIS FILE)
+ *  
+ *  Responsibilities:
+ *   • Select correct language for every msgSet
+ *   • Send text + optional audio
+ *   • Provide safe fallbacks
+ ************************************************************/
+
+const Texts_Wrapper = {
+
+  /************************************************************
+   * 🌍 GET USER LANGUAGE
+   ************************************************************/
+  getLang(session) {
+    try {
+      return session.Preferred_Language || "ENGLISH";
+    } catch (e) {
+      return "ENGLISH";
+    }
+  },
+
+  /************************************************************
+   * 🎯 RESOLVE MESSAGE TEXT FROM msgSet
+   * msgSet = { ENGLISH: "...", URDU: "...", ROMAN_URDU: "...", ... }
+   ************************************************************/
+  resolve(msgSet, lang) {
+    if (!msgSet) return "";
+    if (msgSet[lang]) return msgSet[lang];
+
+    // fallback priority
+    const pri = ["ENGLISH", "URDU", "ROMAN_URDU", "HINDI", "BANGLA", "ARABIC"];
+    for (let p of pri) {
+      if (msgSet[p]) return msgSet[p];
+    }
+
+    return "";
+  },
+
+  /************************************************************
+   * 📤 SEND TEXT ONLY
+   ************************************************************/
+  send(to, msgSet, langOverride) {
+    try {
+      const lang = langOverride || this.getLang(SessionEngine.getSession(to));
+      const text = this.resolve(msgSet, lang);
+      if (text) {
+        Code.sendText(to, text);
+      }
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.send", e);
+    }
+  },
+
+  /************************************************************
+   * 🎧 SEND TEXT + AUDIO (optional)
+   ************************************************************/
+  sendWithAudio(to, msgSet, stepCode, langOverride) {
+    try {
+      const lang = langOverride || this.getLang(SessionEngine.getSession(to));
+      const text = this.resolve(msgSet, lang);
+
+      // 1 — send text
+      if (text) Code.sendText(to, text);
+
+      // 2 — audio prompt (if exists)
+      const audioUrl = Utils.resolveAudioPrompt(stepCode, lang);
+      if (audioUrl) {
+        Code.sendAudio(to, audioUrl);
+      }
+
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendWithAudio", e);
+    }
+  },
+
+};
+/************************************************************
+ *  Texts_Wrapper.gs — BLOCK 2/3
+ *  INVALID / ERROR / REMINDER WRAPPERS (NO TEXT HERE)
+ ************************************************************/
+
+Object.assign(Texts_Wrapper, {
+
+  /************************************************************
+   * ❌ INVALID OPTION
+   ************************************************************/
+  sendInvalidOption(session) {
+    try {
+      const msgSet = Texts_Validation.getInvalidOption();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendInvalidOption", e);
+    }
+  },
+
+  /************************************************************
+   * ❌ INVALID TEXT (expects text but user sent media)
+   ************************************************************/
+  sendInvalidText(session) {
+    try {
+      const msgSet = Texts_Validation.getInvalidText();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendInvalidText", e);
+    }
+  },
+
+  /************************************************************
+   * 📸 PHOTO REQUIRED
+   ************************************************************/
+  sendPhotoRequired(session) {
+    try {
+      const msgSet = Texts_Validation.getPhotoRequired();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendPhotoRequired", e);
+    }
+  },
+
+  /************************************************************
+   * 🎤 VOICE NOT ALLOWED (step requires text-only)
+   ************************************************************/
+  sendVoiceNotAllowed(session) {
+    try {
+      const msgSet = Texts_Validation.getVoiceNotAllowed();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendVoiceNotAllowed", e);
+    }
+  },
+
+  /************************************************************
+   * 📝 "PLEASE ALSO TYPE YOUR REPLY"
+   * For steps requiring text when user sends audio/video
+   ************************************************************/
+  sendTextRequiredReminder(session) {
+    try {
+      const msgSet = Texts_Validation.getTextRequiredReminder();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendTextRequiredReminder", e);
+    }
+  },
+
+  /************************************************************
+   * 🔤 UNEXPECTED KEYWORD (HELP, MENU, etc.)
+   ************************************************************/
+  sendUnexpectedKeywordReminder(session) {
+    try {
+      const msgSet = Texts_Validation.getUnexpectedKeywordReminder();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendUnexpectedKeywordReminder", e);
+    }
+  },
+
+  /************************************************************
+   * ⏳ SESSION EXPIRED — Repeat last question
+   ************************************************************/
+  sendSessionExpiredReminder(session) {
+    try {
+      const msgSet = Texts_Validation.getSessionExpiredReminder();
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendSessionExpiredReminder", e);
+    }
+  },
+
+});
+/************************************************************
+ *  Texts_Wrapper.gs — BLOCK 3/3
+ *  CONFIRMATION + CLOSING (NO TEXT HERE)
+ ************************************************************/
+
+Object.assign(Texts_Wrapper, {
+
+  /************************************************************
+   * 📄 SEND CASE CONFIRMATION (Summary before submission)
+   ************************************************************/
+  sendCaseConfirmation(session, caseId) {
+    try {
+      const lang = this.getLang(session);
+      const msgSet = Texts_Closing.getCaseConfirmation(caseId, lang);
+
+      // Confirm with text only (no audio for confirmation itself)
+      this.send(session.WhatsApp_Number, msgSet, lang);
+
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendCaseConfirmation", e);
+    }
+  },
+
+  /************************************************************
+   * 🟢 FINAL CLOSING MESSAGE AFTER SUBMISSION
+   ************************************************************/
+  sendClosingMessage(session, caseId) {
+    try {
+      const lang = this.getLang(session);
+      const msgSet = Texts_Closing.getFinalClosing(caseId, lang);
+
+      // 1 — Send closing text
+      this.send(session.WhatsApp_Number, msgSet, lang);
+
+      // 2 — Closing audio (if available)
+      const audioUrl = Utils.resolveAudioPrompt("CLOSING", lang);
+      if (audioUrl) {
+        Code.sendAudio(session.WhatsApp_Number, audioUrl);
+      }
+
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendClosingMessage", e);
+    }
+  },
+
+  /************************************************************
+   * 🔁 SEND ANY GENERIC WRAPPER MESSAGE
+   * (Used for flexible expansion later)
+   ************************************************************/
+  sendGeneric(session, msgSet) {
+    try {
+      this.send(session.WhatsApp_Number, msgSet);
+    } catch (e) {
+      Logging.logError("Texts_Wrapper.sendGeneric", e);
+    }
+  },
+
+});

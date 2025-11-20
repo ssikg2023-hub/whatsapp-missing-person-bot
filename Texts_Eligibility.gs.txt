@@ -1,0 +1,203 @@
+/************************************************************
+ * Texts_Eligibility.gs — GLOBAL ELIGIBILITY & NOTICES
+ * Used across ALL flows (A, B, C, ExistingCase, Updates)
+ *
+ * ⚠️ NO TEXT IN THIS BLOCK.
+ * Actual text will be inserted in Block 2 & 3.
+ ************************************************************/
+
+const Texts_Eligibility = {
+
+  /************************************************************
+   * 🌍 Utility: Build multi-language message set
+   ************************************************************/
+  _set(en, ur, rur, hi, bn, ar) {
+    return {
+      ENGLISH: en,
+      URDU: ur,
+      ROMAN_URDU: rur,
+      HINDI: hi,
+      BANGLA: bn,
+      ARABIC: ar,
+    };
+  },
+
+  /************************************************************
+   * 🔹 Invalid option (menu selection)
+   ************************************************************/
+  getInvalidOption() {
+    return this._INVALID_OPTION;
+  },
+
+  /************************************************************
+   * 🔹 Please type a number (digits only)
+   ************************************************************/
+  getInvalidNumber() {
+    return this._INVALID_NUMBER;
+  },
+
+  /************************************************************
+   * 🔹 Unexpected keywords (HELP, MENU, START etc.)
+   ************************************************************/
+  getUnexpectedKeyword() {
+    return this._UNEXPECTED_KEYWORD;
+  },
+
+  /************************************************************
+   * 🔹 Please answer YES/NO type questions
+   ************************************************************/
+  getYesNoValidation() {
+    return this._YES_NO_VALIDATION;
+  },
+
+  /************************************************************
+   * 🔹 Session Expired / Long Delay handling
+   ************************************************************/
+  getSessionExpired() {
+    return this._SESSION_EXPIRED;
+  },
+
+  /************************************************************
+   * 🔹 "Are you done?" multi-reply timeout logic
+   ************************************************************/
+  getAreYouDonePrompt() {
+    return this._ARE_YOU_DONE;
+  },
+
+  /************************************************************
+   * 🔹 INTERNAL STORAGE (Populated in Block 2 & 3)
+   ************************************************************/
+  _INVALID_OPTION: null,
+  _INVALID_NUMBER: null,
+  _UNEXPECTED_KEYWORD: null,
+  _YES_NO_VALIDATION: null,
+  _SESSION_EXPIRED: null,
+  _ARE_YOU_DONE: null,
+
+};
+/************************************************************
+ * Texts_Eligibility.gs — BLOCK 3/3
+ * Keyword detection groups & regex patterns
+ ************************************************************/
+
+Object.assign(Texts_Eligibility, {
+
+  /************************************************************
+   * KEYWORD GROUPS — GLOBAL (All Flows A/B/C)
+   ************************************************************/
+
+  /** HELP-related terms */
+  HELP_KEYWORDS: [
+    "help",
+    "help me",
+    "assist",
+    "support",
+    "madad",
+    "مدد",
+    "sos",
+    "guide",
+    "guidance"
+  ],
+
+  /** MENU-related terms (User trying to escape current step) */
+  MENU_KEYWORDS: [
+    "menu",
+    "options",
+    "show menu",
+    "list",
+    "choice",
+    "choices",
+    "meneu",   // common typo
+    "option",
+    "opt"
+  ],
+
+  /** START / RESET / RESTART **/
+  START_KEYWORDS: [
+    "start",
+    "restart",
+    "reset",
+    "again",
+    "dobara",
+    "دوبارہ",
+    "shuru",
+    "شروع",
+    "new",
+    "fresh"
+  ],
+
+  /** Greetings (ignored inside question flow) */
+  GREETING_KEYWORDS: [
+    "hi",
+    "hello",
+    "salam",
+    "salaam",
+    "assalamualaikum",
+    "asalamualaikum",
+    "aslm",
+    "slm",
+    "سلام",
+    "السلام علیکم"
+  ],
+
+  /** STOP / CANCEL */
+  CANCEL_KEYWORDS: [
+    "cancel",
+    "stop",
+    "band",
+    "roko",
+    "mat karo",
+    "abort"
+  ],
+
+  /************************************************************
+   * YES/NO patterns for validation
+   ************************************************************/
+  YES_KEYWORDS: [
+    "yes", "haan", "han", "ha", "جی", "جی ہاں",
+    "हाँ", "হ্যাঁ", "نعم", "na3am"
+  ],
+
+  NO_KEYWORDS: [
+    "no", "nahi", "nahe", "nah", "نہیں",
+    "नहीं", "না", "لا"
+  ],
+
+  /** Quick boolean converters */
+  isYes(text) {
+    text = (text || "").toLowerCase().trim();
+    return this.YES_KEYWORDS.some(k => text.includes(k));
+  },
+
+  isNo(text) {
+    text = (text || "").toLowerCase().trim();
+    return this.NO_KEYWORDS.some(k => text.includes(k));
+  },
+
+  /************************************************************
+   * NUMBER / DIGIT VALIDATION
+   ************************************************************/
+  ONLY_DIGITS_REGEX: /^[0-9]+$/,
+
+  isNumber(text) {
+    return this.ONLY_DIGITS_REGEX.test((text || "").trim());
+  },
+
+  /************************************************************
+   * UNEXPECTED KEYWORD CHECKER
+   ************************************************************/
+  isUnexpectedKeyword(text) {
+    if (!text) return false;
+
+    const t = text.toLowerCase().trim();
+
+    return (
+      this.HELP_KEYWORDS.includes(t) ||
+      this.MENU_KEYWORDS.includes(t) ||
+      this.START_KEYWORDS.includes(t) ||
+      this.GREETING_KEYWORDS.includes(t) ||
+      this.CANCEL_KEYWORDS.includes(t)
+    );
+  }
+
+});

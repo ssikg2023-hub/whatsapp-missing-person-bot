@@ -1,0 +1,311 @@
+/************************************************************
+ *  Texts_LangMenus.gs — BLOCK 1/3
+ *  REGION-SPECIFIC LANGUAGE MENUS (STRICT MODE)
+ *  Structure only — actual menus added in BLOCK 2/3.
+ ************************************************************/
+
+const Texts_LangMenus = {
+
+  /************************************************************
+   * Build a multi-language structure (English, Urdu, etc.)
+   ************************************************************/
+  _set(en, ur, rur, hi, bn, ar) {
+    return {
+      English: en,
+      Urdu: ur,
+      RomanUrdu: rur,
+      Hindi: hi,
+      Bangla: bn,
+      Arabic: ar,
+    };
+  },
+
+  /************************************************************
+   * Return full language menu based on region group
+   ************************************************************/
+  getMenu(region) {
+    switch (region) {
+      case "PK":  return this._MENU_PK;
+      case "IN":  return this._MENU_IN;
+      case "BD":  return this._MENU_BD;
+      case "ME":  return this._MENU_ME;
+
+      case "OTHER": 
+      default:
+        return this._MENU_OTHER;
+    }
+  },
+
+  /************************************************************
+   * Map user input (1–n) to language code
+   * Implemented in BLOCK 3/3
+   ************************************************************/
+  mapChoice(region, input) {
+    return this._MAP(region, input);
+  },
+
+  /************************************************************
+   * INTERNAL STORAGE (populated in BLOCK 2/3)
+   ************************************************************/
+  _MENU_PK: null,
+  _MENU_IN: null,
+  _MENU_BD: null,
+  _MENU_ME: null,
+  _MENU_OTHER: null,
+
+  /************************************************************
+   * INTERNAL MAPPING FUNCTION HOLDER (set in BLOCK 3/3)
+   ************************************************************/
+  _MAP: function(region, input) { return null; },
+};
+/************************************************************
+ *  Texts_LangMenus.gs — BLOCK 2/3
+ *  REGION-SPECIFIC MENUS (Final multilingual text)
+ ************************************************************/
+
+Object.assign(Texts_LangMenus, {
+
+  /************************************************************
+   * 🇵🇰 PK REGION — Urdu / Roman Urdu / English
+   ************************************************************/
+  _MENU_PK: {
+    English:
+`Please choose your preferred language:
+1️⃣ Urdu
+2️⃣ Roman Urdu
+3️⃣ English`,
+
+    Urdu:
+`براہ کرم اپنی زبان منتخب کریں:
+1️⃣ اُردو
+2️⃣ رومن اُردو
+3️⃣ انگلش`,
+
+    RomanUrdu:
+`Barah-e-karam apni zaban muntakhib karein:
+1️⃣ Urdu
+2️⃣ Roman Urdu
+3️⃣ English`,
+
+    Hindi: null,
+    Bangla: null,
+    Arabic: null,
+  },
+
+  /************************************************************
+   * 🇮🇳 IN REGION — Hindi / English
+   ************************************************************/
+  _MENU_IN: {
+    English:
+`Please choose your preferred language:
+1️⃣ Hindi
+2️⃣ English`,
+
+    Hindi:
+`कृपया अपनी भाषा चुनें:
+1️⃣ हिन्दी
+2️⃣ English`,
+
+    Urdu: null,
+    RomanUrdu: null,
+    Bangla: null,
+    Arabic: null,
+  },
+
+  /************************************************************
+   * 🇧🇩 BD REGION — Bangla / English
+   ************************************************************/
+  _MENU_BD: {
+    English:
+`Please choose your preferred language:
+1️⃣ Bangla
+2️⃣ English`,
+
+    Bangla:
+`আপনার পছন্দের ভাষা নির্বাচন করুন:
+1️⃣ বাংলা
+2️⃣ English`,
+
+    Urdu: null,
+    RomanUrdu: null,
+    Hindi: null,
+    Arabic: null,
+  },
+
+  /************************************************************
+   * 🇸🇦 ME REGION — Arabic / English
+   ************************************************************/
+  _MENU_ME: {
+    English:
+`Please choose your preferred language:
+1️⃣ Arabic
+2️⃣ English`,
+
+    Arabic:
+`يرجى اختيار لغتك المفضلة:
+1️⃣ العربية
+2️⃣ English`,
+
+    Urdu: null,
+    RomanUrdu: null,
+    Hindi: null,
+    Bangla: null,
+  },
+
+  /************************************************************
+   * 🌍 OTHER REGION — FULL 6-LANGUAGE MENU
+   ************************************************************/
+  _MENU_OTHER: {
+    English:
+`Please choose your preferred language:
+1️⃣ English
+2️⃣ Urdu
+3️⃣ Roman Urdu
+4️⃣ Hindi
+5️⃣ Bangla
+6️⃣ Arabic`,
+
+    Urdu:
+`براہ کرم اپنی زبان منتخب کریں:
+1️⃣ انگلش
+2️⃣ اُردو
+3️⃣ رومن اُردو
+4️⃣ ہندی
+5️⃣ بنگلہ
+6️⃣ عربی`,
+
+    RomanUrdu:
+`Barah-e-karam apni zaban muntakhib karein:
+1️⃣ English
+2️⃣ Urdu
+3️⃣ Roman Urdu
+4️⃣ Hindi
+5️⃣ Bangla
+6️⃣ Arabic`,
+
+    Hindi:
+`कृपया अपनी भाषा चुनें:
+1️⃣ English
+2️⃣ Urdu
+3️⃣ Roman Urdu
+4️⃣ हिन्दी
+5️⃣ Bangla
+6️⃣ Arabic`,
+
+    Bangla:
+`আপনার পছন্দের ভাষা নির্বাচন করুন:
+1️⃣ English
+2️⃣ Urdu
+3️⃣ Roman Urdu
+4️⃣ Hindi
+5️⃣ বাংলা
+6️⃣ Arabic`,
+
+    Arabic:
+`يرجى اختيار لغتك المفضلة:
+1️⃣ English
+2️⃣ Urdu
+3️⃣ Roman Urdu
+4️⃣ Hindi
+5️⃣ Bangla
+6️⃣ العربية`,
+  },
+
+});
+/************************************************************
+ *  Texts_LangMenus.gs — BLOCK 3/3
+ *  INPUT → LANGUAGE MAPPING (Region-specific)
+ ************************************************************/
+
+Object.assign(Texts_LangMenus, {
+
+  /************************************************************
+   * Map numeric choice → language code
+   * region = "PK" | "IN" | "BD" | "ME" | "OTHER"
+   ************************************************************/
+  mapChoiceToLanguage(region, choice) {
+    choice = String(choice || "").trim();
+
+    switch (region) {
+
+      /********************* 🇵🇰 PK REGION *********************/
+      case "PK":
+        // Valid: 1 = Urdu, 2 = Roman Urdu, 3 = English
+        if (choice === "1") return "URDU";
+        if (choice === "2") return "ROMAN_URDU";
+        if (choice === "3") return "ENGLISH";
+        return null;
+
+      /********************* 🇮🇳 IN REGION *********************/
+      case "IN":
+        // Valid: 1 = Hindi, 2 = English
+        if (choice === "1") return "HINDI";
+        if (choice === "2") return "ENGLISH";
+        return null;
+
+      /********************* 🇧🇩 BD REGION *********************/
+      case "BD":
+        // Valid: 1 = Bangla, 2 = English
+        if (choice === "1") return "BANGLA";
+        if (choice === "2") return "ENGLISH";
+        return null;
+
+      /********************* 🇸🇦 ME REGION *********************/
+      case "ME":
+        // Valid: 1 = Arabic, 2 = English
+        if (choice === "1") return "ARABIC";
+        if (choice === "2") return "ENGLISH";
+        return null;
+
+      /********************* 🌍 OTHER REGION *********************/
+      case "OTHER":
+      default:
+        // Valid: 1–6 (full global list)
+        if (choice === "1") return "ENGLISH";
+        if (choice === "2") return "URDU";
+        if (choice === "3") return "ROMAN_URDU";
+        if (choice === "4") return "HINDI";
+        if (choice === "5") return "BANGLA";
+        if (choice === "6") return "ARABIC";
+        return null;
+    }
+  },
+
+  /************************************************************
+   * Validate if input is allowed for this region
+   ************************************************************/
+  isValidLanguageChoice(region, choice) {
+    choice = String(choice || "").trim();
+
+    if (region === "PK")   return ["1", "2", "3"].includes(choice);
+    if (region === "IN")   return ["1", "2"].includes(choice);
+    if (region === "BD")   return ["1", "2"].includes(choice);
+    if (region === "ME")   return ["1", "2"].includes(choice);
+    if (region === "OTHER")return ["1", "2", "3", "4", "5", "6"].includes(choice);
+
+    return false;
+  },
+
+  /************************************************************
+   * Return the correct menu object for the region
+   ************************************************************/
+  getMenuForRegion(region) {
+    switch (region) {
+      case "PK":    return this._MENU_PK;
+      case "IN":    return this._MENU_IN;
+      case "BD":    return this._MENU_BD;
+      case "ME":    return this._MENU_ME;
+      case "OTHER": return this._MENU_OTHER;
+      default:      return this._MENU_OTHER; // safety fallback
+    }
+  },
+
+  /************************************************************
+   * Helper to send menu message in user’s own selected language
+   ************************************************************/
+  getMenuText(region, userLang) {
+    const menu = this.getMenuForRegion(region);
+    return menu[userLang] || menu["English"]; // fallback
+  }
+
+});
