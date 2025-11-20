@@ -127,6 +127,7 @@ const Flows = {
 
     if (step.startsWith("UPDATE_")) {
       switch (step) {
+        case "UPDATE_INIT": return CaseUpdateFlow.replayCaseID(session);
         case "UPDATE_CASE_ID": return CaseUpdateFlow.replayCaseID(session);
         case "UPDATE_MENU": return CaseUpdateFlow.replayMenu(session);
         case "UPDATE_ADD_INFO": return CaseUpdateFlow.replayAddInfo(session);
@@ -201,9 +202,11 @@ const Flows = {
     }
 
     session.Flow_Type = "C";
-    session.Current_Step_Code = "FLOW_C_START";
+    session.Current_Step_Code = "C_SOURCE";
     SessionEngine.save(session);
-    return FlowC.process(session, "", null, null, null);
+    const intro = Texts_C.getEmpatheticIntro()[lang];
+    const source = Texts_C.getSourceOfInformation()[lang];
+    return `${intro}\n\n${source}`;
   },
 
   /************************************************************

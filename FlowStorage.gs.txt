@@ -32,7 +32,6 @@ const FlowStorage = {
     /*****************
      * FLOW B (B_Q1–B_Q11)
      *****************/
-    "B_INTRO": "B",
     "B_Q1": "B",
     "B_Q2": "B",
     "B_Q3": "B",
@@ -50,10 +49,8 @@ const FlowStorage = {
     /*****************
      * FLOW C (C_Q1–C_Q15)
      *****************/
-    "C_INTRO": "C",
     "C_SOURCE": "C",
     "C_REJECTED": "C",
-    "C_Q_INTRO": "C",
     "C_Q1": "C",
     "C_Q2": "C",
     "C_Q3": "C",
@@ -102,7 +99,7 @@ const FlowStorage = {
     "B_Q1", "B_Q2", "B_Q3", "B_Q4", "B_Q5", "B_Q6", "B_Q7", "B_Q8", "B_Q9", "B_Q10", "B_FINAL_CONFIRM",
 
     // Flow C
-    "C_SOURCE", "C_REJECTED", "C_Q_INTRO", "C_Q1", "C_Q2", "C_Q3", "C_Q4", "C_Q5", "C_Q6", "C_Q7", "C_Q8", "C_Q9", "C_Q10", "C_Q11", "C_Q12", "C_Q13", "C_Q14",
+    "C_SOURCE", "C_REJECTED", "C_Q1", "C_Q2", "C_Q3", "C_Q4", "C_Q5", "C_Q6", "C_Q7", "C_Q8", "C_Q9", "C_Q10", "C_Q11", "C_Q12", "C_Q13", "C_Q14",
     "C_CONFIRM_START",
 
     // Existing Case

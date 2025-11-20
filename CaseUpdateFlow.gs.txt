@@ -70,7 +70,7 @@ const CaseUpdateFlow = {
     // User wants to exit
     if (input === "0") {
       session.Flow_Type = "EXISTING_CASE";
-      session.Current_Step_Code = "EC_MAIN_MENU";
+      session.Current_Step_Code = "EXISTING_CASE_MENU";
       SessionEngine.save(session);
       return Texts_ExistingCases.getMenu(lang);
     }
@@ -131,7 +131,7 @@ const CaseUpdateFlow = {
 
       case "4":
         session.Flow_Type = "EXISTING_CASE";
-        session.Current_Step_Code = "EC_MAIN_MENU";
+        session.Current_Step_Code = "EXISTING_CASE_MENU";
         SessionEngine.save(session);
         return Texts_CaseUpdates.getBackMessage(lang);
     }
@@ -145,7 +145,7 @@ const CaseUpdateFlow = {
     const text = (msg || "").trim();
 
     if (!text) {
-      return Texts_Validation.get("REQUIRED", lang);
+      return Texts_Validation.getMissingRequired(lang);
     }
 
     session.Temp_Data_Json = session.Temp_Data_Json || {};
@@ -165,7 +165,7 @@ const CaseUpdateFlow = {
     const lang = this._getLang(session);
 
     if (!mediaUrl) {
-      return Texts_Validation.get("MEDIA", lang);
+      return Texts_Validation.getInvalidMedia(lang);
     }
 
     session.Temp_Data_Json = session.Temp_Data_Json || {};
@@ -279,7 +279,7 @@ const CaseUpdateFlow = {
         return this.handleDone(session, msg);
 
       default:
-        return Texts_Validation.get("ERROR", lang);
+        return Texts_Validation.getGenericError(lang);
     }
   },
 

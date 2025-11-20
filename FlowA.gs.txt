@@ -56,7 +56,7 @@ const FlowA = {
 
     session.Flow_Type = "A";
     session.Current_Step_Code = "A_ELIGIBILITY";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_A.getEligibilityQuestion()[session.Preferred_Language];
   },
@@ -77,14 +77,14 @@ const FlowA = {
     if (choice === "1") {
 
       session.Current_Step_Code = "A_ELIGIBILITY_REJECT";
-      Session.save(session);
+      SessionEngine.save(session);
 
       return Texts_Eligibility.getRejectionPoliceCase(lang);
     }
 
     /*************** ACCEPTED — Proceed to questions ***************/
     session.Current_Step_Code = "A_INTRO";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_A._A_EMPATHETIC_INTRO[lang];
   },
@@ -95,7 +95,7 @@ const FlowA = {
   startQuestions(session) {
 
     session.Current_Step_Code = "A_Q1";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_A._A_Q1_COUNTRY[session.Preferred_Language];
   },
@@ -147,7 +147,7 @@ const FlowA = {
 
     // Move to next step
     session.Current_Step_Code = next;
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_A[key][lang];
   },
@@ -165,7 +165,7 @@ const FlowA = {
       this._saveAnswer(session, "A_Q9", saved);
 
       session.Current_Step_Code = "A_NOTES";
-      Session.save(session);
+      SessionEngine.save(session);
 
       return Texts_A.getAdditionalNotesPrompt()[lang];
     }
@@ -177,7 +177,7 @@ const FlowA = {
     this._saveAnswer(session, "A_Q9", incoming);
 
     session.Current_Step_Code = "A_NOTES";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_A.getAdditionalNotesPrompt()[lang];
   },
@@ -204,7 +204,7 @@ const FlowA = {
     if (incoming.toLowerCase() === "done") {
 
       session.Current_Step_Code = "A_FINAL_CONFIRM";
-      Session.save(session);
+      SessionEngine.save(session);
 
       return Texts_A.getFinalBeforeConfirmation()[lang];
     }
@@ -227,7 +227,7 @@ const FlowA = {
     }
 
     if (choice === "no") {
-      Session.resetFull(session);
+      SessionEngine.resetFull(session);
       return Texts_Closing.getCancelled(lang);
     }
 
@@ -247,7 +247,7 @@ const FlowA = {
     CaseConfirmation.confirmAndRespond(session, caseId);
 
     session.Current_Step_Code = "A_END";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return "";
   },
@@ -260,7 +260,7 @@ const FlowA = {
     session.Temp_Data_Json = session.Temp_Data_Json || {};
     session.Temp_Data_Json[field] = value;
 
-    Session.save(session);
+      SessionEngine.save(session);
   },
 
   /************************************************************

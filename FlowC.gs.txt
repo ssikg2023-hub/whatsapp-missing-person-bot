@@ -18,17 +18,11 @@ const FlowC = {
       case "FLOW_C_START":
         return this.start(session);
 
-      case "C_INTRO":
-        return this.startSourceQuestion(session);
-
       case "C_SOURCE":
         return this.handleSourceOfInfo(session, msg);
 
       case "C_REJECTED":
         return this.handleRejectionFollowUp(session, msg);
-
-      case "C_Q_INTRO":
-        return this.startQuestions(session);
 
       case "C_Q1":
       case "C_Q2":
@@ -47,11 +41,6 @@ const FlowC = {
       case "C_Q15":
         return this.handleQuestion(session, msg, raw, mediaUrl, mediaMime);
 
-      case "C_FINAL_BEFORE_CONFIRM":
-        session.Current_Step_Code = "C_CONFIRM_START";
-        Session.save(session);
-        return Texts_C.getAfterQ15()[lang];
-
       case "C_CONFIRM_START":
         return this.handleFinalConfirmation(session, msg);
 
@@ -68,10 +57,12 @@ const FlowC = {
     const lang = session.Preferred_Language;
 
     session.Flow_Type = "C";
-    session.Current_Step_Code = "C_INTRO";
-    Session.save(session);
+    session.Current_Step_Code = "C_SOURCE";
+    SessionEngine.save(session);
 
-    return Texts_C.getEmpatheticIntro()[lang];
+    const intro = Texts_C.getEmpatheticIntro()[lang];
+    const source = Texts_C.getSourceOfInformation()[lang];
+    return `${intro}\n\n${source}`;
   },
 
   /************************************************************
@@ -82,7 +73,7 @@ const FlowC = {
     const lang = session.Preferred_Language;
 
     session.Current_Step_Code = "C_SOURCE";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_C.getSourceOfInformation()[lang];
   },
@@ -104,7 +95,7 @@ const FlowC = {
     if (choice === "2") {
 
       session.Current_Step_Code = "C_REJECTED";
-      Session.save(session);
+      SessionEngine.save(session);
 
       return Texts_C.getRejectionMessage()[lang]
         + "\n\n"
@@ -114,7 +105,7 @@ const FlowC = {
     // OPTIONS 1 or 3 → CONTINUE
     session.Temp_Data_Json = session.Temp_Data_Json || {};
     session.Temp_Data_Json["C_SOURCE"] = choice;
-    Session.save(session);
+    SessionEngine.save(session);
 
     return this.startQuestions(session, true);
   },
@@ -132,13 +123,13 @@ const FlowC = {
     }
 
     if (choice === "1") {
-      Session.resetPartial(session);
+      SessionEngine.resetPartial(session);
       session.Current_Step_Code = "USER_TYPE";
-      Session.save(session);
+      SessionEngine.save(session);
       return Texts_C.getRestartAfterRejection()[lang];
     }
 
-    Session.reset(session);
+    SessionEngine.reset(session);
     return Texts_C.getClosingMessage()[lang];
   },
 
@@ -148,7 +139,7 @@ const FlowC = {
   startQuestions(session, includeIntro) {
 
     session.Current_Step_Code = "C_Q1";
-    Session.save(session);
+    SessionEngine.save(session);
 
     const lang = session.Preferred_Language;
     const q1 = Texts_C.getQ1()[lang];
@@ -175,7 +166,7 @@ const FlowC = {
         const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
         session.Temp_Data_Json = session.Temp_Data_Json || {};
         session.Temp_Data_Json[step] = saved;
-        Session.save(session);
+        SessionEngine.save(session);
         return this._finish(session);
       }
 
@@ -186,7 +177,7 @@ const FlowC = {
 
       session.Temp_Data_Json = session.Temp_Data_Json || {};
       session.Temp_Data_Json[step] = incoming;
-      Session.save(session);
+      SessionEngine.save(session);
       return this._finish(session);
     }
 
@@ -198,7 +189,7 @@ const FlowC = {
 
     session.Temp_Data_Json = session.Temp_Data_Json || {};
     session.Temp_Data_Json[step] = incoming;
-    Session.save(session);
+    SessionEngine.save(session);
 
     return this._nextQuestion(session);
   },
@@ -209,7 +200,6 @@ const FlowC = {
   _nextQuestion(session) {
 
     const map = {
-      "C_Q_INTRO": "C_Q1",
       "C_Q1": "C_Q2",
       "C_Q2": "C_Q3",
       "C_Q3": "C_Q4",
@@ -234,7 +224,7 @@ const FlowC = {
     }
 
     session.Current_Step_Code = next;
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_C[`get${next.replace("C_", "")}`]()[lang];
   },
@@ -247,7 +237,7 @@ const FlowC = {
     const lang = session.Preferred_Language;
 
     session.Current_Step_Code = "C_CONFIRM_START";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return Texts_C.getAfterQ15()[lang];
   },
@@ -289,7 +279,7 @@ const FlowC = {
     CaseConfirmation.confirmAndRespond(session, caseId);
 
     session.Current_Step_Code = "C_END";
-    Session.save(session);
+    SessionEngine.save(session);
 
     return "";
   },
@@ -306,7 +296,7 @@ const FlowC = {
       session.Temp_Data_Json[field] = value;
     }
 
-    Session.save(session);
+    SessionEngine.save(session);
   },
 
   /************************************************************
@@ -318,17 +308,17 @@ const FlowC = {
 
     switch (session.Current_Step_Code) {
       case "FLOW_C_START":
-      case "C_INTRO":
-        return Texts_C.getEmpatheticIntro()[lang];
+        return Texts_C.getEmpatheticIntro()[lang]
+          + "\n\n"
+          + Texts_C.getSourceOfInformation()[lang];
 
       case "C_SOURCE":
-        return Texts_C.getSourceOfInformation()[lang];
+        return Texts_C.getEmpatheticIntro()[lang]
+          + "\n\n"
+          + Texts_C.getSourceOfInformation()[lang];
 
       case "C_REJECTED":
         return Texts_C.getPostRejectionPrompt()[lang];
-
-      case "C_Q_INTRO":
-        return Texts_C.getQuestionsIntro()[lang];
 
       case "C_Q1": return Texts_C.getQ1()[lang];
       case "C_Q2": return Texts_C.getQ2()[lang];
