@@ -8,42 +8,142 @@ const FlowStorage = {
   /************************************************************
    * MAP: Step → Flow
    * (Filled by you later when we import the Flow Document)
-   ************************************************************/
+  ************************************************************/
   STEP_MAP: {
-    // EXAMPLES — will be filled exactly according to Flow Document step codes
-    // "A_Q1": "A",
-    // "A_Q2": "A",
-    // "C_ELIG1": "C",
-    // "C_Q5": "C",
-    // "B_Q7": "B",
-    // "EX_Q3": "EXISTING",
-    // "UPD_Q1": "CASE_UPDATE",
+    /*****************
+     * FLOW A (A_Q1–A_Q9)
+     *****************/
+    "A_ELIGIBILITY": "A",
+    "A_ELIGIBILITY_REJECT": "A",
+    "A_INTRO": "A",
+    "A_Q1": "A",
+    "A_Q2": "A",
+    "A_Q3": "A",
+    "A_Q4": "A",
+    "A_Q5": "A",
+    "A_Q6": "A",
+    "A_Q7": "A",
+    "A_Q8": "A",
+    "A_Q9": "A",
+    "A_NOTES": "A",
+    "A_FINAL_CONFIRM": "A",
+    "A_END": "A",
+
+    /*****************
+     * FLOW B (B_Q1–B_Q11)
+     *****************/
+    "B_INTRO": "B",
+    "B_Q1": "B",
+    "B_Q2": "B",
+    "B_Q3": "B",
+    "B_Q4": "B",
+    "B_Q5": "B",
+    "B_Q6": "B",
+    "B_Q7": "B",
+    "B_Q8": "B",
+    "B_Q9": "B",
+    "B_Q10": "B",
+    "B_Q11": "B",
+    "B_NOTES": "B",
+    "B_FINAL_CONFIRM": "B",
+
+    /*****************
+     * FLOW C (C_Q1–C_Q15)
+     *****************/
+    "C_INTRO": "C",
+    "C_SOURCE": "C",
+    "C_REJECTED": "C",
+    "C_Q_INTRO": "C",
+    "C_Q1": "C",
+    "C_Q2": "C",
+    "C_Q3": "C",
+    "C_Q4": "C",
+    "C_Q5": "C",
+    "C_Q6": "C",
+    "C_Q7": "C",
+    "C_Q8": "C",
+    "C_Q9": "C",
+    "C_Q10": "C",
+    "C_Q11": "C",
+    "C_Q12": "C",
+    "C_Q13": "C",
+    "C_Q14": "C",
+    "C_Q15": "C",
+    "C_CONFIRM_START": "C",
+
+    /*****************
+     * EXISTING CASE FLOW
+     *****************/
+    "EXISTING_CASE_SELECT": "EXISTING_CASE",
+    "EXISTING_CASE_MENU": "EXISTING_CASE",
+    // Legacy aliases
+    "EC_CASE_ID": "EXISTING_CASE",
+    "EC_SELECT_INDEX": "EXISTING_CASE",
+    "EC_MAIN_MENU": "EXISTING_CASE",
+
+    /*****************
+     * CASE UPDATE FLOW
+     *****************/
+    "UPDATE_INIT": "CASE_UPDATE",
+    "UPDATE_CASE_ID": "CASE_UPDATE",
+    "UPDATE_MENU": "CASE_UPDATE",
+    "UPDATE_ADD_INFO": "CASE_UPDATE",
+    "UPDATE_MEDIA": "CASE_UPDATE",
+    "UPDATE_DONE": "CASE_UPDATE",
+    // Legacy aliases
+    "CU_INIT": "CASE_UPDATE",
+    "CU_CASE_ID": "CASE_UPDATE",
+    "CU_MENU": "CASE_UPDATE",
+    "CU_ADD_INFO": "CASE_UPDATE",
+    "CU_MEDIA": "CASE_UPDATE",
+    "CU_DONE?": "CASE_UPDATE",
   },
 
   /************************************************************
    * SET: Steps that REQUIRE text-only input
    * (audio/video allowed but user must ALSO type)
    * Will be fully populated from Flow Document rules
-   ************************************************************/
+  ************************************************************/
   TEXT_REQUIRED_SET: new Set([
-    // Example entries:
-    // "A_Q1", "A_Q2", "C_Q3", "UPD_Q1"
+    // Flow A
+    "A_ELIGIBILITY", "A_Q1", "A_Q2", "A_Q3", "A_Q4", "A_Q5", "A_Q6", "A_Q7", "A_Q8", "A_FINAL_CONFIRM",
+
+    // Flow B
+    "B_Q1", "B_Q2", "B_Q3", "B_Q4", "B_Q5", "B_Q6", "B_Q7", "B_Q8", "B_Q9", "B_Q10", "B_Q11", "B_FINAL_CONFIRM",
+
+    // Flow C
+    "C_SOURCE", "C_REJECTED", "C_Q_INTRO", "C_Q1", "C_Q2", "C_Q3", "C_Q4", "C_Q5", "C_Q6", "C_Q7", "C_Q8", "C_Q9", "C_Q10", "C_Q11", "C_Q12", "C_Q13", "C_Q14",
+
+    // Existing Case
+    "EXISTING_CASE_SELECT", "EXISTING_CASE_MENU",
+    "EC_CASE_ID", "EC_SELECT_INDEX", "EC_MAIN_MENU",
+
+    // Case Update Flow
+    "UPDATE_CASE_ID", "UPDATE_MENU", "UPDATE_ADD_INFO", "UPDATE_DONE",
+    "CU_CASE_ID", "CU_MENU", "CU_ADD_INFO", "CU_DONE?",
   ]),
 
   /************************************************************
    * SET: Steps that ALLOW media (image/audio/video)
-   ************************************************************/
+  ************************************************************/
   MEDIA_ALLOWED_SET: new Set([
-    // Example entries:
-    // "A_Q9", "C_Q12", "EX_Q5"
+    // Flow A
+    "A_Q9", "A_NOTES",
+
+    // Flow C
+    "C_Q15",
+
+    // Case Update media option
+    "UPDATE_MEDIA", "CU_MEDIA",
   ]),
 
   /************************************************************
    * SET: Steps that ENABLE multi-reply ("Are you done?")
-   ************************************************************/
+  ************************************************************/
   MULTI_REPLY_ENABLED_SET: new Set([
-    // Example:
-    // "A_Q8", "C_Q14"
+    "A_NOTES",
+    "B_NOTES",
+    "UPDATE_DONE", "CU_DONE?",
   ]),
 
   /************************************************************
@@ -85,31 +185,48 @@ Object.assign(FlowStorage, {
   /************************************************************
    * SET: Eligibility Steps (Flow A)
    * (Police/Agency related eligibility from Flow Document)
-   ************************************************************/
+  ************************************************************/
   ELIGIBILITY_STEPS_A: new Set([
-    // e.g. "A_ELIG1", "A_ELIG2"
+    "A_ELIGIBILITY",
+    "A_ELIGIBILITY_REJECT",
   ]),
 
   /************************************************************
    * SET: Eligibility Steps (Flow C)
    * ("Do you have direct access?" eligibility from Flow Document)
-   ************************************************************/
+  ************************************************************/
   ELIGIBILITY_STEPS_C: new Set([
-    // e.g. "C_ELIG1", "C_ELIG2"
+    "C_SOURCE",
+    "C_REJECTED",
   ]),
 
   /************************************************************
    * SET: Existing Case Flow Steps
-   ************************************************************/
+  ************************************************************/
   EXISTING_CASE_STEPS: new Set([
-    // e.g. "EX_Q1", "EX_Q2"
+    "EXISTING_CASE_SELECT",
+    "EXISTING_CASE_MENU",
+    "EC_CASE_ID",
+    "EC_SELECT_INDEX",
+    "EC_MAIN_MENU",
   ]),
 
   /************************************************************
    * SET: Case Update Flow Steps
-   ************************************************************/
+  ************************************************************/
   CASE_UPDATE_STEPS: new Set([
-    // e.g. "UPD_Q1", "UPD_Q2"
+    "UPDATE_INIT",
+    "UPDATE_CASE_ID",
+    "UPDATE_MENU",
+    "UPDATE_ADD_INFO",
+    "UPDATE_MEDIA",
+    "UPDATE_DONE",
+    "CU_INIT",
+    "CU_CASE_ID",
+    "CU_MENU",
+    "CU_ADD_INFO",
+    "CU_MEDIA",
+    "CU_DONE?",
   ]),
 
   /************************************************************

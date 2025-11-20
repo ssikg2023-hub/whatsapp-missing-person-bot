@@ -1,89 +1,39 @@
 /************************************************************
- *  FlowB.gs — STEP 3B (User *IS* the Missing Person)
- *  FINAL PRODUCTION FILE — STRICT MODE
- * ----------------------------------------------------------
- *  PURPOSE:
- *    Handle Flow Type "B" — when the user themselves is lost
- *    and wants help reconnecting with family.
- *
- *  DEPENDS ON:
- *    - Texts_B (full library)
- *    - CaseEngine
- *    - MediaEngine
- *    - Session engine (timeout, HELP/MENU, etc.)
- *    - Logging engine
- *
- *  ENHANCEMENTS AUTO-INCLUDED:
- *    ✔ Audio/Video/Text support
- *    ✔ HELP/MENU interception
- *    ✔ Timeout auto-resend last question
- *    ✔ Multi-region + language enforcement
- *    ✔ Logging of incoming/outgoing/errors
- *    ✔ Case-ID collision prevention
- *    ✔ Daily Drive Backup
+ *  FlowB.gs — STEP 3B (User IS the Missing Person)
+ *  STRICT MODE — EXACT STEP RANGE B_Q1–B_Q11 ONLY
  ************************************************************/
 
 const FlowB = {
 
   /************************************************************
-   * ROUTER — Entry point for every Flow B message
+   * ROUTER — Entry point for Flow B messages
    ************************************************************/
-  handle(session, incomingText, raw, mediaUrl, mediaMime) {
+  process(session, msg, raw, mediaUrl, mediaMime) {
 
-    // Global media capture (photo/video/audio/document)
-    if (mediaUrl) {
-      MediaEngine.saveMediaToTemp(session, mediaUrl, mediaMime);
-    }
-
-    const step = session.Current_Step_Code;
+    const step = session.Current_Step_Code || "FLOW_B_START";
 
     switch (step) {
 
-      case "B_INTRO":
-        return this.sendQ1(session);
+      case "FLOW_B_START":
+        return this.start(session);
 
-      case "B_Q1":
-        return this.saveAndAsk(session, "Q1", incomingText, this.sendQ2);
-
-      case "B_Q2":
-        return this.saveAndAsk(session, "Q2", incomingText, this.sendQ3);
-
-      case "B_Q3":
-        return this.saveAndAsk(session, "Q3", incomingText, this.sendQ4);
-
-      case "B_Q4":
-        return this.saveAndAsk(session, "Q4", incomingText, this.sendQ5);
-
-      case "B_Q5":
-        return this.saveAndAsk(session, "Q5", incomingText, this.sendQ6);
-
-      case "B_Q6":
-        return this.saveAndAsk(session, "Q6", incomingText, this.sendQ7);
-
-      case "B_Q7":
-        return this.saveAndAsk(session, "Q7", incomingText, this.sendQ8);
-
-      case "B_Q8":
-        return this.saveAndAsk(session, "Q8", incomingText, this.sendQ9);
-
-      case "B_Q9":
-        return this.saveAndAsk(session, "Q9", incomingText, this.sendQ10);
-
-      case "B_Q10":
-        return this.saveAndAsk(session, "Q10", incomingText, this.sendQ11);
-
-      case "B_Q11":
-        return this.saveAndAsk(session, "Q11", incomingText, this.sendNotesPrompt);
-
-      case "B_NOTES":
-        return this.handleNotes(session, incomingText);
+      case "B_Q1": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q1", "B_Q2", "getQ2");
+      case "B_Q2": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q2", "B_Q3", "getQ3");
+      case "B_Q3": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q3", "B_Q4", "getQ4");
+      case "B_Q4": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q4", "B_Q5", "getQ5");
+      case "B_Q5": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q5", "B_Q6", "getQ6");
+      case "B_Q6": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q6", "B_Q7", "getQ7");
+      case "B_Q7": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q7", "B_Q8", "getQ8");
+      case "B_Q8": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q8", "B_Q9", "getQ9");
+      case "B_Q9": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q9", "B_Q10", "getQ10");
+      case "B_Q10": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "B_Q10", "B_Q11", "getQ11");
+      case "B_Q11": return this._handlePhoto(session, msg, raw, mediaUrl, mediaMime);
 
       case "B_FINAL_CONFIRM":
-        return this.handleFinalConfirmation(session, incomingText);
+        return this._handleFinalConfirmation(session, msg);
 
       default:
-        // Hard fallback — restart FlowB intro
-        return this.start(session);
+        return Texts_Validation.getGenericError(session.Preferred_Language);
     }
   },
 
@@ -91,190 +41,126 @@ const FlowB = {
    * START FLOW B
    ************************************************************/
   start(session) {
-    session.Current_Step_Code = "B_INTRO";
-    Session.save(session);
 
-    const msg = Texts.pickByLang(session, Texts_B.getIntro());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
+    const lang = session.Preferred_Language;
 
-  /************************************************************
-   * SAVE ANSWER & MOVE TO NEXT QUESTION
-   ************************************************************/
-  saveAndAsk(session, key, answer, nextFn) {
-
-    CaseEngine.saveTemp(session, key, answer);
-
-    return nextFn.call(this, session);
-  },
-
-  /************************************************************
-   * SEND ALL QUESTIONS SEQUENTIALLY
-   ************************************************************/
-  sendQ1(session) {
+    session.Flow_Type = "B";
     session.Current_Step_Code = "B_Q1";
     Session.save(session);
 
-    const msg = Texts.pickByLang(session, Texts_B.getQ1());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
+    const intro = Texts_B.getIntro()[lang];
+    const q1 = Texts_B.getQ1()[lang];
 
-  sendQ2(session) {
-    session.Current_Step_Code = "B_Q2";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ2());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ3(session) {
-    session.Current_Step_Code = "B_Q3";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ3());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ4(session) {
-    session.Current_Step_Code = "B_Q4";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ4());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ5(session) {
-    session.Current_Step_Code = "B_Q5";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ5());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ6(session) {
-    session.Current_Step_Code = "B_Q6";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ6());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ7(session) {
-    session.Current_Step_Code = "B_Q7";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ7());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ8(session) {
-    session.Current_Step_Code = "B_Q8";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ8());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ9(session) {
-    session.Current_Step_Code = "B_Q9";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ9());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ10(session) {
-    session.Current_Step_Code = "B_Q10";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ10());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  sendQ11(session) {
-    session.Current_Step_Code = "B_Q11";
-    Session.save(session);
-
-    const msg = Texts.pickByLang(session, Texts_B.getQ11());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
+    return `${intro}\n\n${q1}`;
   },
 
   /************************************************************
-   * NOTES / MEDIA STAGE
+   * GENERIC HANDLER FOR Q1..Q10 (text-only)
    ************************************************************/
-  sendNotesPrompt(session) {
-    session.Current_Step_Code = "B_NOTES";
+  _handleQ(session, msg, raw, mediaUrl, mediaMime, cur, next, nextGetter) {
+
+    const lang = session.Preferred_Language;
+    const incoming = (msg || "").trim();
+
+    if (!incoming) return Texts_Validation.getEmptyInput(lang);
+
+    this._saveAnswer(session, cur, incoming);
+
+    session.Current_Step_Code = next;
     Session.save(session);
 
-    const msg = Texts.pickByLang(session, Texts_B._B_NOTES_PROMPT);
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
+    return Texts_B[nextGetter]()[lang];
   },
 
-  handleNotes(session, text) {
+  /************************************************************
+   * Q11 — PHOTO / MEDIA (allows media or text)
+   ************************************************************/
+  _handlePhoto(session, msg, raw, mediaUrl, mediaMime) {
 
-    if (text && text.toUpperCase().trim() === "DONE") {
-      return this.sendFinalConfirmation(session);
+    const lang = session.Preferred_Language;
+
+    if (mediaUrl) {
+      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+      this._saveAnswer(session, "B_Q11", saved);
+
+      session.Current_Step_Code = "B_FINAL_CONFIRM";
+      Session.save(session);
+
+      return Texts_B.getFinalBeforeConfirmation()[lang];
     }
 
-    MediaEngine.saveNotes(session, text);
+    const incoming = (msg || "").trim();
+    if (!incoming) return Texts_Validation.getEmptyInput(lang);
 
-    const msg = Texts.pickByLang(session, Texts_B._B_MULTI_REPLY);
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
+    this._saveAnswer(session, "B_Q11", incoming);
 
-  /************************************************************
-   * FINAL CONFIRMATION
-   ************************************************************/
-  sendFinalConfirmation(session) {
     session.Current_Step_Code = "B_FINAL_CONFIRM";
     Session.save(session);
 
-    const msg = Texts.pickByLang(session, Texts_B.getFinalBeforeConfirmation());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
-  },
-
-  handleFinalConfirmation(session, text) {
-    text = (text || "").trim().toUpperCase();
-
-    if (text === "CONFIRM") {
-      return this.saveCaseAndFinish(session);
-    }
-
-    // If user types anything else → repeat confirmation
-    const msg = Texts.pickByLang(session, Texts_B.getFinalBeforeConfirmation());
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
+    return Texts_B.getFinalBeforeConfirmation()[lang];
   },
 
   /************************************************************
-   * SAVE CASE TO SHEET + GENERATE CASE ID
+   * FINAL CONFIRMATION (CONFIRM / other)
    ************************************************************/
-  saveCaseAndFinish(session) {
+  _handleFinalConfirmation(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim().toLowerCase();
+
+    if (choice === "confirm") {
+      return this._finalizeCase(session);
+    }
+
+    return Texts_B.getFinalBeforeConfirmation()[lang];
+  },
+
+  /************************************************************
+   * CREATE CASE RECORD + END
+   ************************************************************/
+  _finalizeCase(session) {
 
     const caseId = CaseEngine.finalizeCase(session, "B");
 
-    // Reset after final save
-    Session.reset(session);
+    session.Current_Step_Code = "B_END";
+    Session.save(session);
 
-    // Send confirmation response
-    const msg = "✅ Case submitted successfully.\nYour Case ID: " + caseId;
-    Logging.logOutbound(session, msg);
-    return WhatsApp.sendText(session.WhatsApp_Number, msg);
+    return "✅ Case submitted successfully.\nYour Case ID: " + caseId;
+  },
+
+  /************************************************************
+   * INTERNAL: Save answer into session.Temp_Data_Json
+   ************************************************************/
+  _saveAnswer(session, field, value) {
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json[field] = value;
+    Session.save(session);
+  },
+
+  /************************************************************
+   * 🔁 REPLAY CURRENT QUESTION (for timeout / media rejection)
+   ************************************************************/
+  replay(session) {
+
+    const lang = session.Preferred_Language;
+
+    switch (session.Current_Step_Code) {
+      case "FLOW_B_START":
+      case "B_Q1": return `${Texts_B.getIntro()[lang]}\n\n${Texts_B.getQ1()[lang]}`;
+      case "B_Q2": return Texts_B.getQ2()[lang];
+      case "B_Q3": return Texts_B.getQ3()[lang];
+      case "B_Q4": return Texts_B.getQ4()[lang];
+      case "B_Q5": return Texts_B.getQ5()[lang];
+      case "B_Q6": return Texts_B.getQ6()[lang];
+      case "B_Q7": return Texts_B.getQ7()[lang];
+      case "B_Q8": return Texts_B.getQ8()[lang];
+      case "B_Q9": return Texts_B.getQ9()[lang];
+      case "B_Q10": return Texts_B.getQ10()[lang];
+      case "B_Q11": return Texts_B.getQ11()[lang];
+      case "B_FINAL_CONFIRM": return Texts_B.getFinalBeforeConfirmation()[lang];
+      default:
+        return Texts_Validation.getGenericError(lang);
+    }
   },
 
 };

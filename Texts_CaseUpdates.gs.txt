@@ -20,67 +20,73 @@ const Texts_CaseUpdates = {
     };
   },
 
+  _pickByLang(set, lang) {
+    if (!set) return "";
+    if (!lang) return set;
+    return set[lang] || set.English;
+  },
+
   /************************************************************
    * 🔹 STEP 1 — “Which Case Do You Want To Update?”
    ************************************************************/
-  getSelectCasePrompt() {
-    return this._CU_SELECT_CASE;
+  getSelectCasePrompt(lang) {
+    return this._pickByLang(this._CU_SELECT_CASE, lang);
   },
 
   /************************************************************
    * 🔹 STEP 2 — Update Menu
    ************************************************************/
-  getMenu() {
-    return this._CU_MENU;
+  getMenu(lang) {
+    return this._pickByLang(this._CU_MENU, lang);
   },
 
   /************************************************************
    * 🔹 OPTION 1 — Add New Information
    ************************************************************/
-  getAddInfoPrompt() {
-    return this._CU_ADD_INFO;
+  getAddInfoPrompt(lang) {
+    return this._pickByLang(this._CU_ADD_INFO, lang);
   },
 
   /************************************************************
    * 🔹 OPTION 2 — Upload Media
    ************************************************************/
-  getMediaPrompt() {
-    return this._CU_MEDIA;
+  getMediaPrompt(lang) {
+    return this._pickByLang(this._CU_MEDIA, lang);
   },
 
   /************************************************************
    * 🔹 OPTION 3 — Mark Case as Resolved
    ************************************************************/
-  getResolveMessage() {
-    return this._CU_RESOLVE;
+  getResolveMessage(lang) {
+    return this._pickByLang(this._CU_RESOLVE, lang);
   },
 
   /************************************************************
    * 🔹 OPTION 4 — Go Back
    ************************************************************/
-  getBackMessage() {
-    return this._CU_BACK;
+  getBackMessage(lang) {
+    return this._pickByLang(this._CU_BACK, lang);
   },
 
   /************************************************************
    * 🔹 INVALID INPUT
    ************************************************************/
-  getInvalidInput() {
-    return this._CU_INVALID;
+  getInvalidInput(lang) {
+    return this._pickByLang(this._CU_INVALID, lang);
   },
 
   /************************************************************
    * 🔹 UPDATE SUCCESS (after saving update row)
    ************************************************************/
-  getSuccess() {
-    return this._CU_SUCCESS;
+  getSuccess(lang) {
+    return this._pickByLang(this._CU_SUCCESS, lang);
   },
 
   /************************************************************
    * 🔹 Multi-reply (“Are you done?”)
    ************************************************************/
-  getAreYouDonePrompt() {
-    return this._CU_ARE_YOU_DONE;
+  getAreYouDonePrompt(lang) {
+    return this._pickByLang(this._CU_ARE_YOU_DONE, lang);
   },
 
   /************************************************************
@@ -288,6 +294,14 @@ Object.assign(Texts_CaseUpdates, {
     "ना","না","لا"
   ],
 
+  get YES_WORDS_NORMALIZED() {
+    return this.YES_WORDS.map(w => (w || "").toLowerCase());
+  },
+
+  get NO_WORDS_NORMALIZED() {
+    return this.NO_WORDS.map(w => (w || "").toLowerCase());
+  },
+
   /************************************************************
    * 2️⃣ Update Menu Valid Options
    ************************************************************/
@@ -309,6 +323,18 @@ Object.assign(Texts_CaseUpdates, {
   KEYWORDS_ADD_INFO: [
     "info","detail","tafseel","تفصیل","जोड़","যোগ","إضافة"
   ],
+
+  get KEYWORDS_MEDIA_NORMALIZED() {
+    return this.KEYWORDS_MEDIA.map(k => (k || "").toLowerCase());
+  },
+
+  get KEYWORDS_RESOLVED_NORMALIZED() {
+    return this.KEYWORDS_RESOLVED.map(k => (k || "").toLowerCase());
+  },
+
+  get KEYWORDS_ADD_INFO_NORMALIZED() {
+    return this.KEYWORDS_ADD_INFO.map(k => (k || "").toLowerCase());
+  },
 
   /************************************************************
    * 4️⃣ Regex Helpers
@@ -333,9 +359,9 @@ Object.assign(Texts_CaseUpdates, {
     // Smart inference (if user types: “I want to upload video”)
     const lower = text.toLowerCase();
 
-    if (this.KEYWORDS_MEDIA.some(k => lower.includes(k))) return "2";
-    if (this.KEYWORDS_RESOLVED.some(k => lower.includes(k))) return "3";
-    if (this.KEYWORDS_ADD_INFO.some(k => lower.includes(k))) return "1";
+    if (this.KEYWORDS_MEDIA_NORMALIZED.some(k => lower.includes(k))) return "2";
+    if (this.KEYWORDS_RESOLVED_NORMALIZED.some(k => lower.includes(k))) return "3";
+    if (this.KEYWORDS_ADD_INFO_NORMALIZED.some(k => lower.includes(k))) return "1";
 
     return null; // invalid → router uses INVALID message
   },
@@ -347,7 +373,7 @@ Object.assign(Texts_CaseUpdates, {
     if (!text) return false;
     const lower = text.toLowerCase();
 
-    if (this.YES_WORDS.some(w => lower.includes(w))) return true;
+    if (this.YES_WORDS_NORMALIZED.some(w => lower.includes(w))) return true;
 
     // User sends “done”
     if (["done","finish","complete","ok"].includes(lower)) return true;
@@ -361,7 +387,7 @@ Object.assign(Texts_CaseUpdates, {
   isCancel(text) {
     if (!text) return false;
     const lower = text.toLowerCase();
-    return this.NO_WORDS.some(w => lower.includes(w)) || lower === "0";
+    return this.NO_WORDS_NORMALIZED.some(w => lower.includes(w)) || lower === "0";
   },
 
   /************************************************************
@@ -369,15 +395,15 @@ Object.assign(Texts_CaseUpdates, {
    ************************************************************/
   getPrompt(type, lang) {
     switch (type) {
-      case "SELECT_CASE": return this._CU_SELECT_CASE[lang];
-      case "MENU": return this._CU_MENU[lang];
-      case "ADD_INFO": return this._CU_ADD_INFO[lang];
-      case "MEDIA": return this._CU_MEDIA[lang];
-      case "RESOLVE": return this._CU_RESOLVE[lang];
-      case "BACK": return this._CU_BACK[lang];
-      case "INVALID": return this._CU_INVALID[lang];
-      case "SUCCESS": return this._CU_SUCCESS[lang];
-      case "DONE": return this._CU_ARE_YOU_DONE[lang];
+      case "SELECT_CASE": return this._pickByLang(this._CU_SELECT_CASE, lang);
+      case "MENU": return this._pickByLang(this._CU_MENU, lang);
+      case "ADD_INFO": return this._pickByLang(this._CU_ADD_INFO, lang);
+      case "MEDIA": return this._pickByLang(this._CU_MEDIA, lang);
+      case "RESOLVE": return this._pickByLang(this._CU_RESOLVE, lang);
+      case "BACK": return this._pickByLang(this._CU_BACK, lang);
+      case "INVALID": return this._pickByLang(this._CU_INVALID, lang);
+      case "SUCCESS": return this._pickByLang(this._CU_SUCCESS, lang);
+      case "DONE": return this._pickByLang(this._CU_ARE_YOU_DONE, lang);
     }
     return "";
   },

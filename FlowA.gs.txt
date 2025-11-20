@@ -8,9 +8,51 @@
 const FlowA = {
 
   /************************************************************
+   * ROUTER — Entry point for Flow A messages
+   ************************************************************/
+  process(session, msg, raw, mediaUrl, mediaMime) {
+
+    const step = session.Current_Step_Code || "A_ELIGIBILITY";
+
+    switch (step) {
+
+      case "FLOW_A_START":
+      case "A_ELIGIBILITY":
+        return this.start(session, msg);
+
+      case "A_ELIGIBILITY_REJECT":
+        return Texts_Eligibility.getRejectionPoliceCase(session.Preferred_Language);
+
+      case "A_INTRO":
+      case "A_Q1":
+      case "A_Q2":
+      case "A_Q3":
+      case "A_Q4":
+      case "A_Q5":
+      case "A_Q6":
+      case "A_Q7":
+      case "A_Q8":
+      case "A_Q9":
+      case "A_NOTES":
+      case "A_FINAL_CONFIRM":
+        return this.handleQuestion(session, msg, raw, mediaUrl, mediaMime);
+
+      default:
+        return Texts_Validation.getGenericError(session.Preferred_Language);
+    }
+  },
+
+  /************************************************************
    * ENTRY POINT — Start Flow A
    ************************************************************/
-  start(session) {
+  start(session, msg) {
+
+    const incoming = (msg || "").trim();
+
+    // If we already received a choice, treat it as eligibility answer
+    if (session.Current_Step_Code === "A_ELIGIBILITY" && incoming) {
+      return this.handleEligibility(session, incoming);
+    }
 
     session.Flow_Type = "A";
     session.Current_Step_Code = "A_ELIGIBILITY";
@@ -217,6 +259,42 @@ const FlowA = {
     session.Temp_Data_Json[field] = value;
 
     Session.save(session);
+  },
+
+  /************************************************************
+   * 🔁 REPLAY CURRENT QUESTION (for timeout / media rejection)
+   ************************************************************/
+  replay(session) {
+
+    const step = session.Current_Step_Code;
+    const lang = session.Preferred_Language;
+
+    switch (step) {
+      case "A_ELIGIBILITY":
+        return Texts_A.getEligibilityQuestion()[lang];
+
+      case "A_INTRO":
+        return Texts_A._A_EMPATHETIC_INTRO[lang];
+
+      case "A_Q1": return Texts_A._A_Q1_COUNTRY[lang];
+      case "A_Q2": return Texts_A._A_Q2_FULL_NAME[lang];
+      case "A_Q3": return Texts_A._A_Q3_AGE[lang];
+      case "A_Q4": return Texts_A._A_Q4_GENDER[lang];
+      case "A_Q5": return Texts_A._A_Q5_LAST_SEEN_LOCATION[lang];
+      case "A_Q6": return Texts_A._A_Q6_LAST_SEEN_TIME[lang];
+      case "A_Q7": return Texts_A._A_Q7_RELATIONSHIP[lang];
+      case "A_Q8": return Texts_A._A_Q8_CONTACT_NUMBER[lang];
+      case "A_Q9": return Texts_A._A_Q9_PHOTO[lang];
+
+      case "A_NOTES":
+        return Texts_A.getAdditionalNotesPrompt()[lang];
+
+      case "A_FINAL_CONFIRM":
+        return Texts_A.getFinalBeforeConfirmation()[lang];
+
+      default:
+        return Texts_Validation.getGenericError(lang);
+    }
   },
 
 };

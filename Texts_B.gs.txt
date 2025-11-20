@@ -240,6 +240,7 @@ Object.assign(Texts_B, {
   },
 
 });
+
 /************************************************************
  *  Texts_B.gs — BLOCK 3/3
  *  (Multi-reply + Additional Notes + Media Instructions + Final)
@@ -297,3 +298,38 @@ Object.assign(Texts_B, {
   },
 
 });
+
+/************************************************************
+ *  Texts_B.gs — BLOCK 4/3 (Compatibility Helpers)
+ *  Provides Texts.pickByLang expected by FlowB.
+ ************************************************************/
+
+var Texts = typeof Texts !== "undefined" ? Texts : {};
+
+Texts.pickByLang = function (session, msgSet) {
+  try {
+    if (!msgSet) return "";
+
+    const lang = (session && session.Preferred_Language) || "English";
+    if (msgSet[lang]) return msgSet[lang];
+
+    const fallbackOrder = [
+      "English",
+      "Urdu",
+      "RomanUrdu",
+      "Hindi",
+      "Bangla",
+      "Arabic",
+    ];
+
+    for (let i = 0; i < fallbackOrder.length; i++) {
+      const key = fallbackOrder[i];
+      if (msgSet[key]) return msgSet[key];
+    }
+
+    return "";
+  } catch (e) {
+    Logging.logError("Texts.pickByLang", e);
+    return "";
+  }
+};

@@ -29,21 +29,22 @@ const SessionEngine = {
 
       if (String(row[idx.number]) === String(whatsAppNumber)) {
         // Found → convert row into session object
-        return {
+        const temp = Utils.safeParse(row[idx.temp], {});
+        return this._hydrateSession({
           RowIndex: i + 1, // actual row number in sheet
           WhatsApp_Number: row[idx.number],
           Current_Step_Code: row[idx.step],
           Flow_Type: row[idx.flow],
           Region_Group: row[idx.region],
           Preferred_Language: row[idx.lang],
-          Temp_Data: Utils.safeParse(row[idx.temp], {}),
+          Temp_Data_Json: temp,
           Updated_At: row[idx.updated],
 
           // Multi-reply & media-temporary runtime values
-          _multiStartTime: row._multiStartTime || null,
-          _askedDone: row._askedDone || false,
-          _lastMediaUrl: row._lastMediaUrl || null,
-        };
+          _multiStartTime: null,
+          _askedDone: false,
+          _lastMediaUrl: null,
+        });
       }
     }
 
@@ -68,19 +69,19 @@ const SessionEngine = {
 
     const lastRow = sheet.getLastRow();
 
-    return {
+    return this._hydrateSession({
       RowIndex: lastRow,
       WhatsApp_Number: whatsAppNumber,
       Current_Step_Code: "",
       Flow_Type: "",
       Region_Group: "",
       Preferred_Language: "",
-      Temp_Data: {},
+      Temp_Data_Json: {},
       Updated_At: new Date(),
       _multiStartTime: null,
       _askedDone: false,
       _lastMediaUrl: null,
-    };
+    });
   },
 };
 /************************************************************
@@ -100,15 +101,16 @@ Object.assign(SessionEngine, {
       return; // Should never happen
     }
 
-    const row = session.RowIndex;
+    const normalized = this._normalizeTemp(session);
+    const row = normalized.RowIndex;
 
     sheet.getRange(row, 1, 1, 7).setValues([[
-      session.WhatsApp_Number,
-      session.Current_Step_Code,
-      session.Flow_Type,
-      session.Region_Group,
-      session.Preferred_Language,
-      Utils.safeStringify(session.Temp_Data),
+      normalized.WhatsApp_Number,
+      normalized.Current_Step_Code,
+      normalized.Flow_Type,
+      normalized.Region_Group,
+      normalized.Preferred_Language,
+      Utils.safeStringify(normalized.Temp_Data_Json),
       Utils.formatDate(new Date())
     ]]);
   },
@@ -126,6 +128,8 @@ Object.assign(SessionEngine, {
    * 🔁 CLEAR TEMP DATA
    ************************************************************/
   clearTemp(session) {
+    session.Temp_Data_Json = {};
+    session.Temp = {};
     session.Temp_Data = {};
     this.save(session);
   },
@@ -174,4 +178,75 @@ Object.assign(SessionEngine, {
     }
   },
 
+  /************************************************************
+   * 🔁 RESET SESSION (light reset)
+   ************************************************************/
+  reset(session) {
+    session.Current_Step_Code = "";
+    session.Flow_Type = "";
+    this.clearTemp(session);
+  },
+
+  /************************************************************
+   * 🔄 RESET PARTIAL (keep language/region)
+   ************************************************************/
+  resetPartial(session) {
+    session.Flow_Type = "";
+    session.Current_Step_Code = "";
+    this.clearTemp(session);
+  },
+
+  /************************************************************
+   * 🧼 RESET FULL (clear language/region too)
+   ************************************************************/
+  resetFull(session) {
+    session.Flow_Type = "";
+    session.Current_Step_Code = "";
+    session.Region_Group = "";
+    session.Preferred_Language = "";
+    this.clearTemp(session);
+  },
+
+  /************************************************************
+   * ⏱ REFRESH TIMESTAMP ONLY
+   ************************************************************/
+  refresh(session) {
+    session.Updated_At = new Date();
+    this.save(session);
+  },
+
+  /************************************************************
+   * ⏳ CHECK INACTIVITY TIMEOUT
+   ************************************************************/
+  isExpired(session) {
+    const updated = new Date(session.Updated_At || 0).getTime();
+    if (!updated) return false;
+    const diff = Date.now() - updated;
+    const max = CONFIG.INACTIVITY_TIMEOUT_HOURS * 60 * 60 * 1000;
+    return diff >= max;
+  },
+
+  /************************************************************
+   * 🔒 HELPER: NORMALIZE TEMP STRUCTURE
+   ************************************************************/
+  _normalizeTemp(session) {
+    const temp = session.Temp_Data_Json || session.Temp || session.Temp_Data || {};
+    session.Temp_Data_Json = temp;
+    session.Temp = temp;
+    session.Temp_Data = temp;
+    return session;
+  },
+
+  /************************************************************
+   * 🪄 HELPER: HYDRATE SESSION WITH TEMP MIRRORS
+   ************************************************************/
+  _hydrateSession(session) {
+    const normalized = this._normalizeTemp(session);
+    normalized.Updated_At = session.Updated_At || new Date();
+    return normalized;
+  },
+
 });
+
+// Backward-compatible alias for flows expecting `Session.*`
+const Session = SessionEngine;

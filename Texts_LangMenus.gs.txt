@@ -41,7 +41,7 @@ const Texts_LangMenus = {
    * Implemented in BLOCK 3/3
    ************************************************************/
   mapChoice(region, input) {
-    return this._MAP(region, input);
+    return this.mapChoiceToLang(region, input);
   },
 
   /************************************************************
@@ -64,6 +64,39 @@ const Texts_LangMenus = {
  ************************************************************/
 
 Object.assign(Texts_LangMenus, {
+
+  /************************************************************
+   * Return allowed numeric options for region
+   ************************************************************/
+  getAllowedOptions(region) {
+    return Object.keys(this.getLanguageOptions(region));
+  },
+
+  /************************************************************
+   * Map numeric option → language code lookup table
+   ************************************************************/
+  getLanguageOptions(region) {
+    switch (region) {
+      case "PK":
+        return { "1": "URDU", "2": "ROMAN_URDU", "3": "ENGLISH" };
+      case "IN":
+        return { "1": "HINDI", "2": "ENGLISH" };
+      case "BD":
+        return { "1": "BANGLA", "2": "ENGLISH" };
+      case "ME":
+        return { "1": "ARABIC", "2": "ENGLISH" };
+      case "OTHER":
+      default:
+        return {
+          "1": "ENGLISH",
+          "2": "URDU",
+          "3": "ROMAN_URDU",
+          "4": "HINDI",
+          "5": "BANGLA",
+          "6": "ARABIC",
+        };
+    }
+  },
 
   /************************************************************
    * 🇵🇰 PK REGION — Urdu / Roman Urdu / English
@@ -224,66 +257,25 @@ Object.assign(Texts_LangMenus, {
    * region = "PK" | "IN" | "BD" | "ME" | "OTHER"
    ************************************************************/
   mapChoiceToLanguage(region, choice) {
-    choice = String(choice || "").trim();
+    const options = this.getLanguageOptions(region);
+    const trimmed = String(choice || "").trim();
+    return options[trimmed] || null;
+  },
 
-    switch (region) {
-
-      /********************* 🇵🇰 PK REGION *********************/
-      case "PK":
-        // Valid: 1 = Urdu, 2 = Roman Urdu, 3 = English
-        if (choice === "1") return "URDU";
-        if (choice === "2") return "ROMAN_URDU";
-        if (choice === "3") return "ENGLISH";
-        return null;
-
-      /********************* 🇮🇳 IN REGION *********************/
-      case "IN":
-        // Valid: 1 = Hindi, 2 = English
-        if (choice === "1") return "HINDI";
-        if (choice === "2") return "ENGLISH";
-        return null;
-
-      /********************* 🇧🇩 BD REGION *********************/
-      case "BD":
-        // Valid: 1 = Bangla, 2 = English
-        if (choice === "1") return "BANGLA";
-        if (choice === "2") return "ENGLISH";
-        return null;
-
-      /********************* 🇸🇦 ME REGION *********************/
-      case "ME":
-        // Valid: 1 = Arabic, 2 = English
-        if (choice === "1") return "ARABIC";
-        if (choice === "2") return "ENGLISH";
-        return null;
-
-      /********************* 🌍 OTHER REGION *********************/
-      case "OTHER":
-      default:
-        // Valid: 1–6 (full global list)
-        if (choice === "1") return "ENGLISH";
-        if (choice === "2") return "URDU";
-        if (choice === "3") return "ROMAN_URDU";
-        if (choice === "4") return "HINDI";
-        if (choice === "5") return "BANGLA";
-        if (choice === "6") return "ARABIC";
-        return null;
-    }
+  /************************************************************
+   * Alias used by Flows.gs routing
+   ************************************************************/
+  mapChoiceToLang(region, choice) {
+    return this.mapChoiceToLanguage(region, choice);
   },
 
   /************************************************************
    * Validate if input is allowed for this region
    ************************************************************/
   isValidLanguageChoice(region, choice) {
-    choice = String(choice || "").trim();
-
-    if (region === "PK")   return ["1", "2", "3"].includes(choice);
-    if (region === "IN")   return ["1", "2"].includes(choice);
-    if (region === "BD")   return ["1", "2"].includes(choice);
-    if (region === "ME")   return ["1", "2"].includes(choice);
-    if (region === "OTHER")return ["1", "2", "3", "4", "5", "6"].includes(choice);
-
-    return false;
+    const allowed = this.getAllowedOptions(region);
+    const trimmed = String(choice || "").trim();
+    return allowed.includes(trimmed);
   },
 
   /************************************************************

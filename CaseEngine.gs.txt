@@ -35,7 +35,7 @@ const CaseEngine = {
    *   - Media_Links = blank
    *   - Case_Status = Submitted
    ************************************************************/
-  createCase(session) {
+  createCase(session, answers = {}) {
     const sheet = CONFIG.getCasesSheet();
     const idx = this.getCasesIndexMap();
 
@@ -56,14 +56,14 @@ const CaseEngine = {
     rowData[idx["Language"] - 1] = lang;
     rowData[idx["Flow_Type"] - 1] = session.Flow_Type;
 
-    // Q1…Q16 → empty
+    // Q1…Q16 → populate if provided, else blank
     for (let q = 1; q <= 16; q++) {
       const col = `Q${q}`;
-      if (idx[col]) rowData[idx[col] - 1] = "";
+      if (idx[col]) rowData[idx[col] - 1] = answers[col] || "";
     }
 
     // Extra sections
-    if (idx["Extra_Notes"]) rowData[idx["Extra_Notes"] - 1] = "";
+    if (idx["Extra_Notes"]) rowData[idx["Extra_Notes"] - 1] = answers["Extra_Notes"] || "";
     if (idx["Media_Links"]) rowData[idx["Media_Links"] - 1] = "";
     if (idx["Case_Status"]) rowData[idx["Case_Status"] - 1] = "Submitted";
 
@@ -473,6 +473,180 @@ Object.assign(CaseEngine, {
    ************************************************************/
   getSimilarityScore(nameA, nameB) {
     return Utils.similarity(nameA, nameB);
+  },
+
+  /************************************************************
+   * 🧩 TEMP SAVE (Flow B helper)
+   ************************************************************/
+  saveTemp(session, key, value) {
+    const temp = this._getTempData(session);
+    temp[key] = value;
+    session.Temp_Data = temp;
+    if (session.Temp_Data_Json) session.Temp_Data_Json[key] = value;
+    return temp;
+  },
+
+  /************************************************************
+   * 🆕 CREATE NEW CASE (Flow A helper)
+   ************************************************************/
+  createNewCase(session) {
+    const answers = this._extractAnswersFromSession(session);
+    const caseId = this.createCase(session, answers);
+    return caseId;
+  },
+
+  /************************************************************
+   * 🏁 FINALIZE CASE (Flow B helper)
+   ************************************************************/
+  finalizeCase(session, flowType) {
+    session.Flow_Type = flowType || session.Flow_Type;
+    const answers = this._extractAnswersFromSession(session);
+    const caseId = this.createCase(session, answers);
+    this.markSubmitted(caseId);
+    return caseId;
+  },
+
+  /************************************************************
+   * 🔍 FIND CASE BY ID (returns array)
+   ************************************************************/
+  findByCaseID(caseId, whatsappNumber) {
+    const sheet = CONFIG.getCasesSheet();
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+
+    const header = data[0];
+    const idIdx = header.indexOf("Case_ID");
+    const numIdx = header.indexOf("WhatsApp_Number");
+
+    const matches = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (String(row[idIdx]) === String(caseId) && (!whatsappNumber || String(row[numIdx]) === String(whatsappNumber))) {
+        matches.push(this.getCase(row[idIdx]));
+      }
+    }
+
+    return matches;
+  },
+
+  /************************************************************
+   * 🧾 SAVE UPDATE (CaseUpdateFlow helper)
+   ************************************************************/
+  saveUpdate(payload) {
+    if (!payload || !payload.Case_ID) return;
+    this.addCaseUpdate(
+      payload.Case_ID,
+      payload.Update_Type || "UPDATE",
+      payload.Content || "",
+      payload.Media_Links || "",
+      payload.Raw_JSON || "{}"
+    );
+  },
+
+  /************************************************************
+   * ➕ APPEND UPDATE (ExistingCaseFlow helper)
+   ************************************************************/
+  appendUpdate(caseId, updates) {
+    if (!caseId || !updates) return;
+    const content = Object.keys(updates)
+      .filter(k => updates[k])
+      .map(k => `${k}: ${updates[k]}`)
+      .join("\n");
+
+    this.saveUpdate({
+      Case_ID: caseId,
+      Update_Type: "UPDATE",
+      Content: content,
+      Media_Links: "",
+      Raw_JSON: Utils.safeStringify(updates),
+    });
+  },
+
+  /************************************************************
+   * ✅ MARK CASE RESOLVED
+   ************************************************************/
+  markCaseResolved(caseId) {
+    this.updateStatus(caseId, "Closed");
+  },
+
+  /************************************************************
+   * 🔍 GET CASE BY ID (alias)
+   ************************************************************/
+  getCaseById(caseId) {
+    return this.getCase(caseId);
+  },
+
+  /************************************************************
+   * 🧾 BUILD SUMMARY STRING (ExistingCaseFlow helper)
+   ************************************************************/
+  buildSummary(caseObjOrId, lang) {
+    const caseObj = typeof caseObjOrId === "object" ? caseObjOrId : this.getCase(caseObjOrId);
+    if (!caseObj) return "";
+
+    const templateByLang = Texts_ExistingCases.getCaseFoundSummaryTemplate();
+    const template = templateByLang[lang] || templateByLang.English || "";
+
+    const map = {
+      CASE_ID: caseObj["Case_ID"],
+      FULL_NAME: caseObj["Q2"] || caseObj["Full_Name"],
+      AGE: caseObj["Q3"],
+      GENDER: caseObj["Q4"],
+      COUNTRY: caseObj["Q1"],
+      CITY: caseObj["Q5"] || caseObj["City"],
+      LANDMARK: caseObj["Q5"] || caseObj["Landmark"],
+      LAST_SEEN: caseObj["Q6"],
+      HOW_SEPARATED: caseObj["Q7"],
+      WHO_RAISED: caseObj["Q8"],
+      FAMILY_NAMES: caseObj["Q9"],
+      CONTACT_NUMBER: caseObj["Q8"] || caseObj["Contact_Number"],
+      PHOTOS: caseObj["Media_Links"] || caseObj["Q9"],
+    };
+
+    let output = template;
+    Object.keys(map).forEach((key) => {
+      const value = map[key];
+      const replaceVal = value ? value : "";
+      output = output.replace(new RegExp(`{{${key}}}`, "g"), replaceVal);
+    });
+
+    // Remove blank lines caused by empty placeholders
+    output = output
+      .split("\n")
+      .filter(line => line.trim() !== "")
+      .join("\n");
+
+    return output;
+  },
+
+  /************************************************************
+   * 🔧 TEMP DATA EXTRACTORS
+   ************************************************************/
+  _getTempData(session) {
+    if (!session) return {};
+    if (session.Temp_Data) return session.Temp_Data;
+    if (session.Temp_Data_Json) return session.Temp_Data_Json;
+    if (session.Temp) return session.Temp;
+    return (session.Temp_Data = {});
+  },
+
+  _extractAnswersFromSession(session) {
+    const temp = this._getTempData(session);
+    const answers = {};
+
+    Object.keys(temp || {}).forEach((key) => {
+      // Normalize keys like "A_Q1" or "Q1"
+      const match = key.match(/Q(\d+)/);
+      if (match) {
+        const col = `Q${match[1]}`;
+        answers[col] = temp[key];
+      }
+      if (key === "Extra_Notes" || key === "Notes" || key === "A_NOTES") {
+        answers["Extra_Notes"] = temp[key];
+      }
+    });
+
+    return answers;
   },
 
   /************************************************************

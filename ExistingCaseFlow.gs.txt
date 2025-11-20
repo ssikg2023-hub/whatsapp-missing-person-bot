@@ -5,19 +5,28 @@
 
 const ExistingCaseFlow = {
 
+  _getLang(session) {
+    return session.Preferred_Language || "English";
+  },
+
+  _setStep(session, stepCode) {
+    session.Current_Step_Code = stepCode;
+    Session.save(session);
+  },
+
   /************************************************************
    * ENTRY POINT → When user selects “Existing Case”
    ************************************************************/
   start(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
 
-    session.Current_Step_Code = "EC_CASE_ID";
-    Session.save(session);
+    session.Flow_Type = "EXISTING_CASE";
+    this._setStep(session, "EXISTING_CASE_SELECT");
 
     return (
-      Texts_ExistingCases.getEntry()[lang] +
+      Texts_ExistingCases.getEntry(lang) +
       "\n\n" +
-      Texts_ExistingCases.getCaseIdPrompt()[lang]
+      Texts_ExistingCases.getCaseIdPrompt(lang)
     );
   },
 
@@ -25,7 +34,7 @@ const ExistingCaseFlow = {
    * STEP 1 — HANDLE CASE ID
    ************************************************************/
   handleCaseId(session, msg) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const caseId = (msg || "").trim();
 
     if (!caseId) return Texts_Validation.getEmptyInput(lang);
@@ -35,21 +44,20 @@ const ExistingCaseFlow = {
 
     // Zero matches
     if (matches.length === 0) {
-      return Texts_ExistingCases.getCaseNotFound()[lang];
+      return Texts_ExistingCases.getCaseNotFound(lang);
     }
 
     // Multiple
     if (matches.length > 1) {
       session.Temp_Data_Json = { MULTI_LIST: matches };
-      session.Current_Step_Code = "EC_SELECT_INDEX";
-      Session.save(session);
+      this._setStep(session, "EXISTING_CASE_SELECT");
 
       let numberedList = "";
       matches.forEach((c, i) => {
         numberedList += `${i + 1}) ${c.Case_ID}\n`;
       });
 
-      const menu = Texts_ExistingCases.getMultipleCasesList()[lang];
+      const menu = Texts_ExistingCases.getMultipleCasesList(lang);
       return menu + "\n\n" + numberedList.trim();
     }
 
@@ -62,7 +70,7 @@ const ExistingCaseFlow = {
    * STEP 2 — HANDLE MULTIPLE CASE INDEX SELECTION
    ************************************************************/
   handleCaseIndexSelection(session, msg) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const n = parseInt((msg || "").trim(), 10);
 
     if (
@@ -86,13 +94,13 @@ const ExistingCaseFlow = {
    * INTERNAL — OPEN MAIN MENU FOR CASE
    ************************************************************/
   _openCaseMenu(session, caseObj) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
 
     session.Selected_Case = caseObj;
-    session.Current_Step_Code = "EC_MAIN_MENU";
-    Session.save(session);
+    session.Flow_Type = "EXISTING_CASE";
+    this._setStep(session, "EXISTING_CASE_MENU");
 
-    return Texts_ExistingCases.getMenu()[lang].replace(
+    return Texts_ExistingCases.getMenu(lang).replace(
       "{CASE_ID}",
       caseObj.Case_ID
     );
@@ -102,7 +110,7 @@ const ExistingCaseFlow = {
    * STEP 3 — MAIN MENU HANDLER (1–4)
    ************************************************************/
   handleMainMenu(session, msg) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const choice = (msg || "").trim();
 
     if (!["1", "2", "3", "4"].includes(choice)) {
@@ -125,12 +133,12 @@ const ExistingCaseFlow = {
       session.Current_Step_Code = "USER_TYPE";
       Session.save(session);
 
-      return Texts_ExistingCases.getSubmitNewCaseOption()[lang];
+      return Texts_ExistingCases.getSubmitNewCaseOption(lang);
     }
 
     // 4 = Update Case
     if (choice === "4") {
-      return this._startUpdate(session);
+      return CaseUpdateFlow.start(session);
     }
   },
 
@@ -138,10 +146,10 @@ const ExistingCaseFlow = {
    * OPTION 1 — REVIEW CASE DETAILS
    ************************************************************/
   _handleReview(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const c = session.Selected_Case;
 
-    const template = Texts_ExistingCases.getReviewOption()[lang];
+    const template = Texts_ExistingCases.getReviewOption(lang);
     const summary = CaseEngine.buildSummary(c, lang);
 
     return template + "\n\n" + summary;
@@ -151,103 +159,11 @@ const ExistingCaseFlow = {
    * OPTION 2 — STATUS CHECK
    ************************************************************/
   _handleStatus(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const c = session.Selected_Case;
 
-    const statusMsg = Texts_ExistingCases.getStatusOption()[lang];
+    const statusMsg = Texts_ExistingCases.getStatusOption(lang);
     return statusMsg.replace("{STATUS}", c.Case_Status || "Unknown");
-  },
-
-  /************************************************************
-   * OPTION 4 — BEGIN UPDATE CASE FLOW
-   ************************************************************/
-  _startUpdate(session) {
-    const lang = session.Preferred_Language;
-
-    session.Current_Step_Code = "EC_UPDATE_START";
-    session.Temp_Data_Json = { UPDATE_ACCUM: {} };
-    Session.save(session);
-
-    return Texts_ExistingCases.getUpdateOption()[lang];
-  },
-
-  /************************************************************
-   * UPDATE — FIELD SELECTION
-   ************************************************************/
-  handleUpdateSelection(session, msg) {
-    const lang = session.Preferred_Language;
-    const choice = (msg || "").trim();
-
-    const prompts = Texts_ExistingCases.getUpdatePrompts();
-
-    if (!prompts[choice]) {
-      return Texts_Validation.getInvalidOption(lang);
-    }
-
-    session.Current_Step_Code = "EC_UPDATE_Q";
-    session.Temp_Data_Json.LAST_FIELD = choice;
-    Session.save(session);
-
-    return prompts[choice][lang];
-  },
-
-  /************************************************************
-   * UPDATE — HANDLE ANSWER (TEXT or MEDIA)
-   ************************************************************/
-  handleUpdateAnswer(session, msg, raw, mediaUrl, mediaMime) {
-    const lang = session.Preferred_Language;
-
-    const field = session.Temp_Data_Json.LAST_FIELD;
-    if (!field) return Texts_Validation.getGenericError(lang);
-
-    // MEDIA
-    if (mediaUrl) {
-      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
-      session.Temp_Data_Json.UPDATE_ACCUM[field] = saved;
-      Session.save(session);
-
-      return Texts_ExistingCases.getAreYouDone()[lang];
-    }
-
-    // TEXT
-    const incoming = (msg || "").trim();
-    if (!incoming) {
-      return Texts_Validation.getEmptyInput(lang);
-    }
-
-    session.Temp_Data_Json.UPDATE_ACCUM[field] = incoming;
-    Session.save(session);
-
-    return Texts_ExistingCases.getAreYouDone()[lang];
-  },
-
-  /************************************************************
-   * UPDATE — ARE YOU DONE (YES/NO)
-   ************************************************************/
-  handleUpdateDone(session, msg) {
-    const lang = session.Preferred_Language;
-    const choice = (msg || "").trim();
-
-    if (choice === "1") {
-      const caseId = session.Selected_Case.Case_ID;
-      const updates = session.Temp_Data_Json.UPDATE_ACCUM;
-
-      CaseEngine.appendUpdate(caseId, updates);
-
-      session.Current_Step_Code = "EC_UPDATE_SUCCESS";
-      Session.save(session);
-
-      return Texts_ExistingCases.getUpdateSuccess()[lang];
-    }
-
-    if (choice === "2") {
-      session.Current_Step_Code = "EC_UPDATE_START";
-      Session.save(session);
-
-      return Texts_ExistingCases.getUpdateOption()[lang];
-    }
-
-    return Texts_Validation.getInvalidOption(lang);
   },
 
   /************************************************************
@@ -255,52 +171,61 @@ const ExistingCaseFlow = {
    ************************************************************/
 
   replayCaseId(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     return (
-      Texts_ExistingCases.getEntry()[lang] +
+      Texts_ExistingCases.getEntry(lang) +
       "\n\n" +
-      Texts_ExistingCases.getCaseIdPrompt()[lang]
+      Texts_ExistingCases.getCaseIdPrompt(lang)
     );
   },
 
   replayCaseIndexSelection(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const list = session.Temp_Data_Json?.MULTI_LIST || [];
 
     let numbered = "";
     list.forEach((c, i) => (numbered += `${i + 1}) ${c.Case_ID}\n`));
 
     return (
-      Texts_ExistingCases.getMultipleCasesList()[lang] +
+      Texts_ExistingCases.getMultipleCasesList(lang) +
       "\n\n" +
       numbered.trim()
     );
   },
 
   replayMainMenu(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const caseId = session.Selected_Case?.Case_ID || "";
-    return Texts_ExistingCases.getMenu()[lang].replace("{CASE_ID}", caseId);
+    return Texts_ExistingCases.getMenu(lang).replace("{CASE_ID}", caseId);
   },
 
-  replayUpdateStart(session) {
-    const lang = session.Preferred_Language;
-    return Texts_ExistingCases.getUpdateOption()[lang];
+  replayMenu(session) {
+    if (!session.Selected_Case) return this.replayCaseId(session);
+    return this.replayMainMenu(session);
   },
 
-  replayUpdateQ(session) {
-    const lang = session.Preferred_Language;
-    const field = session.Temp_Data_Json?.LAST_FIELD;
-
-    if (!field) return Texts_Validation.getGenericError(lang);
-
-    const prompts = Texts_ExistingCases.getUpdatePrompts();
-    return prompts[field][lang];
+  replayCaseSelection(session) {
+    if (session.Temp_Data_Json?.MULTI_LIST?.length) {
+      return this.replayCaseIndexSelection(session);
+    }
+    return this.replayCaseId(session);
   },
 
-  replayUpdateSuccess(session) {
-    const lang = session.Preferred_Language;
-    return Texts_ExistingCases.getUpdateSuccess()[lang];
+  /************************************************************
+   * ROUTERS (align with Flows interceptors)
+   ************************************************************/
+  processCaseSelection(session, msg) {
+    if (session.Temp_Data_Json?.MULTI_LIST?.length) {
+      return this.handleCaseIndexSelection(session, msg);
+    }
+    return this.handleCaseId(session, msg);
+  },
+
+  processMenu(session, msg) {
+    if (!session.Selected_Case) {
+      return this.processCaseSelection(session, msg);
+    }
+    return this.handleMainMenu(session, msg);
   }
 
 };

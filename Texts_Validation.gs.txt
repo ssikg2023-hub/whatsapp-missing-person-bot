@@ -8,6 +8,12 @@
 
 const Texts_Validation = {
 
+  _pick(lang, msgSet) {
+    if (!msgSet) return "";
+    if (lang && msgSet[lang]) return msgSet[lang];
+    return msgSet["English"] || "";
+  },
+
   /************************************************************
    * Utility: Multi-language wrapper
    ************************************************************/
@@ -25,32 +31,76 @@ const Texts_Validation = {
   /************************************************************
    * PUBLIC GETTERS (Router-safe)
    ************************************************************/
-  getInvalidOption() {
-    return this._INVALID_OPTION;
+  getInvalidOption(lang) {
+    if (!lang) return this._INVALID_OPTION;
+    return this._pick(lang, this._INVALID_OPTION);
   },
 
-  getInvalidNumber() {
-    return this._INVALID_NUMBER;
+  getInvalidNumber(lang) {
+    if (!lang) return this._INVALID_NUMBER;
+    return this._pick(lang, this._INVALID_NUMBER);
   },
 
-  getInvalidMedia() {
-    return this._INVALID_MEDIA;
+  getInvalidMedia(lang) {
+    if (!lang) return this._INVALID_MEDIA;
+    return this._pick(lang, this._INVALID_MEDIA);
   },
 
-  getUnexpectedKeyword() {
-    return this._UNEXPECTED_KEYWORD;
+  getUnexpectedKeyword(lang) {
+    if (!lang) return this._UNEXPECTED_KEYWORD;
+    return this._pick(lang, this._UNEXPECTED_KEYWORD);
   },
 
-  getTimeoutRepeat() {
-    return this._TIMEOUT_REPEAT;
+  getTimeoutRepeat(lang) {
+    if (!lang) return this._TIMEOUT_REPEAT;
+    return this._pick(lang, this._TIMEOUT_REPEAT);
   },
 
-  getMissingRequired() {
-    return this._MISSING_REQUIRED;
+  getMissingRequired(lang) {
+    if (!lang) return this._MISSING_REQUIRED;
+    return this._pick(lang, this._MISSING_REQUIRED);
   },
 
-  getGenericError() {
-    return this._GENERIC_ERROR;
+  getGenericError(lang) {
+    if (!lang) return this._GENERIC_ERROR;
+    return this._pick(lang, this._GENERIC_ERROR);
+  },
+
+  getEmptyInput(lang) {
+    return this.getMissingRequired(lang);
+  },
+
+  getInvalidInput(session) {
+    const lang = session && session.Preferred_Language;
+    return this.getGenericError(lang);
+  },
+
+  getTimeoutReminder(lang) {
+    return this.getTimeoutRepeat(lang);
+  },
+
+  getInvalidText(lang) {
+    return this.getMissingRequired(lang);
+  },
+
+  getPhotoRequired(lang) {
+    return this.getInvalidMedia(lang);
+  },
+
+  getVoiceNotAllowed(lang) {
+    return this.getMissingRequired(lang);
+  },
+
+  getTextRequiredReminder(lang) {
+    return this.getMissingRequired(lang);
+  },
+
+  getUnexpectedKeywordReminder(lang) {
+    return this.getUnexpectedKeyword(lang);
+  },
+
+  getSessionExpiredReminder(lang) {
+    return this.getTimeoutReminder(lang);
   },
 
   /************************************************************
@@ -232,25 +282,25 @@ Object.assign(Texts_Validation, {
     switch (type) {
 
       case "OPTION":
-        return this._INVALID_OPTION[lang];
+        return this._pick(lang, this._INVALID_OPTION);
 
       case "NUMBER":
-        return this._INVALID_NUMBER[lang];
+        return this._pick(lang, this._INVALID_NUMBER);
 
       case "MEDIA":
-        return this._INVALID_MEDIA[lang];
+        return this._pick(lang, this._INVALID_MEDIA);
 
       case "KEYWORD":
-        return this._UNEXPECTED_KEYWORD[lang];
+        return this._pick(lang, this._UNEXPECTED_KEYWORD);
 
       case "TIMEOUT":
-        return this._TIMEOUT_REPEAT[lang];
+        return this._pick(lang, this._TIMEOUT_REPEAT);
 
       case "REQUIRED":
-        return this._MISSING_REQUIRED[lang];
+        return this._pick(lang, this._MISSING_REQUIRED);
 
       case "ERROR":
-        return this._GENERIC_ERROR[lang];
+        return this._pick(lang, this._GENERIC_ERROR);
 
       default:
         return "";

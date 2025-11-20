@@ -10,17 +10,38 @@
 
 const CaseUpdateFlow = {
 
+  STEP_ALIASES: {
+    UPDATE_INIT: "CU_INIT",
+    UPDATE_CASE_ID: "CU_CASE_ID",
+    UPDATE_MENU: "CU_MENU",
+    UPDATE_ADD_INFO: "CU_ADD_INFO",
+    UPDATE_MEDIA: "CU_MEDIA",
+    UPDATE_DONE: "CU_DONE?",
+  },
+
+  _normalizeStep(stepCode) {
+    return this.STEP_ALIASES[stepCode] || stepCode;
+  },
+
+  _setStep(session, stepCode) {
+    session.Current_Step_Code = stepCode;
+    Session.save(session);
+  },
+
+  _getLang(session) {
+    return session.Preferred_Language || "English";
+  },
+
   /************************************************************
    * ENTRY POINT — CU_INIT
    ************************************************************/
   start(session, msg) {
     session.Flow_Type = "CASE_UPDATE";
-    session.Current_Step_Code = "CU_INIT";
+    this._setStep(session, "UPDATE_INIT");
 
     session.Temp = session.Temp || {};
     session.Temp.Update = {}; // reset temp
 
-    Session.save(session);
     return this.askCaseID(session);
   },
 
@@ -28,18 +49,17 @@ const CaseUpdateFlow = {
    * CU_CASE_ID → Ask user for Case ID
    ************************************************************/
   askCaseID(session) {
-    session.Current_Step_Code = "CU_CASE_ID";
-    Session.save(session);
+    this._setStep(session, "UPDATE_CASE_ID");
 
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getSelectCasePrompt()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getSelectCasePrompt(lang);
   },
 
   /************************************************************
    * Validate Case ID
    ************************************************************/
   handleCaseID(session, msg) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const input = (msg || "").trim();
 
     // User wants to exit
@@ -47,26 +67,26 @@ const CaseUpdateFlow = {
       session.Flow_Type = "EXISTING_CASE";
       session.Current_Step_Code = "EC_MAIN_MENU";
       Session.save(session);
-      return Texts_ExistingCases.getMenu()[lang];
+      return Texts_ExistingCases.getMenu(lang);
     }
 
     // Validate Case ID format
     if (!Texts_CaseUpdates.REGEX_CASE_ID.test(input)) {
-      return Texts_CaseUpdates.getInvalidInput()[lang];
+      return Texts_CaseUpdates.getInvalidInput(lang);
     }
 
     // Load case
     const caseObj = CaseEngine.getCaseById(input);
 
     if (!caseObj || caseObj.WhatsApp_Number !== session.WhatsApp_Number) {
-      return Texts_CaseUpdates.getInvalidInput()[lang];
+      return Texts_CaseUpdates.getInvalidInput(lang);
     }
 
     // Store case info
     session.Temp.Update = {
       Case_ID: input,
       Media_Links: [],
-      Content: []
+      Content: [],
     };
 
     Session.save(session);
@@ -77,32 +97,29 @@ const CaseUpdateFlow = {
    * CU_MENU — Show update menu
    ************************************************************/
   showMenu(session) {
-    session.Current_Step_Code = "CU_MENU";
-    Session.save(session);
+    this._setStep(session, "UPDATE_MENU");
 
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getMenu()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getMenu(lang);
   },
 
   /************************************************************
    * Handle menu choice
    ************************************************************/
   handleMenuChoice(session, msg, raw, mediaUrl, mediaMime) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const choice = Texts_CaseUpdates.parseUpdateMenuChoice(msg || "");
 
-    if (!choice) return Texts_CaseUpdates.getInvalidInput()[lang];
+    if (!choice) return Texts_CaseUpdates.getInvalidInput(lang);
 
     switch (choice) {
       case "1":
-        session.Current_Step_Code = "CU_ADD_INFO";
-        Session.save(session);
-        return Texts_CaseUpdates.getAddInfoPrompt()[lang];
+        this._setStep(session, "UPDATE_ADD_INFO");
+        return Texts_CaseUpdates.getAddInfoPrompt(lang);
 
       case "2":
-        session.Current_Step_Code = "CU_MEDIA";
-        Session.save(session);
-        return Texts_CaseUpdates.getMediaPrompt()[lang];
+        this._setStep(session, "UPDATE_MEDIA");
+        return Texts_CaseUpdates.getMediaPrompt(lang);
 
       case "3":
         return this.markResolved(session);
@@ -111,7 +128,7 @@ const CaseUpdateFlow = {
         session.Flow_Type = "EXISTING_CASE";
         session.Current_Step_Code = "EC_MAIN_MENU";
         Session.save(session);
-        return Texts_CaseUpdates.getBackMessage()[lang];
+        return Texts_CaseUpdates.getBackMessage(lang);
     }
   },
 
@@ -119,7 +136,7 @@ const CaseUpdateFlow = {
    * CU_ADD_INFO — Save text update
    ************************************************************/
   handleAddInfo(session, msg) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const text = (msg || "").trim();
 
     if (!text) {
@@ -129,17 +146,16 @@ const CaseUpdateFlow = {
     session.Temp.Update.Content.push(text);
     Session.save(session);
 
-    session.Current_Step_Code = "CU_DONE?";
-    Session.save(session);
+    this._setStep(session, "UPDATE_DONE");
 
-    return Texts_CaseUpdates.getAreYouDonePrompt()[lang];
+    return Texts_CaseUpdates.getAreYouDonePrompt(lang);
   },
 
   /************************************************************
    * CU_MEDIA — Save media update
    ************************************************************/
   handleMedia(session, msg, raw, mediaUrl, mediaMime) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
 
     if (!mediaUrl) {
       return Texts_Validation.get("MEDIA", lang);
@@ -148,17 +164,16 @@ const CaseUpdateFlow = {
     session.Temp.Update.Media_Links.push(mediaUrl);
     Session.save(session);
 
-    session.Current_Step_Code = "CU_DONE?";
-    Session.save(session);
+    this._setStep(session, "UPDATE_DONE");
 
-    return Texts_CaseUpdates.getAreYouDonePrompt()[lang];
+    return Texts_CaseUpdates.getAreYouDonePrompt(lang);
   },
 
   /************************************************************
    * Mark case RESOLVED
    ************************************************************/
   markResolved(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
 
     CaseEngine.saveUpdate({
       Case_ID: session.Temp.Update.Case_ID,
@@ -170,8 +185,8 @@ const CaseUpdateFlow = {
 
     CaseEngine.markCaseResolved(session.Temp.Update.Case_ID);
 
-    const success = Texts_CaseUpdates.getResolveMessage()[lang];
-    const closing = Texts_Closing.getFinalMessage()[lang];
+    const success = Texts_CaseUpdates.getResolveMessage(lang);
+    const closing = Texts_Closing.getFinalMessage(lang);
 
     session.Flow_Type = null;
     session.Current_Step_Code = null;
@@ -185,7 +200,7 @@ const CaseUpdateFlow = {
    * CU_DONE? — Ask if user wants to continue
    ************************************************************/
   handleDone(session, msg) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const text = (msg || "").trim().toLowerCase();
 
     if (Texts_CaseUpdates.isCompleteSignal(text)) {
@@ -197,14 +212,14 @@ const CaseUpdateFlow = {
       return this.showMenu(session);
     }
 
-    return Texts_CaseUpdates.getInvalidInput()[lang];
+    return Texts_CaseUpdates.getInvalidInput(lang);
   },
 
   /************************************************************
    * Finish update → Save & return final messages
    ************************************************************/
   finish(session) {
-    const lang = session.Preferred_Language;
+    const lang = this._getLang(session);
     const upd = session.Temp.Update;
 
     CaseEngine.saveUpdate({
@@ -215,8 +230,8 @@ const CaseUpdateFlow = {
       Raw_JSON: JSON.stringify(upd)
     });
 
-    const success = Texts_CaseUpdates.getSuccess()[lang];
-    const closing = Texts_Closing.getFinalMessage()[lang];
+    const success = Texts_CaseUpdates.getSuccess(lang);
+    const closing = Texts_Closing.getFinalMessage(lang);
 
     session.Flow_Type = null;
     session.Current_Step_Code = null;
@@ -230,8 +245,8 @@ const CaseUpdateFlow = {
    * MASTER ROUTER (Called by Flows.gs)
    ************************************************************/
   route(session, msg, raw, mediaUrl, mediaMime) {
-    const step = session.Current_Step_Code || "";
-    const lang = session.Preferred_Language;
+    const step = this._normalizeStep(session.Current_Step_Code || "");
+    const lang = this._getLang(session);
 
     switch (step) {
       case "CU_INIT":
@@ -256,31 +271,61 @@ const CaseUpdateFlow = {
   },
 
   /************************************************************
+   * Dispatcher for Flows.gs
+   ************************************************************/
+  process(session, msg, raw, mediaUrl, mediaMime) {
+    if (!session.Current_Step_Code) {
+      return this.start(session, msg);
+    }
+
+    if (session.Current_Step_Code === "UPDATE_INIT") {
+      return this.handleCaseID(session, msg);
+    }
+
+    return this.route(session, msg, raw, mediaUrl, mediaMime);
+  },
+
+  /************************************************************
+   * Media entry point when Flow intercepts media uploads
+   ************************************************************/
+  saveMedia(session, mediaUrl, mediaMime) {
+    const lang = this._getLang(session);
+    if (!mediaUrl) return Texts_Validation.getInvalidMedia(lang);
+
+    const normalized = this._normalizeStep(session.Current_Step_Code || "");
+    if (normalized === "CU_MEDIA" || normalized === "CU_DONE?") {
+      return this.handleMedia(session, null, null, mediaUrl, mediaMime);
+    }
+
+    return Texts_Validation.getInvalidMedia(lang);
+  },
+
+  /************************************************************
    * 🔹 REPLAY HELPERS (timeout, HELP, MENU)
    ************************************************************/
   replayCaseID(session) {
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getSelectCasePrompt()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getSelectCasePrompt(lang);
   },
 
   replayMenu(session) {
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getMenu()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getMenu(lang);
   },
 
   replayAddInfo(session) {
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getAddInfoPrompt()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getAddInfoPrompt(lang);
   },
 
   replayMedia(session) {
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getMediaPrompt()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getMediaPrompt(lang);
   },
 
   replayDone(session) {
-    const lang = session.Preferred_Language;
-    return Texts_CaseUpdates.getAreYouDonePrompt()[lang];
+    const lang = this._getLang(session);
+    return Texts_CaseUpdates.getAreYouDonePrompt(lang);
   }
 
 };

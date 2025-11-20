@@ -195,7 +195,7 @@ Object.assign(Texts_UserTypes, {
    ************************************************************/
   getIntroFor(session) {
     const lang = session.Preferred_Language || "English";
-    return this._UT_INTRO[lang];
+    return this._pickByLang(this._UT_INTRO, lang);
   },
 
   /************************************************************
@@ -205,7 +205,19 @@ Object.assign(Texts_UserTypes, {
    ************************************************************/
   getMenuFor(session) {
     const lang = session.Preferred_Language || "English";
-    return this._UT_QUESTION[lang];
+    return this._pickByLang(this._UT_QUESTION, lang);
+  },
+
+  /************************************************************
+   * getMenu(region, lang)
+   * → Region is ignored (menu is global), kept for compatibility
+   * → Returns full menu set or a specific language string
+   ************************************************************/
+  getMenu(region, lang) {
+    if (lang) {
+      return this._pickByLang(this._UT_QUESTION, lang);
+    }
+    return this._UT_QUESTION;
   },
 
   /************************************************************
@@ -216,9 +228,9 @@ Object.assign(Texts_UserTypes, {
   getOptionDescription(option, session) {
     const lang = session.Preferred_Language || "English";
 
-    if (option === "1") return this._UT_DESC_A[lang];
-    if (option === "2") return this._UT_DESC_B[lang];
-    if (option === "3") return this._UT_DESC_C[lang];
+    if (option === "1") return this._pickByLang(this._UT_DESC_A, lang);
+    if (option === "2") return this._pickByLang(this._UT_DESC_B, lang);
+    if (option === "3") return this._pickByLang(this._UT_DESC_C, lang);
 
     return null; // invalid option — handled by router
   },
@@ -231,7 +243,50 @@ Object.assign(Texts_UserTypes, {
    ************************************************************/
   getInvalidMessageFor(session) {
     const lang = session.Preferred_Language || "English";
-    return this._UT_INVALID ? this._UT_INVALID[lang] : null;
+    return this._UT_INVALID ? this._pickByLang(this._UT_INVALID, lang) : null;
+  },
+
+  /************************************************************
+   * getUserTypeMenu(lang)
+   * → Helper used by FlowC rejection handler to replay menu
+   ************************************************************/
+  getUserTypeMenu(lang) {
+    return this._pickByLang(this._UT_QUESTION, lang || "English");
+  },
+
+  /************************************************************
+   * INTERNAL: Safe language picker with fallbacks
+   ************************************************************/
+  _pickByLang(set, lang) {
+    try {
+      if (!set) return "";
+
+      // Prefer Texts.pickByLang if globally available
+      if (typeof Texts !== "undefined" && Texts.pickByLang) {
+        return Texts.pickByLang({ Preferred_Language: lang }, set);
+      }
+
+      const fallbackOrder = [
+        lang,
+        "English",
+        "Urdu",
+        "RomanUrdu",
+        "Hindi",
+        "Bangla",
+        "Arabic",
+      ];
+
+      for (let i = 0; i < fallbackOrder.length; i++) {
+        const key = fallbackOrder[i];
+        if (key && set[key]) return set[key];
+      }
+
+      const first = Object.keys(set)[0];
+      return first ? set[first] : "";
+    } catch (e) {
+      Logging.logError("Texts_UserTypes._pickByLang", e);
+      return "";
+    }
   },
 
 });
