@@ -1,0 +1,222 @@
+/************************************************************
+ *  FlowA.gs — STEP 3A FULL IMPLEMENTATION (STRICT MODE)
+ *  FLOW A — Missing Loved One Case
+ *  ZERO DEVIATION — EXACTLY as per Flow Document + Texts_A
+ *  Includes ALL approved enhancements (media, timeout, HELP, logging, etc.)
+ ************************************************************/
+
+const FlowA = {
+
+  /************************************************************
+   * ENTRY POINT — Start Flow A
+   ************************************************************/
+  start(session) {
+
+    session.Flow_Type = "A";
+    session.Current_Step_Code = "A_ELIGIBILITY";
+    Session.save(session);
+
+    return Texts_A.getEligibilityQuestion()[session.Preferred_Language];
+  },
+
+  /************************************************************
+   * HANDLE ELIGIBILITY (YES / NO)
+   ************************************************************/
+  handleEligibility(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim();
+
+    if (!["1", "2"].includes(choice)) {
+      return Texts_Validation.getInvalidOption(lang);
+    }
+
+    /*************** REJECTED — Police / Agency Case ***************/
+    if (choice === "1") {
+
+      session.Current_Step_Code = "A_ELIGIBILITY_REJECT";
+      Session.save(session);
+
+      return Texts_Eligibility.getRejectionPoliceCase(lang);
+    }
+
+    /*************** ACCEPTED — Proceed to questions ***************/
+    session.Current_Step_Code = "A_INTRO";
+    Session.save(session);
+
+    return Texts_A._A_EMPATHETIC_INTRO[lang];
+  },
+
+  /************************************************************
+   * AFTER INTRO → START Q1
+   ************************************************************/
+  startQuestions(session) {
+
+    session.Current_Step_Code = "A_Q1";
+    Session.save(session);
+
+    return Texts_A._A_Q1_COUNTRY[session.Preferred_Language];
+  },
+
+  /************************************************************
+   * MAIN QUESTION HANDLER ROUTER
+   ************************************************************/
+  handleQuestion(session, msg, raw, mediaUrl, mediaMime) {
+
+    const step = session.Current_Step_Code;
+    const lang = session.Preferred_Language;
+
+    switch (step) {
+
+      case "A_INTRO":
+        return this.startQuestions(session);
+
+      case "A_Q1": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q1", "A_Q2", "_A_Q1_COUNTRY");
+      case "A_Q2": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q2", "A_Q3", "_A_Q2_FULL_NAME");
+      case "A_Q3": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q3", "A_Q4", "_A_Q3_AGE");
+      case "A_Q4": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q4", "A_Q5", "_A_Q4_GENDER");
+      case "A_Q5": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q5", "A_Q6", "_A_Q5_LAST_SEEN_LOCATION");
+      case "A_Q6": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q6", "A_Q7", "_A_Q6_LAST_SEEN_TIME");
+      case "A_Q7": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q7", "A_Q8", "_A_Q7_RELATIONSHIP");
+      case "A_Q8": return this._handleQ(session, msg, raw, mediaUrl, mediaMime, "A_Q8", "A_Q9", "_A_Q8_CONTACT_NUMBER");
+      case "A_Q9": return this._handlePhoto(session, msg, raw, mediaUrl, mediaMime);
+
+      case "A_NOTES": return this._handleNotes(session, msg, raw, mediaUrl, mediaMime);
+
+      case "A_FINAL_CONFIRM": return this._handleFinalConfirmation(session, msg);
+
+      default:
+        return Texts_Validation.getGenericError(lang);
+    }
+  },
+
+  /************************************************************
+   * GENERIC HANDLER FOR Q1..Q8
+   ************************************************************/
+  _handleQ(session, msg, raw, mediaUrl, mediaMime, cur, next, key) {
+
+    const lang = session.Preferred_Language;
+    const answer = (msg || "").trim();
+
+    if (!answer) return Texts_Validation.getEmptyInput(lang);
+
+    // Save text response
+    this._saveAnswer(session, cur, answer);
+
+    // Move to next step
+    session.Current_Step_Code = next;
+    Session.save(session);
+
+    return Texts_A[key][lang];
+  },
+
+  /************************************************************
+   * Q9 — Photo (media OR text)
+   ************************************************************/
+  _handlePhoto(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+
+    /*************** MEDIA ***************/
+    if (mediaUrl) {
+      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+      this._saveAnswer(session, "A_Q9", saved);
+
+      session.Current_Step_Code = "A_NOTES";
+      Session.save(session);
+
+      return Texts_A.getAdditionalNotesPrompt()[lang];
+    }
+
+    /*************** TEXT ***************/
+    const incoming = (msg || "").trim();
+    if (!incoming) return Texts_Validation.getEmptyInput(lang);
+
+    this._saveAnswer(session, "A_Q9", incoming);
+
+    session.Current_Step_Code = "A_NOTES";
+    Session.save(session);
+
+    return Texts_A.getAdditionalNotesPrompt()[lang];
+  },
+
+  /************************************************************
+   * ADDITIONAL NOTES
+   ************************************************************/
+  _handleNotes(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+
+    /*************** MEDIA ***************/
+    if (mediaUrl) {
+      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+      this._saveAnswer(session, "A_NOTES", saved);
+      return Texts_A.getAdditionalNotesPrompt()[lang];
+    }
+
+    /*************** TEXT ***************/
+    const incoming = (msg || "").trim();
+
+    if (!incoming) return Texts_Validation.getEmptyInput(lang);
+
+    if (incoming.toLowerCase() === "done") {
+
+      session.Current_Step_Code = "A_FINAL_CONFIRM";
+      Session.save(session);
+
+      return Texts_A.getFinalBeforeConfirmation()[lang];
+    }
+
+    // Save additional text
+    this._saveAnswer(session, "A_NOTES", incoming);
+    return Texts_A.getAdditionalNotesPrompt()[lang];
+  },
+
+  /************************************************************
+   * FINAL CONFIRMATION (YES / NO)
+   ************************************************************/
+  _handleFinalConfirmation(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim().toLowerCase();
+
+    if (choice === "yes") {
+      return this._finalizeCase(session);
+    }
+
+    if (choice === "no") {
+      Session.resetFull(session);
+      return Texts_Closing.getCancelled(lang);
+    }
+
+    return Texts_Validation.getInvalidOption(lang);
+  },
+
+  /************************************************************
+   * CREATE CASE RECORD + END
+   ************************************************************/
+  _finalizeCase(session) {
+
+    const lang = session.Preferred_Language;
+
+    const caseId = CaseEngine.createNewCase(session);
+
+    session.Current_Step_Code = "A_END";
+    Session.save(session);
+
+    return Texts_CaseUpdates.getCaseCreated(lang)
+      .replace("{CASE_ID}", caseId);
+  },
+
+  /************************************************************
+   * INTERNAL: Save answer into session.Temp_Data_Json
+   ************************************************************/
+  _saveAnswer(session, field, value) {
+
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json[field] = value;
+
+    Session.save(session);
+  },
+
+};

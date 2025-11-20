@@ -1,0 +1,188 @@
+/************************************************************
+ *  FlowC.gs — STEP 3C (Helping Flow — Q1–Q15)
+ *  STRICT MODE — EXACT TEXT FROM “Full n Final Flow Updated”
+ ************************************************************/
+
+const FlowC = {
+
+  /************************************************************
+   * ENTRY: Empathetic Intro
+   ************************************************************/
+  startIntro(session) {
+
+    const lang = session.Preferred_Language;
+
+    session.Current_Step_Code = "C_INTRO";
+    Session.save(session);
+
+    return Texts_C.getEmpatheticIntro()[lang];
+  },
+
+  /************************************************************
+   * HANDLE INTRO → ASK SOURCE OF INFORMATION
+   ************************************************************/
+  startSourceQuestion(session) {
+
+    const lang = session.Preferred_Language;
+
+    session.Current_Step_Code = "C_SOURCE";
+    Session.save(session);
+
+    return Texts_C.getSourceOfInformation()[lang];
+  },
+
+  /************************************************************
+   * HANDLE SOURCE-OF-INFORMATION ANSWER
+   ************************************************************/
+  handleSourceOfInfo(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim();
+
+    if (!["1","2","3"].includes(choice))
+      return Texts_Validation.getInvalidOption(lang);
+
+    // IF NO ACCESS → REJECTION FLOW
+    if (choice === "2") {
+
+      session.Current_Step_Code = "C_REJECTED";
+      Session.save(session);
+
+      return Texts_C.getRejectionMessage()[lang]
+        + "\n\n"
+        + Texts_C.getPostRejectionPrompt()[lang];
+    }
+
+    // IF 1 or 3 → Continue to questions
+    session.Current_Step_Code = "C_Q_INTRO";
+    Session.save(session);
+
+    return Texts_C.getQuestionsIntro()[lang];
+  },
+
+  /************************************************************
+   * HANDLE POST-REJECTION (Submit new case?)
+   ************************************************************/
+  handleRejectionFollowUp(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim();
+
+    if (!["1","2"].includes(choice))
+      return Texts_Validation.getInvalidOption(lang);
+
+    if (choice === "1") {
+      // Restart to User Type
+      Session.resetPartial(session);
+      session.Current_Step_Code = "USER_TYPE";
+      Session.save(session);
+      return Texts_C.getRestartAfterRejection()[lang];
+    }
+
+    // End chat
+    Session.reset(session);
+    return Texts_C.getClosingMessage()[lang];
+  },
+
+  /************************************************************
+   * EMPATHETIC INTRO RECEIVED → proceed to Q1
+   ************************************************************/
+  startQuestions(session) {
+
+    session.Current_Step_Code = "C_Q1";
+    Session.save(session);
+
+    const lang = session.Preferred_Language;
+    return Texts_C.getQ1()[lang];
+  },
+
+  /************************************************************
+   * GENERIC QUESTION HANDLER (Q1 → Q15)
+   ************************************************************/
+  handleQuestion(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+    const step = session.Current_Step_Code;
+
+    /************** MEDIA HANDLING FOR Q15 ONLY **************/
+    if (step === "C_Q15") {
+
+      if (mediaUrl) {
+        const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+        session.Temp_Data_Json.Q15 = saved;
+        Session.save(session);
+        return this._finish(session);
+      }
+
+      const incoming = (msg || "").trim();
+      if (!incoming)
+        return Texts_Validation.getMissingRequired()[lang];
+
+      session.Temp_Data_Json.Q15 = incoming;
+      Session.save(session);
+      return this._finish(session);
+    }
+
+    /************** Q1–Q14 TEXT INPUT **************/
+    const incoming = (msg || "").trim();
+    if (!incoming)
+      return Texts_Validation.getMissingRequired(lang);
+
+    /************** SAVE ANSWER **************/
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json[step] = incoming;
+    Session.save(session);
+
+    /************** NEXT STEP **************/
+    return this._nextQuestion(session);
+  },
+
+  /************************************************************
+   * MOVE TO NEXT QUESTION
+   ************************************************************/
+  _nextQuestion(session) {
+
+    const map = {
+      "C_Q_INTRO": "C_Q1",
+      "C_Q1": "C_Q2",
+      "C_Q2": "C_Q3",
+      "C_Q3": "C_Q4",
+      "C_Q4": "C_Q5",
+      "C_Q5": "C_Q6",
+      "C_Q6": "C_Q7",
+      "C_Q7": "C_Q8",
+      "C_Q8": "C_Q9",
+      "C_Q9": "C_Q10",
+      "C_Q10": "C_Q11",
+      "C_Q11": "C_Q12",
+      "C_Q12": "C_Q13",
+      "C_Q13": "C_Q14",
+      "C_Q14": "C_Q15"
+    };
+
+    const lang = session.Preferred_Language;
+    const next = map[session.Current_Step_Code];
+
+    if (!next)
+      return Texts_Validation.getGenericError(lang);
+
+    session.Current_Step_Code = next;
+    Session.save(session);
+
+    return Texts_C[`get${next.replace("C_","")}`]()[lang];
+  },
+
+  /************************************************************
+   * AFTER Q15 → FINISH COLLECTION → STEP 4 (Confirmation)
+   ************************************************************/
+  _finish(session) {
+
+    const lang = session.Preferred_Language;
+
+    session.Current_Step_Code = "C_CONFIRM_START";
+    Session.save(session);
+
+    return Texts_C.getAfterQ15()[lang];
+  },
+
+};

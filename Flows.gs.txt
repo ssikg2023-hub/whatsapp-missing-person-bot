@@ -1,0 +1,1027 @@
+/************************************************************
+ *  Flows.gs — MASTER FLOW ROUTER
+ *  ---------------------------------------------------------
+ *  PURPOSE:
+ *    • Central dispatcher for all user messages
+ *    • Handles region → language → user type → flow steps
+ *    • Delegates processing to FlowA, FlowB, FlowC, etc.
+ *
+ *  STRICT RULES:
+ *    1. Language can only be set in STEP 1
+ *    2. Existing Case Menu overrides all flows
+ *    3. Update Case Menu overrides all flows
+ *    4. Timeout → resend same question (no auto reset)
+ ************************************************************/
+
+const Flows = {
+
+  /************************************************************
+   * MAIN ENTRY POINT (CALLED FROM Code.gs)
+   ************************************************************/
+  routeMessage(session, msg, raw, mediaUrl, mediaMime) {
+
+    // Normalize input
+    msg = (msg || "").trim();
+    session.Temp = session.Temp || {};
+
+    /************************************************************
+     * STEP 0 — Ensure region always exists
+     ************************************************************/
+    if (!session.Region_Group) {
+      session.Region_Group = Utils.detectRegion(session.WhatsApp_Number);
+      SessionEngine.save(session);
+    }
+
+    /************************************************************
+     * STEP 0B — Handle timeout (GLOBAL)
+     ************************************************************/
+    if (Utils.isSessionExpired(session)) {
+      return this._handleTimeout(session);
+    }
+
+    /************************************************************
+     * STEP 0C — Handle unexpected keywords (“HELP”, “MENU”, etc.)
+     ************************************************************/
+    if (Utils.isUnexpectedKeyword(msg)) {
+      return this._handleUnexpectedKeyword(session);
+    }
+
+    /************************************************************
+     * STEP 0D — Media uploads for update or Qn steps
+     ************************************************************/
+    if (mediaUrl) {
+      return this._handleMedia(session, mediaUrl, mediaMime);
+    }
+
+    /************************************************************
+     * STEP 1 — LANGUAGE SELECTION
+     ************************************************************/
+    if (!session.Preferred_Language || session.Current_Step_Code === "LANG_SELECT") {
+      return this._processLanguageSelection(session, msg);
+    }
+
+    /************************************************************
+     * STEP 2 — USER TYPE SELECTION
+     ************************************************************/
+    if (session.Current_Step_Code === "USER_TYPE") {
+      return this._processUserType(session, msg);
+    }
+
+    /************************************************************
+     * EXISTING CASE DETECTION (GLOBAL INTERCEPTOR)
+     ************************************************************/
+    if (session.Current_Step_Code === "EXISTING_CASE_MENU") {
+      return ExistingCaseFlow.processMenu(session, msg);
+    }
+
+    if (session.Current_Step_Code === "EXISTING_CASE_SELECT") {
+      return ExistingCaseFlow.processCaseSelection(session, msg);
+    }
+
+    /************************************************************
+     * UPDATE CASE FLOW (GLOBAL INTERCEPTOR)
+     ************************************************************/
+    if (session.Current_Step_Code?.startsWith("UPDATE_")) {
+      return CaseUpdateFlow.process(session, msg, raw, mediaUrl, mediaMime);
+    }
+
+    /************************************************************
+     * FLOW A ROUTING
+     ************************************************************/
+    if (session.Flow_Type === "A") {
+      return FlowA.process(session, msg, raw);
+    }
+
+    /************************************************************
+     * FLOW B ROUTING
+     ************************************************************/
+    if (session.Flow_Type === "B") {
+      return FlowB.process(session, msg, raw);
+    }
+
+    /************************************************************
+     * FLOW C ROUTING
+     ************************************************************/
+    if (session.Flow_Type === "C") {
+      return FlowC.process(session, msg, raw);
+    }
+
+    /************************************************************
+     * DEFAULT (fallback)
+     ************************************************************/
+    return Texts_Validation.getInvalidInput(session);
+  },
+
+  /************************************************************
+   * 🔹 GLOBAL HANDLER — TIMEOUT
+   * ----------------------------------------------------------
+   * If user returns after long inactivity:
+   *   • Send timeout reminder in their selected language
+   *   • Replay SAME question or SAME menu
+   *   • NEVER reset session automatically
+   ************************************************************/
+  _handleTimeout(session) {
+
+    const lang = session.Preferred_Language;
+    const timeoutMsg = Texts_Validation.getTimeoutReminder(lang);
+
+    // Replay current question/menu
+    switch (session.Current_Step_Code) {
+
+      case "LANG_SELECT":
+        return timeoutMsg + "\n\n" +
+               Texts_LangMenus.getMenu(session.Region_Group)[lang];
+
+      case "USER_TYPE":
+        return timeoutMsg + "\n\n" +
+               Texts_UserTypes.getMenu(session.Region_Group, lang);
+
+      case "EXISTING_CASE_MENU":
+        return timeoutMsg + "\n\n" +
+               ExistingCaseFlow.replayMenu(session);
+
+      case "EXISTING_CASE_SELECT":
+        return timeoutMsg + "\n\n" +
+               ExistingCaseFlow.replayCaseSelection(session);
+
+      default:
+        // Replay last question for flows A/B/C
+        return timeoutMsg + "\n\n" +
+               this._replayFlowQuestion(session);
+    }
+  },
+
+
+  /************************************************************
+   * 🔹 GLOBAL HANDLER — UNEXPECTED KEYWORD
+   * ----------------------------------------------------------
+   * If user types HELP / MENU / START / RESET etc.
+   * System MUST:
+   *   • NOT change flow
+   *   • Repeat SAME question/menu
+   ************************************************************/
+  _handleUnexpectedKeyword(session) {
+
+    const lang = session.Preferred_Language;
+    const warn = Texts_Validation.getUnexpectedKeyword(lang);
+
+    return warn + "\n\n" + this._replayFlowQuestion(session);
+  },
+
+
+  /************************************************************
+   * 🔹 GLOBAL HANDLER — MEDIA (PHOTO / VIDEO / AUDIO)
+   * ----------------------------------------------------------
+   * Allowed ONLY when:
+   *   • Flow is in a question that accepts media
+   *   • CaseUpdateFlow is active
+   *
+   * Otherwise:
+   *   • Reject media and replay the question
+   ************************************************************/
+  _handleMedia(session, mediaUrl, mediaMime) {
+
+    // If in case-update mode
+    if (session.Current_Step_Code?.startsWith("UPDATE_")) {
+      return CaseUpdateFlow.saveMedia(session, mediaUrl, mediaMime);
+    }
+
+    // If Flow A/B/C question allows media
+    if (Utils.questionAllowsMedia(session)) {
+      return Utils.saveFlowMedia(session, mediaUrl, mediaMime);
+    }
+
+    // Otherwise → Invalid media
+    const lang = session.Preferred_Language;
+    const invalid = Texts_Validation.getInvalidMedia(lang);
+
+    return invalid + "\n\n" + this._replayFlowQuestion(session);
+  },
+
+
+  /************************************************************
+   * 🔹 INTERNAL — Replay last question
+   ************************************************************/
+  _replayFlowQuestion(session) {
+
+    switch (session.Flow_Type) {
+      case "A": return FlowA.replay(session);
+      case "B": return FlowB.replay(session);
+      case "C": return FlowC.replay(session);
+      default:  return "";
+    }
+  },
+  /************************************************************
+   * STEP 0 — REGION DETECTION (FIRST CONTACT ONLY)
+   ************************************************************/
+  _handleRegionDetection(session, msg) {
+
+    // Auto-detect region by phone number prefix
+    session.Region_Group = detectRegionByPhone(session.WhatsApp_Number);
+    session.Current_Step_Code = "LANG_SELECT";
+    Session.save(session);
+
+    // Deliver region-specific language menu
+    const menu = Texts_LangMenus.getMenu(session.Region_Group);
+    return menu[session.Region_Group === "OTHER" ? "English" : "English"];
+  },
+
+
+  /************************************************************
+   * STEP 1 — LANGUAGE SELECTION
+   * Validates 1,2,3,4 depending on region menu
+   ************************************************************/
+  _handleLanguageSelection(session, msg) {
+
+    const region = session.Region_Group;
+    const choice = msg.trim();
+    const langs = Texts_LangMenus.getLanguageOptions(region);
+
+    if (!langs[choice]) {
+      // invalid → repeat menu
+      const invalid = Texts_Validation.getInvalidOption("English"); 
+      // (Language not set yet, so English only)
+      const menu = Texts_LangMenus.getMenu(region).English;
+      return invalid + "\n\n" + menu;
+    }
+
+    // Save selected language
+    session.Preferred_Language = langs[choice];
+    session.Current_Step_Code = "USER_TYPE";
+    Session.save(session);
+
+    // Show user type menu for this REGION + LANGUAGE
+    return Texts_UserTypes.getMenu(region, session.Preferred_Language);
+  },
+
+
+  /************************************************************
+   * STEP 2 — IDENTIFY USER TYPE
+   * Validates user selection → sets Flow_Type (A/B/C)
+   ************************************************************/
+  _handleUserTypeSelection(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const region = session.Region_Group;
+    const choice = msg.trim();
+
+    if (!["1", "2", "3"].includes(choice)) {
+      // Invalid → replay menu
+      const invalid = Texts_Validation.getInvalidOption(lang);
+      const menu = Texts_UserTypes.getMenu(region, lang);
+      return invalid + "\n\n" + menu;
+    }
+
+    // Save flow type
+    switch (choice) {
+      case "1": session.Flow_Type = "A"; break;
+      case "2": session.Flow_Type = "B"; break;
+      case "3": session.Flow_Type = "C"; break;
+    }
+
+    // Move to correct step
+    if (session.Flow_Type === "A") {
+      session.Current_Step_Code = "A_Q1";
+      Session.save(session);
+      return FlowA.start(session);
+
+    } else if (session.Flow_Type === "B") {
+      session.Current_Step_Code = "B_Q1";
+      Session.save(session);
+      return FlowB.start(session);
+
+    } else if (session.Flow_Type === "C") {
+      session.Current_Step_Code = "C_Q0"; // Source-of-information
+      Session.save(session);
+      return FlowC.start(session);
+    }
+  },
+  /************************************************************
+   * GLOBAL SAFETY LAYER (applies after STEP 2 and before flows)
+   * ----------------------------------------------------------
+   * Handles:
+   *  - Language switching protection
+   *  - HELP / MENU / START keywords
+   *  - Session timeout auto-replay
+   *  - Existing Case Menu protection
+   *  - Update Case Menu protection
+   ************************************************************/
+  _applyGlobalSafety(session, msg) {
+
+    const lang = session.Preferred_Language || "English";
+    const lower = (msg || "").trim().toLowerCase();
+
+
+    /************************************************************
+     * 1 — TIMEOUT CHECK (Block 18H logic)
+     ************************************************************/
+    if (Session.isExpired(session)) {
+      // Refresh timestamp
+      Session.refresh(session);
+
+      // Send timeout message + replay same question/menu
+      const notice = Texts_Validation.getTimeoutReminder(lang);
+      const replay = this._replayCurrentStep(session);
+
+      return notice + "\n\n" + replay;
+    }
+
+
+    /************************************************************
+     * 2 — BLOCK LANGUAGE CHANGE in protected states
+     ************************************************************/
+    if (Texts_Validation.isLanguageKeyword(lower)) {
+      if ([
+        "CASE_SUBMITTED",
+        "ELIG_REJECT",
+        "EXISTING_CASE_MENU",
+        "EXISTING_CASE_STATUS",
+        "EXISTING_CASE_VIEW",
+        "UPDATE_CASE_MENU",
+        "UPDATE_CASE_TEXT",
+        "UPDATE_CASE_MEDIA",
+        "UPDATE_CASE_RESOLVE"
+      ].includes(session.Current_Step_Code)) {
+
+        return Texts_Validation.getNoLanguageChange(lang);
+      }
+    }
+
+
+    /************************************************************
+     * 3 — UNIVERSAL HELP KEYWORDS
+     ************************************************************/
+    if (Texts_Validation.isHelpKeyword(lower)) {
+      return Texts_Validation.getHelp(lang)
+        + "\n\n"
+        + this._replayCurrentStep(session);
+    }
+
+
+    /************************************************************
+     * 4 — MENU KEYWORDS (Return to CURRENT menu)
+     ************************************************************/
+    if (Texts_Validation.isMenuKeyword(lower)) {
+      return this._replayCurrentStep(session);
+    }
+
+
+    /************************************************************
+     * 5 — "START" / "RESTART" keywords
+     *     → Fully reset session and begin again.
+     ************************************************************/
+    if (Texts_Validation.isStartKeyword(lower)) {
+      Session.fullReset(session);
+      session.Current_Step_Code = "LANG_SELECT";
+      Session.save(session);
+
+      const menu = Texts_LangMenus.getMenu(session.Region_Group);
+      return menu["English"];
+    }
+
+
+    /************************************************************
+     * 6 — EXISTING CASE MENU PROTECTION
+     ************************************************************/
+    if (session.Current_Step_Code === "EXISTING_CASE_MENU") {
+      // Only allow numeric options 1–4
+      if (!["1", "2", "3", "4"].includes(lower)) {
+        const invalid = Texts_Validation.getInvalidOption(lang);
+        const menu = Texts_ExistingCases.getMenu()[lang];
+        return invalid + "\n\n" + menu;
+      }
+    }
+
+
+    /************************************************************
+     * 7 — UPDATE CASE MENU PROTECTION
+     ************************************************************/
+    if (session.Current_Step_Code === "UPDATE_CASE_MENU") {
+      if (!["1", "2", "3", "4"].includes(lower)) {
+        const invalid = Texts_Validation.getInvalidOption(lang);
+        const menu = Texts_ExistingCases.getUpdateMenu(lang);
+        return invalid + "\n\n" + menu;
+      }
+    }
+
+
+    /************************************************************
+     * 8 — Otherwise → allow flow to continue normally
+     ************************************************************/
+    return null; // no interruptions
+  },
+
+
+  /************************************************************
+   * Helper — Replay the current step/menu/question
+   ************************************************************/
+  _replayCurrentStep(session) {
+
+    const lang = session.Preferred_Language || "English";
+
+    // A-flow question replay
+    if (session.Current_Step_Code.startsWith("A_Q")) {
+      return FlowA.replay(session);
+    }
+
+    // B-flow
+    if (session.Current_Step_Code.startsWith("B_Q")) {
+      return FlowB.replay(session);
+    }
+
+    // C-flow
+    if (session.Current_Step_Code.startsWith("C_Q")) {
+      return FlowC.replay(session);
+    }
+
+    // Existing case menu
+    if (session.Current_Step_Code === "EXISTING_CASE_MENU") {
+      return Texts_ExistingCases.getMenu()[lang];
+    }
+
+    // Update case menu
+    if (session.Current_Step_Code === "UPDATE_CASE_MENU") {
+      return Texts_ExistingCases.getUpdateMenu(lang);
+    }
+
+    // Unknown fallback (should not happen)
+    return Texts_Validation.getInvalidOption(lang);
+  },
+  /************************************************************
+   * STEP 1 — LANGUAGE SELECTION HANDLER
+   * ----------------------------------------------------------
+   * Runs when:
+   *     session.Current_Step_Code === "LANG_SELECT"
+   ************************************************************/
+  _handleLanguageSelection(session, msg) {
+
+    const region = session.Region_Group;
+    const trimmed = (msg || "").trim();
+    const lower = trimmed.toLowerCase();
+
+    // Get the region-specific allowed options
+    const allowed = Texts_LangMenus.getAllowedOptions(region);
+
+    // If user typed something that is not a number OR not allowed
+    if (!allowed.includes(trimmed)) {
+      const invalid = Texts_Validation.getInvalidOption("English");
+      const replayMenu = Texts_LangMenus.getMenu(region);
+      return invalid + "\n\n" + replayMenu["English"];
+    }
+
+    /************************************************************
+     * Map numeric choice → actual language key
+     ************************************************************/
+    const selectedLang = Texts_LangMenus.mapChoiceToLang(region, trimmed);
+
+    if (!selectedLang) {
+      // Should never occur unless file corrupted
+      const invalid = Texts_Validation.getInvalidOption("English");
+      const replayMenu = Texts_LangMenus.getMenu(region);
+      return invalid + "\n\n" + replayMenu["English"];
+    }
+
+
+    /************************************************************
+     * Store selected language in Session
+     ************************************************************/
+    session.Preferred_Language = selectedLang;
+    session.Current_Step_Code = "USER_TYPE";
+    Session.save(session);
+
+    const lang = selectedLang;
+
+    /************************************************************
+     * Send the User Type Menu (Step 2)
+     ************************************************************/
+    const msgSet = Texts_UserTypes.getMenu(region);
+
+    // User Type menu always uses selected language
+    return msgSet[lang];
+  },
+  /************************************************************
+   * STEP 2 — USER TYPE HANDLER
+   * ----------------------------------------------------------
+   * Runs when:
+   *     session.Current_Step_Code === "USER_TYPE"
+   *
+   * User must select:
+   *     1 → Flow A (Missing Loved One)
+   *     2 → Flow B (User IS the missing person)
+   *     3 → Flow C (Helping someone missing)
+   ************************************************************/
+  _handleUserType(session, msg) {
+
+    const lang = session.Preferred_Language || "ENGLISH";
+    const region = session.Region_Group;
+
+    const trimmed = (msg || "").trim();
+
+    /************************************************************
+     * Validate input (strict: must be 1, 2, or 3)
+     ************************************************************/
+    if (!["1", "2", "3"].includes(trimmed)) {
+      const invalid = Texts_Validation.getInvalidOption(lang);
+      const menu = Texts_UserTypes.getMenu(region);
+      return invalid + "\n\n" + menu[lang];
+    }
+
+    /************************************************************
+     * Save Flow Type
+     ************************************************************/
+    let flowType = null;
+
+    if (trimmed === "1") flowType = "A";  // Searching for missing loved one
+    if (trimmed === "2") flowType = "B";  // User is the missing person
+    if (trimmed === "3") flowType = "C";  // Helping someone missing
+
+    session.Flow_Type = flowType;
+    session.Current_Step_Code = `FLOW_${flowType}_START`;
+    Session.save(session);
+
+    /************************************************************
+     * Detect existing cases BEFORE starting new flow
+     * (STRICT RULE — cannot start a new case if cases exist)
+     ************************************************************/
+    const hasCases = Cases.exists(session.WhatsApp_Number);
+
+    if (hasCases && flowType === "A") {
+      // NOTE: Only Flow A uses existing case logic automatically.
+      session.Current_Step_Code = "EXISTING_CASE_MENU";
+      Session.save(session);
+
+      const caseId = Cases.getLastCaseId(session.WhatsApp_Number);
+      const menu = Texts_ExistingCases.getMenu();
+      return menu[lang].replace("{{CASE_ID}}", caseId);
+    }
+
+    /************************************************************
+     * Return Flow-specific Intro Message
+     ************************************************************/
+    switch (flowType) {
+
+      case "A":
+        // Flow A Intro
+        return Texts_A.getIntro()[lang];
+
+      case "B":
+        // Flow B empathetic intro
+        return Texts_B.getIntro()[lang];
+
+      case "C":
+        // Flow C intro
+        return Texts_C.getIntro()[lang];
+
+      default:
+        // Should never occur; safe fallback
+        const fallback = Texts_Validation.getInvalidOption(lang);
+        const menu2 = Texts_UserTypes.getMenu(region);
+        return fallback + "\n\n" + menu2[lang];
+    }
+  },
+  /************************************************************
+   * FLOW A — START HANDLER
+   * ----------------------------------------------------------
+   * Triggered when session.Current_Step_Code == "FLOW_A_START"
+   * Responsibilities:
+   *   • Ask Eligibility Question (A1)
+   *   • Route based on Yes/No
+   ************************************************************/
+  _handleFlowAStart(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const incoming = (msg || "").trim();
+
+    // If no input yet → show eligibility question (A1)
+    if (!incoming) {
+      session.Current_Step_Code = "A_ELIGIBILITY";
+      Session.save(session);
+      return Texts_A.getEligibilityQuestion()[lang];
+    }
+
+    // If we already received something → treat as eligibility answer
+    return this._handleFlowAEligibility(session, incoming);
+  },
+
+
+  /************************************************************
+   * FLOW A — HANDLE ELIGIBILITY (YES / NO)
+   ************************************************************/
+  _handleFlowAEligibility(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const trimmed = msg.trim();
+
+    // MUST BE 1 OR 2
+    if (!["1", "2"].includes(trimmed)) {
+      // Replay A1 question
+      const invalid = Texts_Validation.getInvalidOption(lang);
+      return invalid + "\n\n" + Texts_A.getEligibilityQuestion()[lang];
+    }
+
+    /************************************************************
+     * If user selects "1" → YES, arrested/detained
+     * This is REJECTION for Flow A
+     ************************************************************/
+    if (trimmed === "1") {
+      session.Current_Step_Code = "A_REJECTED";
+      Session.save(session);
+
+      const msgReject = Texts_Closing.getEligibilityRejection()[lang];
+      return msgReject;
+    }
+
+    /************************************************************
+     * If user selects "2" → NO, not arrested/detained
+     * PROCEED to MAIN Flow A questions
+     ************************************************************/
+    session.Current_Step_Code = "A_Q1";
+    Session.save(session);
+
+    // A-EMPATHETIC INTRO → then Q1
+    const intro = Texts_A._A_EMPATHETIC_INTRO[lang];
+    const q1 = Texts_A.getQ1()[lang];
+
+    return intro + "\n\n" + q1;
+  },
+
+
+  /************************************************************
+   * FLOW A — CORE QUESTION ENGINE (Q1 → Qn)
+   ************************************************************/
+  _handleFlowAQuestions(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+
+    /************************************************************
+     * Ensure Temp_Data_Json is ready
+     ************************************************************/
+    if (!session.Temp_Data_Json) session.Temp_Data_Json = {};
+
+    const step = session.Current_Step_Code; // e.g. "A_Q3"
+    const incoming = (msg || "").trim();
+
+    /************************************************************
+     * Media handling — If user sends photo/video/audio/document
+     ************************************************************/
+    if (mediaUrl) {
+      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+      session.Temp_Data_Json[step] = saved;
+      Session.save(session);
+      return this._A_next(session); 
+    }
+
+    /************************************************************
+     * Validate text answer (not empty)
+     ************************************************************/
+    if (!incoming) {
+      return Texts_Validation.getEmptyInput(lang);
+    }
+
+    /************************************************************
+     * Save answer
+     ************************************************************/
+    session.Temp_Data_Json[step] = incoming;
+    Session.save(session);
+
+    /************************************************************
+     * Move to next question
+     ************************************************************/
+    return this._A_next(session);
+  },
+
+
+  /************************************************************
+   * FLOW A — DETERMINE NEXT STEP
+   ************************************************************/
+  _A_next(session) {
+
+    const lang = session.Preferred_Language;
+
+    const order = [
+      "A_Q1",
+      "A_Q2",
+      "A_Q3",
+      "A_Q4",
+      "A_Q5",
+      "A_Q6",
+      "A_Q7",
+      "A_Q8",
+      "A_Q9",
+      "A_Q10",
+      "A_Q11",
+      "A_Q12",
+      "A_Q13",
+      "A_Q14",
+      "A_Q15",
+      "A_Q16",
+    ];
+
+    const current = session.Current_Step_Code;
+    const idx = order.indexOf(current);
+
+    // Completed last Q → Move to confirmation
+    if (idx === order.length - 1) {
+      session.Current_Step_Code = "A_FINAL_BEFORE_CONFIRM";
+      Session.save(session);
+
+      return Texts_A.getFinalBeforeConfirmation()[lang];
+    }
+
+    // Move to next
+    const next = order[idx + 1];
+    session.Current_Step_Code = next;
+    Session.save(session);
+
+    return Texts_A[`getQ${idx + 2}`]()[lang];
+  },
+  /************************************************************
+   * FLOW B — START HANDLER
+   * ----------------------------------------------------------
+   * Trigger:
+   *   session.Current_Step_Code == "FLOW_B_START"
+   *
+   * Purpose:
+   *   • Send Empathetic Intro (Flow B)
+   *   • Begin Q1 → Q11 sequence
+   ************************************************************/
+  _handleFlowBStart(session, msg) {
+
+    const lang = session.Preferred_Language;
+
+    // FIRST ENTRY — no message yet
+    if (!msg || !msg.trim()) {
+
+      session.Current_Step_Code = "B_Q1";
+      Session.save(session);
+
+      const intro = Texts_B.getEmpatheticIntro()[lang];
+      const q1 = Texts_B.getQ1()[lang];
+
+      return intro + "\n\n" + q1;
+    }
+
+    // If user typed something prematurely, ignore & start properly
+    session.Current_Step_Code = "B_Q1";
+    Session.save(session);
+
+    const intro = Texts_B.getEmpatheticIntro()[lang];
+    const q1 = Texts_B.getQ1()[lang];
+
+    return intro + "\n\n" + q1;
+  },
+
+
+  /************************************************************
+   * FLOW B — CORE QUESTION ENGINE (Q1 → Q11)
+   ************************************************************/
+  _handleFlowBQuestions(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+    const step = session.Current_Step_Code;   // e.g. "B_Q4"
+
+    // Ensure temp object exists
+    if (!session.Temp_Data_Json) session.Temp_Data_Json = {};
+
+    const incoming = (msg || "").trim();
+
+    /************************************************************
+     * MEDIA SUPPORT (Photo / Video / Audio / Files)
+     ************************************************************/
+    if (mediaUrl) {
+      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+      session.Temp_Data_Json[step] = saved;
+      Session.save(session);
+
+      return this._B_next(session);
+    }
+
+    /************************************************************
+     * Text validation (cannot be empty)
+     ************************************************************/
+    if (!incoming) {
+      return Texts_Validation.getEmptyInput(lang);
+    }
+
+    /************************************************************
+     * Save answer
+     ************************************************************/
+    session.Temp_Data_Json[step] = incoming;
+    Session.save(session);
+
+    /************************************************************
+     * Move to next question
+     ************************************************************/
+    return this._B_next(session);
+  },
+
+
+  /************************************************************
+   * FLOW B — DETERMINE NEXT STEP
+   ************************************************************/
+  _B_next(session) {
+
+    const lang = session.Preferred_Language;
+
+    const order = [
+      "B_Q1",
+      "B_Q2",
+      "B_Q3",
+      "B_Q4",
+      "B_Q5",
+      "B_Q6",
+      "B_Q7",
+      "B_Q8",
+      "B_Q9",
+      "B_Q10",
+      "B_Q11",
+    ];
+
+    const current = session.Current_Step_Code;
+    const idx = order.indexOf(current);
+
+    // Last question completed → go to final confirmation
+    if (idx === order.length - 1) {
+
+      session.Current_Step_Code = "B_FINAL_BEFORE_CONFIRM";
+      Session.save(session);
+
+      return Texts_B.getFinalBeforeConfirmation()[lang];
+    }
+
+    // Move to next question
+    const next = order[idx + 1];
+    session.Current_Step_Code = next;
+    Session.save(session);
+
+    // Example: getQ5
+    const getter = `getQ${idx + 2}`;
+    return Texts_B[getter]()[lang];
+  },
+  /************************************************************
+   * FLOW C — START HANDLER
+   * ----------------------------------------------------------
+   * Trigger:
+   *   session.Current_Step_Code == "FLOW_C_START"
+   *
+   * Purpose:
+   *   • Send Empathetic Intro
+   *   • Ask Source-of-Information question (1–3)
+   ************************************************************/
+  _handleFlowCStart(session, msg) {
+
+    const lang = session.Preferred_Language;
+
+    // FIRST ENTRY → intro + source Q
+    if (!msg || !msg.trim()) {
+      session.Current_Step_Code = "C_SOURCE";
+      Session.save(session);
+
+      const intro = Texts_C.getEmpatheticIntro()[lang];
+      const sourceQ = Texts_C.getSourceQuestion()[lang];
+
+      return intro + "\n\n" + sourceQ;
+    }
+
+    // If user sends anything early → still show source Q
+    session.Current_Step_Code = "C_SOURCE";
+    Session.save(session);
+
+    const intro = Texts_C.getEmpatheticIntro()[lang];
+    const sourceQ = Texts_C.getSourceQuestion()[lang];
+
+    return intro + "\n\n" + sourceQ;
+  },
+
+
+  /************************************************************
+   * FLOW C — SOURCE OF INFORMATION (Options 1, 2, 3)
+   ************************************************************/
+  _handleFlowCSource(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim();
+
+    // Validate option
+    if (!["1", "2", "3"].includes(choice)) {
+      return Texts_Validation.getInvalidOption(lang);
+    }
+
+    /**************** OPTION 2 → REJECTION (No Access) ****************/
+    if (choice === "2") {
+
+      session.Current_Step_Code = "C_REJECTED";
+      Session.save(session);
+
+      const reject = Texts_C.getRejectionMessage()[lang];
+      const askNew = Texts_C.getRejectionNewCasePrompt()[lang];
+
+      return reject + "\n\n" + askNew;
+    }
+
+    /**************** OPTION 1 or 3 → Continue to Q1 ****************/
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+    session.Temp_Data_Json["C_SOURCE"] = choice;
+    Session.save(session);
+
+    session.Current_Step_Code = "C_Q1";
+    Session.save(session);
+
+    return Texts_C.getQ1()[lang];
+  },
+
+
+  /************************************************************
+   * FLOW C — REJECTION HANDLER
+   * (User selected option 2)
+   ************************************************************/
+  _handleFlowCRejected(session, msg) {
+
+    const lang = session.Preferred_Language;
+    const choice = (msg || "").trim();
+
+    if (choice === "1") {
+      // Submit new case → restart STEP 2
+      Session.resetPartial(session);
+      session.Current_Step_Code = "USER_TYPE";
+      Session.save(session);
+      return Texts_UserTypes.getUserTypeMenu(lang);
+    }
+
+    if (choice === "2") {
+      // Full exit + closing message
+      const closing = Texts_Closing.getFinalMessage()[lang];
+      Session.resetFull(session);
+      return closing;
+    }
+
+    return Texts_Validation.getInvalidOption(lang);
+  },
+
+
+  /************************************************************
+   * FLOW C — QUESTION ENGINE (Q1 → Q15)
+   ************************************************************/
+  _handleFlowCQuestions(session, msg, raw, mediaUrl, mediaMime) {
+
+    const lang = session.Preferred_Language;
+    const step = session.Current_Step_Code;
+
+    session.Temp_Data_Json = session.Temp_Data_Json || {};
+
+    /**************** MEDIA SUPPORT ****************/
+    if (mediaUrl) {
+      const saved = MediaEngine.saveMedia(session, mediaUrl, mediaMime);
+      session.Temp_Data_Json[step] = saved;
+      Session.save(session);
+      return this._C_next(session);
+    }
+
+    /**************** TEXT VALIDATION ****************/
+    const incoming = (msg || "").trim();
+    if (!incoming) {
+      return Texts_Validation.getEmptyInput(lang);
+    }
+
+    /**************** SAVE ANSWER ****************/
+    session.Temp_Data_Json[step] = incoming;
+    Session.save(session);
+
+    return this._C_next(session);
+  },
+
+
+  /************************************************************
+   * FLOW C — DETERMINE NEXT STEP
+   ************************************************************/
+  _C_next(session) {
+
+    const lang = session.Preferred_Language;
+
+    const order = [
+      "C_Q1","C_Q2","C_Q3","C_Q4","C_Q5","C_Q6","C_Q7",
+      "C_Q8","C_Q9","C_Q10","C_Q11","C_Q12","C_Q13","C_Q14","C_Q15"
+    ];
+
+    const current = session.Current_Step_Code;
+    const idx = order.indexOf(current);
+
+    // Completed last question
+    if (idx === order.length - 1) {
+
+      session.Current_Step_Code = "C_FINAL_BEFORE_CONFIRM";
+      Session.save(session);
+
+      return Texts_C.getFinalBeforeConfirmation()[lang];
+    }
+
+    // Move to next Q
+    const next = order[idx + 1];
+    session.Current_Step_Code = next;
+    Session.save(session);
+
+    // Example: getQ8
+    const getter = `getQ${idx + 2}`;
+    return Texts_C[getter]()[lang];
+  },
+}
