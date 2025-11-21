@@ -33,17 +33,14 @@ const Utils = {
    * 🌍 DETECT REGION BY PREFIX
    ************************************************************/
   detectRegion(number) {
-    const prefixes = CONFIG.REGION_PREFIXES;
-
-    for (const region in prefixes) {
-      for (const prefix of prefixes[region]) {
-        if (number.startsWith(prefix)) {
-          return region;
-        }
-      }
-    }
-
-    return CONFIG.DEFAULT_REGION;
+    if (!number) return "OTHER";
+    const n = number.toString();
+    if (n.startsWith("+92") || n.startsWith("92")) return "PK";
+    if (n.startsWith("+91") || n.startsWith("91")) return "IN";
+    if (n.startsWith("+880") || n.startsWith("880")) return "BD";
+    if (n.startsWith("+971") || n.startsWith("971")) return "ME";
+    if (n.startsWith("+966") || n.startsWith("966")) return "ME";
+    return "OTHER";
   },
 
   /************************************************************
@@ -245,6 +242,10 @@ Object.assign(Utils, {
   /************************************************************
    * 🔢 NORMALIZE PHONE NUMBER
    ************************************************************/
+  normalizeNumber(num) {
+    return this.normalizePhone(num);
+  },
+
   normalizePhone(num) {
     if (!num) return "";
     return num.replace(/\D+/g, "");
