@@ -6,6 +6,56 @@
 const SessionEngine = {
 
   /************************************************************
+   * 📄 GET SHEET REFERENCE
+   ************************************************************/
+  getSheet() {
+    return CONFIG.getUserSessionsSheet();
+  },
+
+  /************************************************************
+   * 📥 GET SESSION WITHOUT CREATING
+   ************************************************************/
+  getSession(whatsAppNumber) {
+    const sheet = this.getSheet();
+    const data = sheet.getDataRange().getValues();
+
+    // Header row
+    const header = data[0];
+    const idx = {
+      number: header.indexOf("WhatsApp_Number"),
+      step: header.indexOf("Current_Step_Code"),
+      flow: header.indexOf("Flow_Type"),
+      region: header.indexOf("Region_Group"),
+      lang: header.indexOf("Preferred_Language"),
+      temp: header.indexOf("Temp_Data_Json"),
+      updated: header.indexOf("Updated_At"),
+    };
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      if (String(row[idx.number]) === String(whatsAppNumber)) {
+        const temp = Utils.safeParse(row[idx.temp], {});
+        return this._hydrateSession({
+          _rowIndex: i + 1,
+          WhatsApp_Number: row[idx.number],
+          Current_Step_Code: row[idx.step],
+          Flow_Type: row[idx.flow],
+          Region_Group: row[idx.region],
+          Preferred_Language: row[idx.lang],
+          Temp_Data_Json: temp,
+          Updated_At: row[idx.updated],
+          _multiStartTime: null,
+          _askedDone: false,
+          _lastMediaUrl: null,
+        });
+      }
+    }
+
+    return null;
+  },
+
+  /************************************************************
    * 📥 LOAD SESSION BY WHATSAPP NUMBER
    ************************************************************/
   load(whatsAppNumber) {
@@ -49,40 +99,39 @@ const SessionEngine = {
     }
 
     // Not found → create a new session
-    return this.create(whatsAppNumber);
+    return this.createNewSession(whatsAppNumber);
   },
 
-  /************************************************************
-   * 🆕 CREATE NEW SESSION
-   ************************************************************/
-  create(whatsAppNumber) {
-    const sheet = CONFIG.getUserSessionsSheet();
-    sheet.appendRow([
-      whatsAppNumber,     // WhatsApp_Number
-      "",                 // Current_Step_Code
-      "",                 // Flow_Type
-      "",                 // Region_Group
-      "",                 // Preferred_Language
-      "{}",               // Temp_Data_Json
-      Utils.formatDate(new Date()), // Updated_At
-    ]);
+  createNewSession(number) {
+    const sheet = this.getSheet();
+    const now = Utils.formatDate(new Date());
+    const region = Utils.detectRegion(number);
 
-    const lastRow = sheet.getLastRow();
+    const row = [
+      number,
+      "LANG_MENU",
+      "",
+      region,
+      "",
+      "{}",
+      now
+    ];
 
-    return this._hydrateSession({
-      RowIndex: lastRow,
-      WhatsApp_Number: whatsAppNumber,
-      Current_Step_Code: "",
+    sheet.appendRow(row);
+
+    return {
+      WhatsApp_Number: number,
+      Current_Step_Code: "LANG_MENU",
       Flow_Type: "",
-      Region_Group: "",
+      Region_Group: region,
       Preferred_Language: "",
       Temp_Data_Json: {},
-      Updated_At: new Date(),
-      _multiStartTime: null,
-      _askedDone: false,
-      _lastMediaUrl: null,
-    });
+      Updated_At: now,
+      _rowIndex: sheet.getLastRow(),
+      RowIndex: sheet.getLastRow()
+    };
   },
+
 };
 /************************************************************
  *  SessionEngine.gs — /storage (BLOCK 2/2)
@@ -94,6 +143,13 @@ Object.assign(SessionEngine, {
   /************************************************************
    * 💾 SAVE SESSION BACK TO SHEET
    ************************************************************/
+  saveSession(session) {
+    if (session && !session.RowIndex && session._rowIndex) {
+      session.RowIndex = session._rowIndex;
+    }
+    return this.save(session);
+  },
+
   save(session) {
     const sheet = CONFIG.getUserSessionsSheet();
 
@@ -245,11 +301,16 @@ Object.assign(SessionEngine, {
     session._askedDone = typeof session._askedDone === "boolean" ? session._askedDone : !!meta.askedDone;
     session._lastMediaUrl = session._lastMediaUrl || meta.lastMediaUrl || null;
 
-    temp._session_meta = {
-      multiStartTime: session._multiStartTime || null,
-      askedDone: !!session._askedDone,
-      lastMediaUrl: session._lastMediaUrl || null,
-    };
+    const hasMeta = !!(session._multiStartTime || session._askedDone || session._lastMediaUrl);
+    if (hasMeta) {
+      temp._session_meta = {
+        multiStartTime: session._multiStartTime || null,
+        askedDone: !!session._askedDone,
+        lastMediaUrl: session._lastMediaUrl || null,
+      };
+    } else {
+      delete temp._session_meta;
+    }
 
     session.Temp_Data_Json = temp;
     session.Temp = temp;
@@ -262,6 +323,7 @@ Object.assign(SessionEngine, {
    ************************************************************/
   _hydrateSession(session) {
     const normalized = this._normalizeTemp(session);
+    normalized.RowIndex = session.RowIndex || session._rowIndex || normalized.RowIndex;
     normalized.Updated_At = session.Updated_At || new Date();
     return normalized;
   },

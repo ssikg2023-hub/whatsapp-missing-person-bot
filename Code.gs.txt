@@ -135,13 +135,15 @@ function extractMessage_(data) {
  ************************************************************/
 function handleIncomingMessage_(msg) {
   try {
-    // Load or create user session
-    let session = SessionEngine.load(msg.from);
+    const from = msg.from;
+    const normalized = Utils.normalizeNumber(from);
 
-    // Auto-set region if empty
+    let session = SessionEngine.getSession(normalized) 
+          || SessionEngine.createNewSession(normalized);
+
     if (!session.Region_Group) {
-      session.Region_Group = Utils.detectRegion(msg.from);
-      SessionEngine.save(session);
+      session.Region_Group = Utils.detectRegion(normalized);
+      SessionEngine.saveSession(session);
     }
 
     // Update session timestamp
