@@ -99,7 +99,7 @@ const SessionEngine = {
     }
 
     // Not found → create a new session
-    return this.create(whatsAppNumber);
+    return this.createNewSession(whatsAppNumber);
   },
 
   createNewSession(number) {
@@ -154,15 +154,15 @@ const SessionEngine = {
       WhatsApp_Number: whatsAppNumber,
       Current_Step_Code: "",
       Flow_Type: "",
-      Region_Group: "",
+      Region_Group: region,
       Preferred_Language: "",
       Temp_Data_Json: {},
-      Updated_At: new Date(),
-      _multiStartTime: null,
-      _askedDone: false,
-      _lastMediaUrl: null,
-    });
+      Updated_At: now,
+      _rowIndex: sheet.getLastRow(),
+      RowIndex: sheet.getLastRow()
+    };
   },
+
 };
 /************************************************************
  *  SessionEngine.gs — /storage (BLOCK 2/2)
@@ -332,11 +332,16 @@ Object.assign(SessionEngine, {
     session._askedDone = typeof session._askedDone === "boolean" ? session._askedDone : !!meta.askedDone;
     session._lastMediaUrl = session._lastMediaUrl || meta.lastMediaUrl || null;
 
-    temp._session_meta = {
-      multiStartTime: session._multiStartTime || null,
-      askedDone: !!session._askedDone,
-      lastMediaUrl: session._lastMediaUrl || null,
-    };
+    const hasMeta = !!(session._multiStartTime || session._askedDone || session._lastMediaUrl);
+    if (hasMeta) {
+      temp._session_meta = {
+        multiStartTime: session._multiStartTime || null,
+        askedDone: !!session._askedDone,
+        lastMediaUrl: session._lastMediaUrl || null,
+      };
+    } else {
+      delete temp._session_meta;
+    }
 
     session.Temp_Data_Json = temp;
     session.Temp = temp;
