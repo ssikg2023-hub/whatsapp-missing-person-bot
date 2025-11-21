@@ -160,7 +160,7 @@ const SessionEngine = {
       Updated_At: now,
       _rowIndex: sheet.getLastRow(),
       RowIndex: sheet.getLastRow()
-    };
+    });
   },
 
 };
@@ -363,3 +363,4 @@ Object.assign(SessionEngine, {
 
 // Backward-compatible alias for flows expecting `Session.*`
 const Session = SessionEngine;
+
