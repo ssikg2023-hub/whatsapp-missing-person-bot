@@ -3,6 +3,8 @@
  *  User Session Load / Save / Create
  ************************************************************/
 
+const getSheet = () => CONFIG.getUserSessionsSheet();
+
 const SessionEngine = {
 
   /************************************************************
@@ -103,7 +105,7 @@ const SessionEngine = {
   },
 
   createNewSession(number) {
-    const sheet = this.getSheet();
+    const sheet = getSheet();
     const now = Utils.formatDate(new Date());
     const region = Utils.detectRegion(number);
 
@@ -127,40 +129,8 @@ const SessionEngine = {
       Preferred_Language: "",
       Temp_Data_Json: {},
       Updated_At: now,
-      _rowIndex: sheet.getLastRow(),
-      RowIndex: sheet.getLastRow()
+      _rowIndex: sheet.getLastRow()
     };
-  },
-
-  /************************************************************
-   * 🆕 CREATE NEW SESSION
-   ************************************************************/
-  create(whatsAppNumber) {
-    const sheet = CONFIG.getUserSessionsSheet();
-    sheet.appendRow([
-      whatsAppNumber,     // WhatsApp_Number
-      "",                 // Current_Step_Code
-      "",                 // Flow_Type
-      "",                 // Region_Group
-      "",                 // Preferred_Language
-      "{}",               // Temp_Data_Json
-      Utils.formatDate(new Date()), // Updated_At
-    ]);
-
-    const lastRow = sheet.getLastRow();
-
-    return this._hydrateSession({
-      RowIndex: lastRow,
-      WhatsApp_Number: whatsAppNumber,
-      Current_Step_Code: "",
-      Flow_Type: "",
-      Region_Group: region,
-      Preferred_Language: "",
-      Temp_Data_Json: {},
-      Updated_At: now,
-      _rowIndex: sheet.getLastRow(),
-      RowIndex: sheet.getLastRow()
-    });
   },
 
 };
