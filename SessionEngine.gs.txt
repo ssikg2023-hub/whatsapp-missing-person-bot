@@ -132,6 +132,37 @@ const SessionEngine = {
     };
   },
 
+  /************************************************************
+   * 🆕 CREATE NEW SESSION
+   ************************************************************/
+  create(whatsAppNumber) {
+    const sheet = CONFIG.getUserSessionsSheet();
+    sheet.appendRow([
+      whatsAppNumber,     // WhatsApp_Number
+      "",                 // Current_Step_Code
+      "",                 // Flow_Type
+      "",                 // Region_Group
+      "",                 // Preferred_Language
+      "{}",               // Temp_Data_Json
+      Utils.formatDate(new Date()), // Updated_At
+    ]);
+
+    const lastRow = sheet.getLastRow();
+
+    return this._hydrateSession({
+      RowIndex: lastRow,
+      WhatsApp_Number: whatsAppNumber,
+      Current_Step_Code: "",
+      Flow_Type: "",
+      Region_Group: region,
+      Preferred_Language: "",
+      Temp_Data_Json: {},
+      Updated_At: now,
+      _rowIndex: sheet.getLastRow(),
+      RowIndex: sheet.getLastRow()
+    };
+  },
+
 };
 /************************************************************
  *  SessionEngine.gs — /storage (BLOCK 2/2)

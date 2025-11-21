@@ -11,17 +11,12 @@ const Flows = {
    ************************************************************/
   routeMessage(session, msg, raw, mediaUrl, mediaMime) {
     const from = session ? session.WhatsApp_Number : "";
-    if (session && (!session.Current_Step_Code || session.Current_Step_Code === "")) {
-      session.Current_Step_Code = "LANG_MENU";
-      SessionEngine.saveSession(session);
-    }
-
-    if (!session || session.Current_Step_Code === "LANG_MENU") {
+    if (!session || !session.Current_Step_Code || session.Current_Step_Code === "") {
       const region = (session && session.Region_Group) || Utils.detectRegion(from);
       const menu = Texts_LangMenus.getMenu(region);
       Code.sendText(from, Texts_Wrapper.resolve(menu, "English"));
-      if (session && session.Current_Step_Code === "LANG_MENU") {
-        session.Current_Step_Code = "LANG_SELECT";
+      if (session) {
+        session.Current_Step_Code = "LANG_MENU";
         SessionEngine.saveSession(session);
       }
       return;

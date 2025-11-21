@@ -138,8 +138,10 @@ function handleIncomingMessage_(msg) {
     const from = msg.from;
     const normalized = Utils.normalizeNumber(from);
 
-    let session = SessionEngine.getSession(normalized) 
-          || SessionEngine.createNewSession(normalized);
+    let session = SessionEngine.getSession(normalized);
+    if (!session) {
+      session = SessionEngine.createNewSession(normalized);
+    }
 
     if (!session.Region_Group) {
       session.Region_Group = Utils.detectRegion(normalized);
