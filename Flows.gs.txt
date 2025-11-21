@@ -22,6 +22,19 @@ const Flows = {
       return;
     }
 
+    /************************************************************
+     * FIRST MESSAGE HANDLER — ALWAYS SHOW LANGUAGE MENU
+     ************************************************************/
+    if (session.Current_Step_Code === "LANG_MENU" &&
+        (!session.Temp_Data_Json || Object.keys(session.Temp_Data_Json).length === 0) &&
+        (!session.Preferred_Language || session.Preferred_Language === "")) {
+
+      const region = session.Region_Group || Utils.detectRegion(session.WhatsApp_Number);
+      const menu = Texts_LangMenus.getMenu(region);
+      Code.sendText(session.WhatsApp_Number, Texts_Wrapper.resolve(menu, "English"));
+      return;
+    }
+
     msg = (msg || "").trim();
     session.Temp_Data_Json = session.Temp_Data_Json || {};
 
