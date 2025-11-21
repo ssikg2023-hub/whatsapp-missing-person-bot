@@ -10,6 +10,18 @@ const Flows = {
    * ENTRY POINT (called from Code.gs)
    ************************************************************/
   routeMessage(session, msg, raw, mediaUrl, mediaMime) {
+    const from = session ? session.WhatsApp_Number : "";
+    if (!session || !session.Current_Step_Code || session.Current_Step_Code === "") {
+      const region = (session && session.Region_Group) || Utils.detectRegion(from);
+      const menu = Texts_LangMenus.getMenu(region);
+      Code.sendText(from, Texts_Wrapper.resolve(menu, "English"));
+      if (session) {
+        session.Current_Step_Code = "LANG_MENU";
+        SessionEngine.saveSession(session);
+      }
+      return;
+    }
+
     msg = (msg || "").trim();
     session.Temp_Data_Json = session.Temp_Data_Json || {};
 
